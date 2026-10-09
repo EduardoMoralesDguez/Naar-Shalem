@@ -1,0 +1,219 @@
+/* ===== Paleta oficial del club (extraída del logo) ===== */
+:root {
+  --club-rojo: #FF1A10;   /* listón */
+  --club-azul: #292C98;   /* letras y túnica */
+  --club-oro: #FFCA00;    /* turbante */
+  --club-blanco: #FFFFFF;
+
+  /* Tonos derivados */
+  --color-fondo: #F4F5FB;
+  --color-texto: #1E2048;
+  --color-suave: #6A6D9A;
+  --color-borde: #DDE0F2;
+  --color-barra-vacia: #E6E8F6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+.contenedor {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+/* ===== Cabecera ===== */
+.cabecera {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 4px solid var(--club-rojo);
+}
+
+.logo {
+  display: block;
+  width: 120px;
+  height: auto;
+  margin: 0 auto 0.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--club-azul);
+}
+
+.subtitulo {
+  margin: 0.25rem 0 0;
+  color: var(--color-suave);
+}
+
+/* ===== Selector ===== */
+.etiqueta {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--club-azul);
+}
+
+select {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 2px solid var(--color-borde);
+  border-radius: 10px;
+  background: var(--club-blanco);
+  color: var(--color-texto);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--club-azul);
+  box-shadow: 0 0 0 3px rgba(41, 44, 152, 0.18);
+}
+
+.mensaje {
+  margin-top: 1rem;
+  color: var(--club-rojo);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ===== Tarjeta de perfil ===== */
+.tarjeta {
+  margin-top: 1.5rem;
+  background: var(--club-blanco);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(41, 44, 152, 0.15);
+}
+
+.tarjeta h2 {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1.3rem;
+  color: var(--club-blanco);
+  background: var(--club-azul);
+  border-bottom: 4px solid var(--club-oro);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+}
+
+dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-suave);
+}
+
+dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--club-azul);
+}
+
+/* ===== Dashboard de progreso ===== */
+.dashboard {
+  padding: 1.1rem 1.25rem 1.4rem;
+  border-top: 4px solid var(--club-rojo);
+  background: #FAFAFE;
+}
+
+.dashboard h3 {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--club-rojo);
+}
+
+.metrica {
+  margin-bottom: 1.1rem;
+}
+
+.metrica-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.metrica-cabecera strong {
+  font-size: 1.25rem;
+  color: var(--club-azul);
+}
+
+.metrica small {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--color-suave);
+}
+
+.barra {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-barra-vacia);
+}
+
+.barra-relleno {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--club-azul);
+  transition: width 0.6s ease;
+}
+
+/* Cuotas por debajo de la meta del 70% */
+.barra-relleno.bajo-meta {
+  background: var(--club-oro);
+}
+
+/* Marca de la meta (70%) */
+.barra-meta {
+  position: absolute;
+  left: 70%;
+  top: -4px;
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--club-rojo);
+}
+
+.total-pagado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: var(--club-oro);
+  color: var(--club-azul);
+  font-weight: 700;
+}
+
+.total-pagado strong {
+  font-size: 1.5rem;
+}
+
+[hidden] {
+  display: none !important;
+}

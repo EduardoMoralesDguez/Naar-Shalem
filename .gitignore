@@ -1,0 +1,14 @@
+# Dependencias (se regeneran con npm install)
+node_modules/
+
+# Credenciales y configuración local
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo y editor
+.DS_Store
+Thumbs.db
+.vscode/
