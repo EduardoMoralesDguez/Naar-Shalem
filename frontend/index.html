@@ -11,15 +11,17 @@
     <header class="cabecera">
       <img src="img/LogoNS.png" alt="Logo del club Naar Shalem" class="logo" width="120">
       <h1>Naar-Shalem</h1>
-      <p class="subtitulo">Selecciona un miembro del club</p>
     </header>
 
-    <label for="selectorUsuario" class="etiqueta">Usuario</label>
-    <select id="selectorUsuario">
-      <option value="">Cargando usuarios...</option>
-    </select>
+    <div class="panel-selector">
+      <label for="selectorUsuario" class="etiqueta">Usuario</label>
+      <p class="subtitulo">Selecciona un miembro del club</p> <p></p>
+      <select id="selectorUsuario">
+        <option value="">Cargando usuarios...</option>
+      </select>
 
-    <p id="mensaje" class="mensaje" hidden></p>
+      <p id="mensaje" class="mensaje" hidden></p>
+    </div>
 
     <section id="tarjeta" class="tarjeta" hidden>
       <h2 id="tarjetaNombre"></h2>
