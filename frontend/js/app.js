@@ -1,8 +1,68 @@
 // app.js
-const API_URL = 'http://localhost:3000/api/usuarios';
-const API_PROGRESO = 'http://localhost:3000/api/progreso';
-const API_ESPECIALIDADES = 'http://localhost:3000/api/especialidades';
+
+// ============================================================
+// CONFIGURACIÓN DE SUPABASE: EDITA ÚNICAMENTE ESTAS DOS LÍNEAS.
+//
+// 1. En tu proyecto de Supabase, abre "Connect" o la configuración
+//    de API y copia la "Project URL". Pégala entre las comillas.
+//
+// 2. Copia la clave pública "anon" desde la sección "API Keys"
+//    y pégala entre las comillas de SUPABASE_ANON_KEY.
+//    También puedes usar la nueva clave pública "publishable".
+//
+// No necesitas un archivo .env.
+// Nunca pegues una clave "service_role" ni una clave "secret":
+// esas claves son privadas y no deben estar en el navegador.
+// ============================================================
+
+const SUPABASE_URL = 'https://azjakonzmibocgxszujj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9f2b9linwSSoasYqx2pg7A_hIBrNTjO';
+
+// Nuestro schema.sql creó tablas en minúsculas.
+// PostgreSQL convierte USUARIOS sin comillas a usuarios.
+// Por eso las consultas usan .from('usuarios').
+//
+// Para que funcionen las consultas, Supabase debe permitir
+// SELECT sobre las tablas y relaciones utilizadas mediante
+// permisos y políticas RLS adecuados al acceso de tu aplicación.
+//
+// Ejecutar schema.sql no configura estas políticas.
+// Con RLS activado y sin una política de lectura aplicable,
+// Supabase puede devolver un arreglo vacío.
+//
+// Seleccionar aquí solo ciertas columnas no protege las demás:
+// restringe en Supabase el acceso a los datos médicos y personales.
+// No desactives RLS como solución general.
+
+let clienteSupabase = null;
+let errorConfiguracion = '';
+
+try {
+  if (
+    SUPABASE_URL.includes('TU-PROYECTO') ||
+    SUPABASE_ANON_KEY === 'PEGA_AQUI_TU_ANON_KEY'
+  ) {
+    throw new Error(
+      'Abre js/app.js y pega tu Project URL y tu anon key en las dos constantes del inicio.'
+    );
+  }
+
+  if (!window.supabase) {
+    throw new Error(
+      'No se pudo cargar Supabase desde el CDN. Revisa tu conexión y recarga la página.'
+    );
+  }
+
+  clienteSupabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+} catch (error) {
+  errorConfiguracion = error.message;
+}
+
 const META_CUOTAS = 70;
+const TAMANO_PAGINA = 500;
 
 const formatoMoneda = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -49,28 +109,95 @@ function seleccionVigente(idUsuario, version) {
   return version === seleccionVersion && selector.value === idUsuario;
 }
 
-async function cargarUsuarios() {
-  try {
-    const respuesta = await fetch(API_URL);
+// Lee por páginas para no limitar los cálculos a la primera
+// página de resultados devuelta por Supabase.
+// Cada consulta debe tener un orden estable.
+async function consultarTodasLasFilas(crearConsulta) {
+  const filas = [];
+  let inicio = 0;
 
-    if (!respuesta.ok) {
-      throw new Error(`Error HTTP ${respuesta.status}`);
+  while (true) {
+    const { data, error } = await crearConsulta().range(
+      inicio,
+      inicio + TAMANO_PAGINA - 1
+    );
+
+    if (error) throw error;
+
+    if (!Array.isArray(data)) {
+      throw new Error('Supabase devolvió una respuesta inesperada.');
     }
 
-    usuarios = await respuesta.json();
-    llenarSelector();
-    mensaje.hidden = true;
-  } catch (error) {
-    console.error(error);
-    selector.innerHTML = '<option value="">No disponible</option>';
-    mostrarError(
-      'No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 3000?'
+    if (data.length === 0) break;
+
+    filas.push(...data);
+    inicio += data.length;
+  }
+
+  return filas;
+}
+
+async function cargarUsuarios() {
+  selector.disabled = true;
+  mensaje.hidden = true;
+
+  try {
+    if (!clienteSupabase) {
+      throw new Error(errorConfiguracion || 'Supabase no está configurado.');
+    }
+
+    const filas = await consultarTodasLasFilas(() =>
+      clienteSupabase
+        .from('usuarios')
+        .select(`
+          id_usuario,
+          nombres,
+          apellido,
+          rol,
+          unidad:unidades(nombre),
+          clase:clases(nombre),
+          ciclos!inner(es_activo)
+        `)
+        .eq('es_activo', true)
+        .eq('ciclos.es_activo', true)
+        .order('nombres')
+        .order('apellido')
+        .order('id_usuario')
     );
+
+    usuarios = filas.map((usuario) => ({
+      id_usuario: usuario.id_usuario,
+      nombres: usuario.nombres,
+      apellido: usuario.apellido,
+      rol: usuario.rol,
+      unidad: usuario.unidad?.nombre || null,
+      clase: usuario.clase?.nombre || null,
+    }));
+
+    llenarSelector();
+  } catch (error) {
+    console.error('Error al cargar usuarios desde Supabase:', error);
+
+    selector.replaceChildren(new Option('No disponible', ''));
+
+    mostrarError(
+      errorConfiguracion ||
+      'No se pudieron cargar los usuarios. Revisa la conexión e inténtalo de nuevo.'
+    );
+  } finally {
+    selector.disabled = usuarios.length === 0;
   }
 }
 
 function llenarSelector() {
-  selector.innerHTML = '<option value="">-- Elige un usuario --</option>';
+  selector.replaceChildren(
+    new Option(
+      usuarios.length
+        ? '-- Elige un usuario --'
+        : 'No hay usuarios disponibles',
+      ''
+    )
+  );
 
   usuarios.forEach((usuario) => {
     const opcion = document.createElement('option');
@@ -90,6 +217,7 @@ function pintarProgreso({ asistencia, cuotas }) {
   cuotasPorcentaje.textContent = `${cuotas.porcentaje}%`;
   cuotasBarra.style.width = `${cuotas.porcentaje}%`;
   cuotasBarra.classList.toggle('bajo-meta', cuotas.porcentaje < META_CUOTAS);
+
   cuotasDetalle.textContent =
     `${cuotas.semanas_pagadas} de ${cuotas.semanas_registradas} semanas pagadas ` +
     `(meta: ${META_CUOTAS}%)`;
@@ -99,22 +227,88 @@ function pintarProgreso({ asistencia, cuotas }) {
 
 async function cargarProgreso(idUsuario, version) {
   try {
-    const respuesta = await fetch(`${API_PROGRESO}/${idUsuario}`);
-
-    if (!respuesta.ok) {
-      throw new Error(`Error HTTP ${respuesta.status}`);
-    }
-
-    const progreso = await respuesta.json();
+    // Conserva las mismas reglas del backend anterior:
+    // asistencia = (asistencias + justificadas) / registros;
+    // cuotas = semanas con pago positivo / semanas registradas.
+    // Ambas consultas consideran únicamente ciclos activos.
+    const [registrosAsistencia, registrosCuotas] = await Promise.all([
+      consultarTodasLasFilas(() =>
+        clienteSupabase
+          .from('asistencias')
+          .select(`
+            id_asistencia,
+            estado,
+            ciclos!inner(es_activo)
+          `)
+          .eq('id_usuario', idUsuario)
+          .eq('ciclos.es_activo', true)
+          .order('id_asistencia')
+      ),
+      consultarTodasLasFilas(() =>
+        clienteSupabase
+          .from('cuotas')
+          .select(`
+            id_cuota,
+            monto_pagado,
+            ciclos!inner(es_activo)
+          `)
+          .eq('id_usuario', idUsuario)
+          .eq('ciclos.es_activo', true)
+          .order('id_cuota')
+      ),
+    ]);
 
     if (!seleccionVigente(idUsuario, version)) return;
 
-    pintarProgreso(progreso);
+    const asistencias = registrosAsistencia.filter(
+      (registro) => registro.estado === 'asistencia'
+    ).length;
+
+    const justificados = registrosAsistencia.filter(
+      (registro) => registro.estado === 'justificado'
+    ).length;
+
+    const faltas = registrosAsistencia.filter(
+      (registro) => registro.estado === 'falta'
+    ).length;
+
+    const totalRegistros = registrosAsistencia.length;
+    const semanasRegistradas = registrosCuotas.length;
+
+    const semanasPagadas = registrosCuotas.filter(
+      (registro) => Number(registro.monto_pagado) > 0
+    ).length;
+
+    const total = registrosCuotas.reduce(
+      (suma, registro) => suma + Number(registro.monto_pagado),
+      0
+    );
+
+    pintarProgreso({
+      asistencia: {
+        asistencias,
+        justificados,
+        faltas,
+        total_registros: totalRegistros,
+        porcentaje: totalRegistros
+          ? Math.round(((asistencias + justificados) / totalRegistros) * 100)
+          : 0,
+      },
+      cuotas: {
+        total_pagado: total,
+        semanas_pagadas: semanasPagadas,
+        semanas_registradas: semanasRegistradas,
+        porcentaje: semanasRegistradas
+          ? Math.round((semanasPagadas / semanasRegistradas) * 100)
+          : 0,
+      },
+    });
+
     dashboardError.hidden = true;
     dashboardMetricas.hidden = false;
     dashboard.hidden = false;
   } catch (error) {
-    console.error(error);
+    console.error('Error al cargar progreso desde Supabase:', error);
 
     if (!seleccionVigente(idUsuario, version)) return;
 
@@ -129,6 +323,8 @@ function resolverImagen(ruta) {
   if (typeof ruta !== 'string' || !ruta.trim()) return null;
 
   try {
+    // Las rutas img/especialidades/... siguen apuntando
+    // a las imágenes del frontend, junto a index.html.
     const url = new URL(ruta, document.baseURI);
 
     if (!['http:', 'https:', 'file:'].includes(url.protocol)) {
@@ -188,27 +384,37 @@ function pintarEspecialidades(lista) {
 
 async function cargarEspecialidades(idUsuario, version) {
   try {
-    const respuesta = await fetch(`${API_ESPECIALIDADES}/${idUsuario}`);
-
-    if (!respuesta.ok) {
-      throw new Error(`Error HTTP ${respuesta.status}`);
-    }
-
-    const lista = await respuesta.json();
-
-    if (!Array.isArray(lista)) {
-      throw new Error('Respuesta de especialidades inválida');
-    }
+    // Supabase utiliza la clave foránea de la tabla intermedia
+    // para relacionar cada asignación con su especialidad.
+    const asignaciones = await consultarTodasLasFilas(() =>
+      clienteSupabase
+        .from('conquistador_especialidades')
+        .select(`
+          id_especialidad,
+          especialidad:especialidades!inner(
+            id_especialidad,
+            nombre,
+            url_imagen
+          )
+        `)
+        .eq('id_usuario', idUsuario)
+        .order('id_especialidad')
+    );
 
     if (!seleccionVigente(idUsuario, version)) return;
 
+    const lista = asignaciones
+      .map((asignacion) => asignacion.especialidad)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
     pintarEspecialidades(lista);
+
     especialidadesEstado.textContent = lista.length
       ? ''
       : 'Aún no hay especialidades obtenidas';
     especialidadesEstado.hidden = lista.length > 0;
   } catch (error) {
-    console.error(error);
+    console.error('Error al cargar especialidades desde Supabase:', error);
 
     if (!seleccionVigente(idUsuario, version)) return;
 
@@ -220,7 +426,7 @@ async function cargarEspecialidades(idUsuario, version) {
 }
 
 function mostrarTarjeta(idUsuario) {
-  // Evita que una respuesta anterior pinte la banda de otro usuario.
+  // Descarta respuestas de selecciones anteriores.
   const version = ++seleccionVersion;
 
   especialidadesLista.replaceChildren();
