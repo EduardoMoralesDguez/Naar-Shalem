@@ -1,7 +1,6 @@
 -- schema.sql
--- Naar-Shalem | Fases 1, 2 y 3
--- PostgreSQL 13+
--- Conserva los datos existentes. Los INSERT de prueba son repetibles.
+-- Naar-Shalem | Fases 1, 2 y 3 | PostgreSQL 13+
+-- Conserva los datos existentes y permite repetir los INSERT de prueba.
 
 BEGIN;
 
@@ -111,7 +110,6 @@ CREATE TABLE IF NOT EXISTS cuotas (
     UNIQUE (id_usuario, fecha_semana)
 );
 
--- Laura: 100%; Daniel: 75%; Ana: 50%.
 INSERT INTO asistencias (id_usuario, id_ciclo, fecha, estado) VALUES
 ('d0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '2026-09-05', 'asistencia'),
 ('d0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '2026-09-12', 'asistencia'),
@@ -127,7 +125,6 @@ INSERT INTO asistencias (id_usuario, id_ciclo, fecha, estado) VALUES
 ('d0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '2026-09-26', 'asistencia')
 ON CONFLICT DO NOTHING;
 
--- Laura: $40; Daniel: $30; Ana: $20.
 INSERT INTO cuotas (id_usuario, id_ciclo, fecha_semana, monto_pagado) VALUES
 ('d0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '2026-09-05', 10),
 ('d0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '2026-09-12', 10),
@@ -143,15 +140,32 @@ INSERT INTO cuotas (id_usuario, id_ciclo, fecha_semana, monto_pagado) VALUES
 ('d0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '2026-09-26', 10)
 ON CONFLICT DO NOTHING;
 
--- FASE 3: ESPECIALIDADES
+-- FASE 3: BANDA VIRTUAL DE ESPECIALIDADES
 
 CREATE TABLE IF NOT EXISTS especialidades (
     id_especialidad UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL UNIQUE,
-    categoria VARCHAR(100) NOT NULL,
-    color_fondo VARCHAR(7) NOT NULL DEFAULT '#292C98'
-        CHECK (color_fondo ~ '^#[0-9A-Fa-f]{6}$')
+    url_imagen VARCHAR(500) NOT NULL
 );
+
+-- Compatibilidad con la versión anterior que usaba colores.
+ALTER TABLE especialidades
+    ADD COLUMN IF NOT EXISTS url_imagen VARCHAR(500);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'especialidades'
+          AND column_name = 'categoria'
+    ) THEN
+        ALTER TABLE especialidades
+            ALTER COLUMN categoria SET DEFAULT 'General';
+    END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS conquistador_especialidades (
     id_usuario UUID NOT NULL REFERENCES usuarios(id_usuario),
@@ -160,27 +174,45 @@ CREATE TABLE IF NOT EXISTS conquistador_especialidades (
     PRIMARY KEY (id_usuario, id_especialidad)
 );
 
-INSERT INTO especialidades (
-    id_especialidad, nombre, categoria, color_fondo
-) VALUES
-('e0000000-0000-4000-8000-000000000001', 'Fogatas', 'Actividades recreativas', '#FFCA00'),
-('e0000000-0000-4000-8000-000000000002', 'Nudos', 'Actividades recreativas', '#DDE0F2'),
-('e0000000-0000-4000-8000-000000000003', 'Primeros Auxilios', 'Salud y ciencia', '#FFB4AE'),
-('e0000000-0000-4000-8000-000000000004', 'Liderazgo', 'Servicio y liderazgo', '#B9D8FF')
-ON CONFLICT DO NOTHING;
+-- Actualiza la imagen si la especialidad ya existe por nombre.
+INSERT INTO especialidades (id_especialidad, nombre, url_imagen) VALUES
+(
+    'f0000000-0000-4000-8000-000000000001',
+    'Primeros Auxilios',
+    'img/especialidades/primeros_auxilios.png'
+),
+(
+    'f0000000-0000-4000-8000-000000000002',
+    'Ejercicios y Marchas',
+    'img/especialidades/ejercicios_y_marchas.png'
+),
+(
+    'f0000000-0000-4000-8000-000000000003',
+    'Nudos',
+    'img/especialidades/nudos.png'
+),
+(
+    'f0000000-0000-4000-8000-000000000004',
+    'Astronomía',
+    'img/especialidades/astronomia.png'
+)
+ON CONFLICT (nombre) DO UPDATE
+SET url_imagen = EXCLUDED.url_imagen;
 
-INSERT INTO conquistador_especialidades (
-    id_usuario, id_especialidad
-) VALUES
--- Laura: Primeros Auxilios y Liderazgo.
-('d0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000003'),
-('d0000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000004'),
--- Daniel: Fogatas y Nudos.
-('d0000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000001'),
-('d0000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000002'),
--- Ana: Nudos y Primeros Auxilios.
-('d0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000002'),
-('d0000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000003')
+-- Busca las especialidades por nombre para conservar sus UUID existentes.
+INSERT INTO conquistador_especialidades (id_usuario, id_especialidad)
+SELECT asignacion.id_usuario, especialidad.id_especialidad
+FROM (
+    VALUES
+    ('d0000000-0000-4000-8000-000000000001'::UUID, 'Primeros Auxilios'),
+    ('d0000000-0000-4000-8000-000000000001'::UUID, 'Ejercicios y Marchas'),
+    ('d0000000-0000-4000-8000-000000000002'::UUID, 'Nudos'),
+    ('d0000000-0000-4000-8000-000000000002'::UUID, 'Ejercicios y Marchas'),
+    ('d0000000-0000-4000-8000-000000000003'::UUID, 'Nudos'),
+    ('d0000000-0000-4000-8000-000000000003'::UUID, 'Astronomía')
+) AS asignacion(id_usuario, nombre)
+JOIN especialidades especialidad
+    ON especialidad.nombre = asignacion.nombre
 ON CONFLICT DO NOTHING;
 
 COMMIT;

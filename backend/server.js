@@ -115,7 +115,7 @@ app.get("/api/progreso/:idUsuario", async (req, res) => {
   }
 });
 
-// Fase 3: insignias obtenidas; devuelve [] cuando no hay especialidades.
+// Fase 3: especialidades del usuario seleccionado.
 app.get("/api/especialidades/:idUsuario", async (req, res) => {
   const { idUsuario } = req.params;
 
@@ -128,13 +128,11 @@ app.get("/api/especialidades/:idUsuario", async (req, res) => {
       `SELECT
          e.id_especialidad,
          e.nombre,
-         e.categoria,
-         e.color_fondo,
-         ce.fecha_obtencion
+         e.url_imagen
        FROM conquistador_especialidades ce
        JOIN especialidades e ON e.id_especialidad = ce.id_especialidad
        WHERE ce.id_usuario = $1
-       ORDER BY e.categoria, e.nombre`,
+       ORDER BY e.nombre`,
       [idUsuario],
     );
 

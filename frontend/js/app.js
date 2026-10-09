@@ -45,6 +45,10 @@ function mostrarError(texto) {
   mensaje.hidden = false;
 }
 
+function seleccionVigente(idUsuario, version) {
+  return version === seleccionVersion && selector.value === idUsuario;
+}
+
 async function cargarUsuarios() {
   try {
     const respuesta = await fetch(API_URL);
@@ -103,8 +107,7 @@ async function cargarProgreso(idUsuario, version) {
 
     const progreso = await respuesta.json();
 
-    // Descarta respuestas anteriores, incluso si se vuelve al mismo usuario.
-    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+    if (!seleccionVigente(idUsuario, version)) return;
 
     pintarProgreso(progreso);
     dashboardError.hidden = true;
@@ -113,12 +116,28 @@ async function cargarProgreso(idUsuario, version) {
   } catch (error) {
     console.error(error);
 
-    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+    if (!seleccionVigente(idUsuario, version)) return;
 
     dashboardError.textContent = 'No se pudo cargar el progreso de este usuario.';
     dashboardError.hidden = false;
     dashboardMetricas.hidden = true;
     dashboard.hidden = false;
+  }
+}
+
+function resolverImagen(ruta) {
+  if (typeof ruta !== 'string' || !ruta.trim()) return null;
+
+  try {
+    const url = new URL(ruta, document.baseURI);
+
+    if (!['http:', 'https:', 'file:'].includes(url.protocol)) {
+      return null;
+    }
+
+    return url.href;
+  } catch {
+    return null;
   }
 }
 
@@ -128,36 +147,39 @@ function pintarEspecialidades(lista) {
 
   lista.forEach((especialidad) => {
     const item = document.createElement('li');
-    item.className = 'especialidad-item';
+    item.className = 'banda-item';
 
-    const parche = document.createElement('div');
-    parche.className = 'especialidad-parche';
-    parche.textContent = especialidad.nombre;
+    const nombre = document.createElement('span');
+    nombre.className = 'banda-nombre';
+    nombre.textContent = especialidad.nombre;
 
-    const color = /^#[0-9a-f]{6}$/i.test(especialidad.color_fondo)
-      ? especialidad.color_fondo
-      : '#DDE0F2';
+    const fallback = document.createElement('span');
+    fallback.className = 'banda-fallback';
+    fallback.textContent = 'Imagen no disponible';
+    fallback.hidden = true;
 
-    parche.style.backgroundColor = color;
+    const ruta = resolverImagen(especialidad.url_imagen);
 
-    // Selecciona texto negro o blanco según la luminancia del fondo.
-    const rgb = color.slice(1).match(/.{2}/g).map((valor) => {
-      const canal = parseInt(valor, 16) / 255;
-      return canal <= 0.04045
-        ? canal / 12.92
-        : ((canal + 0.055) / 1.055) ** 2.4;
-    });
+    if (ruta) {
+      const imagen = document.createElement('img');
+      imagen.className = 'banda-insignia';
+      imagen.alt = `Insignia de ${especialidad.nombre}`;
+      imagen.width = 80;
+      imagen.height = 80;
+      imagen.decoding = 'async';
 
-    const luminancia =
-      rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      imagen.addEventListener('error', () => {
+        imagen.hidden = true;
+        fallback.hidden = false;
+      }, { once: true });
 
-    parche.style.color = luminancia > 0.179 ? '#000000' : '#FFFFFF';
+      imagen.src = ruta;
+      item.appendChild(imagen);
+    } else {
+      fallback.hidden = false;
+    }
 
-    const categoria = document.createElement('span');
-    categoria.className = 'especialidad-categoria';
-    categoria.textContent = especialidad.categoria;
-
-    item.append(parche, categoria);
+    item.append(fallback, nombre);
     fragmento.appendChild(item);
   });
 
@@ -178,28 +200,27 @@ async function cargarEspecialidades(idUsuario, version) {
       throw new Error('Respuesta de especialidades inválida');
     }
 
-    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+    if (!seleccionVigente(idUsuario, version)) return;
 
     pintarEspecialidades(lista);
-    especialidadesEstado.classList.remove('mensaje');
     especialidadesEstado.textContent = lista.length
       ? ''
-      : 'Este integrante aún no tiene especialidades obtenidas.';
+      : 'Aún no hay especialidades obtenidas';
     especialidadesEstado.hidden = lista.length > 0;
   } catch (error) {
     console.error(error);
 
-    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+    if (!seleccionVigente(idUsuario, version)) return;
 
     especialidadesLista.replaceChildren();
-    especialidadesEstado.classList.add('mensaje');
     especialidadesEstado.textContent =
-      'No se pudieron cargar las especialidades de este usuario.';
+      'No se pudieron cargar las especialidades. Vuelve a seleccionar al usuario para reintentar.';
     especialidadesEstado.hidden = false;
   }
 }
 
 function mostrarTarjeta(idUsuario) {
+  // Evita que una respuesta anterior pinte la banda de otro usuario.
   const version = ++seleccionVersion;
 
   especialidadesLista.replaceChildren();
@@ -220,11 +241,9 @@ function mostrarTarjeta(idUsuario) {
   tarjeta.hidden = false;
 
   especialidadesSeccion.hidden = false;
-  especialidadesEstado.classList.remove('mensaje');
   especialidadesEstado.textContent = 'Cargando especialidades…';
   especialidadesEstado.hidden = false;
 
-  // Las dos secciones se cargan de forma independiente.
   cargarProgreso(idUsuario, version);
   cargarEspecialidades(idUsuario, version);
 }

@@ -1,16 +1,15 @@
 /* style.css */
-/* ===== Paleta oficial del club ===== */
 :root {
   --club-rojo: #FF1A10;
   --club-azul: #292C98;
   --club-oro: #FFCA00;
   --club-blanco: #FFFFFF;
-
   --color-fondo: #F4F5FB;
   --color-texto: #1E2048;
   --color-suave: #6A6D9A;
   --color-borde: #DDE0F2;
   --color-barra-vacia: #E6E8F6;
+  --banda-verde: #0f4a29;
 }
 
 * {
@@ -86,6 +85,10 @@ select:focus {
   color: var(--club-rojo);
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.panel-selector {
+  display: contents;
 }
 
 /* ===== Tarjeta de perfil ===== */
@@ -212,90 +215,129 @@ dd {
   font-size: 1.5rem;
 }
 
-[hidden] {
-  display: none !important;
-}
-
-/* Mantiene el flujo original en móviles y tabletas. */
-.panel-selector {
-  display: contents;
-}
-
-/* ===== Banda virtual de especialidades ===== */
+/* ===== Banda horizontal de especialidades ===== */
 .especialidades {
   padding: 1.1rem 1.25rem 1.4rem;
   border-top: 4px solid var(--club-oro);
-  background: var(--club-blanco);
 }
 
 .especialidades h3 {
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--club-azul);
 }
 
-.especialidades-estado {
+.banda {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 160px;
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--color-suave);
+  padding: 1.5rem 1.25rem;
+  border: 1px solid #08351b;
+  border-radius: 12px;
+  background-color: var(--banda-verde);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 255, 255, 0.025) 3px,
+    rgba(255, 255, 255, 0.025) 4px
+  );
+  box-shadow:
+    inset 0 5px 10px rgba(0, 0, 0, 0.15),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.15),
+    0 6px 16px rgba(15, 74, 41, 0.18);
 }
 
-.especialidades-estado.mensaje {
-  color: var(--club-rojo);
+.banda::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(225, 239, 217, 0.4);
+  border-radius: 6px;
+  pointer-events: none;
 }
 
-.especialidades-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
-  gap: 1.25rem 1rem;
+.banda-grid {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.5rem;
+  width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.especialidades-grid:empty {
+.banda-grid:empty {
   display: none;
 }
 
-.especialidad-item {
+.banda-item {
   display: flex;
+  flex: 0 1 96px;
   flex-direction: column;
   align-items: center;
   gap: 0.6rem;
   min-width: 0;
+  max-width: 100%;
   text-align: center;
 }
 
-.especialidad-parche {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 120px;
+.banda-insignia {
+  display: block;
+  width: 80px;
   max-width: 100%;
-  aspect-ratio: 1;
-  padding: 0.9rem;
-  border: 3px solid var(--club-azul);
-  outline: 2px dashed rgba(41, 44, 152, 0.35);
-  outline-offset: -8px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
+}
+
+.banda-nombre {
+  color: #edf5e9;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.banda-fallback {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  max-width: 100%;
+  height: 80px;
+  padding: 0.4rem;
+  border: 2px dashed #b9d0ad;
   border-radius: 50%;
-  background: var(--color-borde);
-  color: var(--color-texto);
-  box-shadow: 0 4px 10px rgba(41, 44, 152, 0.12);
-  font-size: 0.85rem;
-  font-weight: 800;
+  color: #edf5e9;
+  font-size: 0.65rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
-.especialidad-categoria {
-  max-width: 160px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--color-suave);
+.banda-estado {
+  position: relative;
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+  color: #d3e5cd;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 /* ===== Distribución de escritorio ===== */
@@ -375,5 +417,13 @@ dd {
     grid-column: 1 / -1;
     flex-wrap: wrap;
     gap: 0.5rem 1rem;
+  }
+
+  .banda {
+    padding: 1.75rem 2rem;
+  }
+
+  .banda-grid {
+    gap: 1.75rem 2rem;
   }
 }

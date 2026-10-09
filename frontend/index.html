@@ -20,12 +20,12 @@
       <select id="selectorUsuario">
         <option value="">Cargando usuarios...</option>
       </select>
-
       <p id="mensaje" class="mensaje" hidden></p>
     </div>
 
     <section id="tarjeta" class="tarjeta" hidden>
       <h2 id="tarjetaNombre"></h2>
+
       <dl>
         <div>
           <dt>Rol</dt>
@@ -82,19 +82,23 @@
         aria-labelledby="especialidadesTitulo"
         hidden
       >
-        <h3 id="especialidadesTitulo">Especialidades Obtenidas</h3>
-        <p
-          id="especialidadesEstado"
-          class="especialidades-estado"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        ></p>
-        <ul
-          id="especialidadesLista"
-          class="especialidades-grid"
-          aria-label="Insignias obtenidas"
-        ></ul>
+        <h3 id="especialidadesTitulo">Banda de Especialidades</h3>
+
+        <div class="banda">
+          <p
+            id="especialidadesEstado"
+            class="banda-estado"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></p>
+
+          <ul
+            id="especialidadesLista"
+            class="banda-grid"
+            aria-label="Especialidades obtenidas"
+          ></ul>
+        </div>
       </section>
     </section>
   </main>
