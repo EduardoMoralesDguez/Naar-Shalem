@@ -1,10 +1,11 @@
+/* style.css */
+/* ===== Paleta oficial del club ===== */
 :root {
-  --club-rojo: #FF1A10;   /* listón */
-  --club-azul: #292C98;   /* letras y túnica */
-  --club-oro: #FFCA00;    /* turbante */
+  --club-rojo: #FF1A10;
+  --club-azul: #292C98;
+  --club-oro: #FFCA00;
   --club-blanco: #FFFFFF;
 
-  /* Tonos derivados */
   --color-fondo: #F4F5FB;
   --color-texto: #1E2048;
   --color-suave: #6A6D9A;
@@ -182,12 +183,10 @@ dd {
   transition: width 0.6s ease;
 }
 
-/* Cuotas por debajo de la meta del 70% */
 .barra-relleno.bajo-meta {
   background: var(--club-oro);
 }
 
-/* Marca de la meta (70%) */
 .barra-meta {
   position: absolute;
   left: 70%;
@@ -220,6 +219,83 @@ dd {
 /* Mantiene el flujo original en móviles y tabletas. */
 .panel-selector {
   display: contents;
+}
+
+/* ===== Banda virtual de especialidades ===== */
+.especialidades {
+  padding: 1.1rem 1.25rem 1.4rem;
+  border-top: 4px solid var(--club-oro);
+  background: var(--club-blanco);
+}
+
+.especialidades h3 {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--club-azul);
+}
+
+.especialidades-estado {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-suave);
+}
+
+.especialidades-estado.mensaje {
+  color: var(--club-rojo);
+}
+
+.especialidades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: 1.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.especialidades-grid:empty {
+  display: none;
+}
+
+.especialidad-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.especialidad-parche {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  padding: 0.9rem;
+  border: 3px solid var(--club-azul);
+  outline: 2px dashed rgba(41, 44, 152, 0.35);
+  outline-offset: -8px;
+  border-radius: 50%;
+  background: var(--color-borde);
+  color: var(--color-texto);
+  box-shadow: 0 4px 10px rgba(41, 44, 152, 0.12);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.especialidad-categoria {
+  max-width: 160px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-suave);
+  overflow-wrap: anywhere;
 }
 
 /* ===== Distribución de escritorio ===== */
@@ -274,7 +350,8 @@ dd {
     padding: 1.5rem;
   }
 
-  .dashboard {
+  .dashboard,
+  .especialidades {
     padding: 1.5rem;
   }
 

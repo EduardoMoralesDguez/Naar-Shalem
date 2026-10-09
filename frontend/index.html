@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,11 +12,11 @@
     <header class="cabecera">
       <img src="img/LogoNS.png" alt="Logo del club Naar Shalem" class="logo" width="120">
       <h1>Naar-Shalem</h1>
+      <p class="subtitulo">Selecciona un miembro del club</p>
     </header>
 
     <div class="panel-selector">
       <label for="selectorUsuario" class="etiqueta">Usuario</label>
-      <p class="subtitulo">Selecciona un miembro del club</p> <p></p>
       <select id="selectorUsuario">
         <option value="">Cargando usuarios...</option>
       </select>
@@ -74,6 +75,27 @@
           </div>
         </div>
       </div>
+
+      <section
+        id="especialidades"
+        class="especialidades"
+        aria-labelledby="especialidadesTitulo"
+        hidden
+      >
+        <h3 id="especialidadesTitulo">Especialidades Obtenidas</h3>
+        <p
+          id="especialidadesEstado"
+          class="especialidades-estado"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
+        <ul
+          id="especialidadesLista"
+          class="especialidades-grid"
+          aria-label="Insignias obtenidas"
+        ></ul>
+      </section>
     </section>
   </main>
 

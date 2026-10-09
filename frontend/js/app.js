@@ -1,6 +1,8 @@
+// app.js
 const API_URL = 'http://localhost:3000/api/usuarios';
 const API_PROGRESO = 'http://localhost:3000/api/progreso';
-const META_CUOTAS = 70; // % de cumplimiento financiero esperado
+const API_ESPECIALIDADES = 'http://localhost:3000/api/especialidades';
+const META_CUOTAS = 70;
 
 const formatoMoneda = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -27,9 +29,13 @@ const cuotasBarra = document.getElementById('cuotasBarra');
 const cuotasDetalle = document.getElementById('cuotasDetalle');
 const totalPagado = document.getElementById('totalPagado');
 
-let usuarios = [];
+const especialidadesSeccion = document.getElementById('especialidades');
+const especialidadesEstado = document.getElementById('especialidadesEstado');
+const especialidadesLista = document.getElementById('especialidadesLista');
 
-// Pone la primera letra en mayúscula (capitan -> Capitan)
+let usuarios = [];
+let seleccionVersion = 0;
+
 function capitalizar(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
@@ -42,15 +48,20 @@ function mostrarError(texto) {
 async function cargarUsuarios() {
   try {
     const respuesta = await fetch(API_URL);
+
     if (!respuesta.ok) {
       throw new Error(`Error HTTP ${respuesta.status}`);
     }
+
     usuarios = await respuesta.json();
     llenarSelector();
+    mensaje.hidden = true;
   } catch (error) {
     console.error(error);
     selector.innerHTML = '<option value="">No disponible</option>';
-    mostrarError('No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 3000?');
+    mostrarError(
+      'No se pudo conectar con el servidor. ¿Está corriendo el backend en el puerto 3000?'
+    );
   }
 }
 
@@ -82,16 +93,18 @@ function pintarProgreso({ asistencia, cuotas }) {
   totalPagado.textContent = formatoMoneda.format(cuotas.total_pagado);
 }
 
-async function cargarProgreso(idUsuario) {
+async function cargarProgreso(idUsuario, version) {
   try {
     const respuesta = await fetch(`${API_PROGRESO}/${idUsuario}`);
+
     if (!respuesta.ok) {
       throw new Error(`Error HTTP ${respuesta.status}`);
     }
+
     const progreso = await respuesta.json();
 
-    // Si el usuario cambió de selección mientras cargaba, se descarta
-    if (selector.value !== idUsuario) return;
+    // Descarta respuestas anteriores, incluso si se vuelve al mismo usuario.
+    if (version !== seleccionVersion || selector.value !== idUsuario) return;
 
     pintarProgreso(progreso);
     dashboardError.hidden = true;
@@ -99,7 +112,8 @@ async function cargarProgreso(idUsuario) {
     dashboard.hidden = false;
   } catch (error) {
     console.error(error);
-    if (selector.value !== idUsuario) return;
+
+    if (version !== seleccionVersion || selector.value !== idUsuario) return;
 
     dashboardError.textContent = 'No se pudo cargar el progreso de este usuario.';
     dashboardError.hidden = false;
@@ -108,7 +122,90 @@ async function cargarProgreso(idUsuario) {
   }
 }
 
+function pintarEspecialidades(lista) {
+  especialidadesLista.replaceChildren();
+  const fragmento = document.createDocumentFragment();
+
+  lista.forEach((especialidad) => {
+    const item = document.createElement('li');
+    item.className = 'especialidad-item';
+
+    const parche = document.createElement('div');
+    parche.className = 'especialidad-parche';
+    parche.textContent = especialidad.nombre;
+
+    const color = /^#[0-9a-f]{6}$/i.test(especialidad.color_fondo)
+      ? especialidad.color_fondo
+      : '#DDE0F2';
+
+    parche.style.backgroundColor = color;
+
+    // Selecciona texto negro o blanco según la luminancia del fondo.
+    const rgb = color.slice(1).match(/.{2}/g).map((valor) => {
+      const canal = parseInt(valor, 16) / 255;
+      return canal <= 0.04045
+        ? canal / 12.92
+        : ((canal + 0.055) / 1.055) ** 2.4;
+    });
+
+    const luminancia =
+      rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+
+    parche.style.color = luminancia > 0.179 ? '#000000' : '#FFFFFF';
+
+    const categoria = document.createElement('span');
+    categoria.className = 'especialidad-categoria';
+    categoria.textContent = especialidad.categoria;
+
+    item.append(parche, categoria);
+    fragmento.appendChild(item);
+  });
+
+  especialidadesLista.appendChild(fragmento);
+}
+
+async function cargarEspecialidades(idUsuario, version) {
+  try {
+    const respuesta = await fetch(`${API_ESPECIALIDADES}/${idUsuario}`);
+
+    if (!respuesta.ok) {
+      throw new Error(`Error HTTP ${respuesta.status}`);
+    }
+
+    const lista = await respuesta.json();
+
+    if (!Array.isArray(lista)) {
+      throw new Error('Respuesta de especialidades inválida');
+    }
+
+    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+
+    pintarEspecialidades(lista);
+    especialidadesEstado.classList.remove('mensaje');
+    especialidadesEstado.textContent = lista.length
+      ? ''
+      : 'Este integrante aún no tiene especialidades obtenidas.';
+    especialidadesEstado.hidden = lista.length > 0;
+  } catch (error) {
+    console.error(error);
+
+    if (version !== seleccionVersion || selector.value !== idUsuario) return;
+
+    especialidadesLista.replaceChildren();
+    especialidadesEstado.classList.add('mensaje');
+    especialidadesEstado.textContent =
+      'No se pudieron cargar las especialidades de este usuario.';
+    especialidadesEstado.hidden = false;
+  }
+}
+
 function mostrarTarjeta(idUsuario) {
+  const version = ++seleccionVersion;
+
+  especialidadesLista.replaceChildren();
+  especialidadesSeccion.hidden = true;
+  dashboard.hidden = true;
+
   const usuario = usuarios.find((u) => u.id_usuario === idUsuario);
 
   if (!usuario) {
@@ -122,9 +219,14 @@ function mostrarTarjeta(idUsuario) {
   tarjetaClase.textContent = usuario.clase || 'Sin asignar';
   tarjeta.hidden = false;
 
-  // Fase 2: el dashboard se oculta y se vuelve a pintar con datos nuevos
-  dashboard.hidden = true;
-  cargarProgreso(idUsuario);
+  especialidadesSeccion.hidden = false;
+  especialidadesEstado.classList.remove('mensaje');
+  especialidadesEstado.textContent = 'Cargando especialidades…';
+  especialidadesEstado.hidden = false;
+
+  // Las dos secciones se cargan de forma independiente.
+  cargarProgreso(idUsuario, version);
+  cargarEspecialidades(idUsuario, version);
 }
 
 selector.addEventListener('change', (evento) => {
