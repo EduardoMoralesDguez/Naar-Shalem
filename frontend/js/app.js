@@ -8,9 +8,10 @@ import {
   mostrarUsuarios,
   mostrarErrorUsuarios,
   mostrarPerfil,
-  ocultarPerfil,
+  mostrarDirectorio,
   obtenerUsuarioSeleccionado,
-  alCambiarUsuario,
+  alElegirUsuario,
+  alVolverDirectorio,
 } from './modules/usuarios.js';
 
 import {
@@ -23,39 +24,38 @@ import {
   cargarEspecialidades,
 } from './modules/especialidades.js';
 
-// El archivo principal coordina el inicio y la selección.
-// Las consultas y la representación visual viven en sus módulos.
-
 let usuarios = [];
 let seleccionVersion = 0;
 
 function seleccionarUsuario(idUsuario) {
-  const versionActual = ++seleccionVersion;
-
-  reiniciarProgreso();
-  reiniciarEspecialidades();
-
   const usuario = usuarios.find(
     (miembro) => miembro.id_usuario === idUsuario
   );
 
-  if (!usuario) {
-    ocultarPerfil();
-    return;
-  }
+  if (!usuario) return;
 
+  const versionActual = ++seleccionVersion;
+
+  reiniciarProgreso();
+  reiniciarEspecialidades();
   mostrarPerfil(usuario);
 
-  // Evita que respuestas antiguas sobrescriban el perfil actual,
-  // incluso si se selecciona A, después B y después A nuevamente.
+  // Una respuesta anterior no puede modificar otro perfil,
+  // ni reaparecer después de volver al directorio.
   const sigueVigente = () =>
     versionActual === seleccionVersion &&
     obtenerUsuarioSeleccionado() === idUsuario;
 
-  // Ambas secciones cargan de forma independiente y manejan
-  // sus errores dentro de sus respectivos módulos.
   void cargarProgreso(idUsuario, sigueVigente);
   void cargarEspecialidades(idUsuario, sigueVigente);
+}
+
+function volverAlDirectorio() {
+  seleccionVersion += 1;
+
+  reiniciarProgreso();
+  reiniciarEspecialidades();
+  mostrarDirectorio();
 }
 
 async function iniciarAplicacion() {
@@ -76,10 +76,12 @@ async function iniciarAplicacion() {
     console.error('Error al cargar usuarios desde Supabase:', error);
 
     mostrarErrorUsuarios(
-      'No se pudieron cargar los usuarios. Revisa la conexión e inténtalo de nuevo.'
+      'No se pudieron cargar los integrantes. Revisa la conexión y recarga la página.'
     );
   }
 }
 
-alCambiarUsuario(seleccionarUsuario);
+alElegirUsuario(seleccionarUsuario);
+alVolverDirectorio(volverAlDirectorio);
+
 void iniciarAplicacion();

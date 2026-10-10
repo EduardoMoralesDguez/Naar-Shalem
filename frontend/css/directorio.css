@@ -1,0 +1,105 @@
+/* frontend/css/directorio.css */
+
+.directorio-herramientas {
+  margin-bottom: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 14px;
+  background: var(--club-blanco);
+  box-shadow: 0 4px 14px rgba(41, 44, 152, 0.04);
+}
+
+.directorio-herramientas .buscador {
+  max-width: none;
+  margin-bottom: 1.25rem;
+}
+
+.directorio-filtros {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.directorio-filtros legend {
+  margin-bottom: 0.85rem;
+  padding: 0;
+  color: var(--color-suave);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.filtro-campo {
+  min-width: 0;
+}
+
+.filtro-campo select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.75rem;
+  border: 2px solid var(--color-borde);
+  border-radius: 10px;
+  background: var(--club-blanco);
+  color: var(--color-texto);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.filtro-campo select:focus {
+  border-color: var(--club-azul);
+}
+
+.filtro-campo select:focus-visible {
+  outline: 3px solid var(--club-azul);
+  outline-offset: 4px;
+}
+
+.filtro-campo select:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.boton-limpiar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  max-width: 100%;
+  margin-top: 1rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: var(--color-fondo);
+  color: var(--club-azul);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-limpiar:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .boton-limpiar:hover:not(:disabled) {
+    border-color: var(--club-azul);
+    background: #EEF0FC;
+  }
+}
+
+@media (min-width: 640px) {
+  .filtros-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -4,28 +4,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Naar-Shalem | Catálogo Base</title>
+  <title>Naar-Shalem | Integrantes</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/directorio.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <main class="contenedor">
     <header class="cabecera">
-      <img src="img/LogoNS.png" alt="Logo del club Naar Shalem" class="logo" width="120">
+      <img
+        src="img/LogoNS.png"
+        alt="Logo del club Naar Shalem"
+        class="logo"
+        width="120"
+      >
       <h1>Naar-Shalem</h1>
-      <p class="subtitulo">Selecciona un miembro del club</p>
+      <p id="subtituloPagina" class="subtitulo">
+        Conoce a los integrantes del club
+      </p>
     </header>
 
-    <div class="panel-selector">
-      <label for="selectorUsuario" class="etiqueta">Usuario</label>
-      <select id="selectorUsuario">
-        <option value="">Cargando usuarios...</option>
-      </select>
-      <p id="mensaje" class="mensaje" hidden></p>
-    </div>
+    <section
+      id="directorio"
+      class="directorio"
+      aria-labelledby="directorioTitulo"
+    >
+      <div class="directorio-cabecera">
+        <div>
+          <h2 id="directorioTitulo" tabindex="-1">Integrantes del club</h2>
+          <p class="directorio-descripcion">
+            Elige a un integrante para consultar su perfil.
+          </p>
+        </div>
+      </div>
 
-    <section id="tarjeta" class="tarjeta" hidden>
-      <h2 id="tarjetaNombre"></h2>
+      <div class="directorio-herramientas">
+        <div class="buscador">
+          <label for="buscarIntegrante" class="etiqueta">
+            Buscar integrante
+          </label>
+          <input
+            id="buscarIntegrante"
+            type="search"
+            placeholder="Nombre, unidad o clase..."
+            autocomplete="off"
+            aria-controls="listaIntegrantes"
+            disabled
+          >
+        </div>
+
+        <fieldset class="directorio-filtros">
+          <legend>Filtrar integrantes</legend>
+
+          <div class="filtros-grid">
+            <div class="filtro-campo">
+              <label for="filtroUnidad" class="etiqueta">Unidad</label>
+              <select
+                id="filtroUnidad"
+                aria-controls="listaIntegrantes"
+                disabled
+              >
+                <option value="">Todas las unidades</option>
+              </select>
+            </div>
+
+            <div class="filtro-campo">
+              <label for="filtroRol" class="etiqueta">Tipo de usuario</label>
+              <select
+                id="filtroRol"
+                aria-controls="listaIntegrantes"
+                disabled
+              >
+                <option value="">Todos los tipos</option>
+              </select>
+            </div>
+
+            <div class="filtro-campo">
+              <label for="filtroClase" class="etiqueta">Clase</label>
+              <select
+                id="filtroClase"
+                aria-controls="listaIntegrantes"
+                disabled
+              >
+                <option value="">Todas las clases</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <button
+          id="limpiarFiltros"
+          class="boton-limpiar"
+          type="button"
+          disabled
+        >
+          Limpiar búsqueda y filtros
+        </button>
+      </div>
+
+      <p
+        id="estadoDirectorio"
+        class="directorio-estado"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        Cargando integrantes…
+      </p>
+
+      <p id="mensaje" class="mensaje" role="alert" hidden></p>
+
+      <ul
+        id="listaIntegrantes"
+        class="integrantes-grid"
+        aria-label="Integrantes del club"
+        aria-busy="true"
+      ></ul>
+    </section>
+
+    <nav
+      id="navegacionPerfil"
+      class="navegacion-perfil"
+      aria-label="Navegación del perfil"
+      hidden
+    >
+      <button id="volverIntegrantes" class="boton-volver" type="button">
+        <span aria-hidden="true">←</span>
+        Volver a integrantes
+      </button>
+    </nav>
+
+    <section
+      id="tarjeta"
+      class="tarjeta"
+      aria-labelledby="tarjetaNombre"
+      hidden
+    >
+      <h2 id="tarjetaNombre" tabindex="-1"></h2>
 
       <dl>
         <div>
