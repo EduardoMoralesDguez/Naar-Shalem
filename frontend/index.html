@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/directorio.css">
   <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/perfiles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -218,7 +219,14 @@
         aria-labelledby="tarjetaNombre"
         hidden
       >
-        <h2 id="tarjetaNombre" tabindex="-1"></h2>
+        <div class="perfil-cabecera">
+          <span
+            id="perfilAvatar"
+            class="perfil-avatar"
+            aria-hidden="true"
+          ></span>
+          <h2 id="tarjetaNombre" tabindex="-1"></h2>
+        </div>
 
         <dl>
           <div>

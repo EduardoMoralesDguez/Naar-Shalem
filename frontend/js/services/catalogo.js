@@ -3,39 +3,14 @@
 import { obtenerSupabase } from '../lib/supabase.js';
 import { consultarTodasLasFilas } from '../lib/consultas.js';
 
-// Este archivo consulta y transforma datos.
-// No modifica elementos del HTML.
-
 export async function obtenerUsuarios() {
-  const supabase = obtenerSupabase();
-
-  const filas = await consultarTodasLasFilas(() =>
-    supabase
-      .from('usuarios')
-      .select(`
-        id_usuario,
-        nombres,
-        apellido,
-        rol,
-        unidad:unidades(nombre),
-        clase:clases(nombre),
-        ciclos!inner(es_activo)
-      `)
-      .eq('es_activo', true)
-      .eq('ciclos.es_activo', true)
+  return consultarTodasLasFilas(() =>
+    obtenerSupabase()
+      .rpc('directorio_integrantes')
       .order('nombres')
       .order('apellido')
       .order('id_usuario')
   );
-
-  return filas.map((usuario) => ({
-    id_usuario: usuario.id_usuario,
-    nombres: usuario.nombres,
-    apellido: usuario.apellido,
-    rol: usuario.rol,
-    unidad: usuario.unidad?.nombre || null,
-    clase: usuario.clase?.nombre || null,
-  }));
 }
 
 export function calcularProgreso(registrosAsistencia, registrosCuotas) {
@@ -119,24 +94,15 @@ export async function obtenerProgreso(idUsuario) {
 }
 
 export async function obtenerEspecialidades(idUsuario) {
-  const supabase = obtenerSupabase();
-
-  const asignaciones = await consultarTodasLasFilas(() =>
-    supabase
-      .from('conquistador_especialidades')
-      .select(`
-        id_especialidad,
-        especialidad:especialidades!inner(
-          id_especialidad,
-          nombre,
-          url_imagen
-        )
-      `)
-      .eq('id_usuario', idUsuario)
+  const especialidades = await consultarTodasLasFilas(() =>
+    obtenerSupabase()
+      .rpc('especialidades_visibles', {
+        p_id_usuario: idUsuario,
+      })
       .order('id_especialidad')
   );
 
-  return asignaciones
-    .map((asignacion) => asignacion.especialidad)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return especialidades.sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, 'es')
+  );
 }

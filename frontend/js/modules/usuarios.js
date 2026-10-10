@@ -66,6 +66,38 @@ function obtenerIniciales(usuario) {
   return `${primera}${segunda}`.toUpperCase() || 'NS';
 }
 
+function mostrarFoto(contenedor, usuario) {
+  const iniciales = obtenerIniciales(usuario);
+  contenedor.textContent = iniciales;
+
+  if (!usuario.url_foto) return;
+
+  let url;
+
+  try {
+    url = new URL(usuario.url_foto, document.baseURI);
+
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+  } catch {
+    return;
+  }
+
+  const imagen = document.createElement('img');
+  imagen.alt = '';
+  imagen.loading = 'lazy';
+  imagen.decoding = 'async';
+  imagen.referrerPolicy = 'no-referrer';
+
+  imagen.addEventListener('error', () => {
+    if (imagen.parentNode === contenedor) {
+      contenedor.textContent = iniciales;
+    }
+  }, { once: true });
+
+  imagen.src = url.href;
+  contenedor.replaceChildren(imagen);
+}
+
 function programarNavegacion(callback) {
   if (frameNavegacion !== null) {
     cancelAnimationFrame(frameNavegacion);
@@ -115,8 +147,6 @@ function llenarFiltro(select, valores, textoTodos, obtenerEtiqueta) {
 }
 
 function actualizarOpcionesFiltros() {
-  // Las opciones se generan desde todos los integrantes cargados,
-  // no únicamente desde los resultados de la búsqueda actual.
   llenarFiltro(
     filtroUnidad,
     integrantes.map((usuario) => valorAsignacion(usuario.unidad)),
@@ -147,6 +177,7 @@ function crearTarjetaIntegrante(usuario) {
   boton.type = 'button';
   boton.className = 'integrante-boton';
   boton.dataset.usuarioId = usuario.id_usuario;
+
   boton.setAttribute(
     'aria-label',
     `Ver perfil de ${usuario.nombres} ${usuario.apellido}`
@@ -154,7 +185,7 @@ function crearTarjetaIntegrante(usuario) {
 
   const avatar = document.createElement('span');
   avatar.className = 'integrante-avatar';
-  avatar.textContent = obtenerIniciales(usuario);
+  mostrarFoto(avatar, usuario);
   avatar.setAttribute('aria-hidden', 'true');
 
   const informacion = document.createElement('span');
@@ -168,6 +199,7 @@ function crearTarjetaIntegrante(usuario) {
   const rolIntegrante = document.createElement('span');
   rolIntegrante.className = 'integrante-rol';
   rolIntegrante.textContent = nombreRol(usuario.rol);
+  rolIntegrante.hidden = !usuario.rol;
 
   const detalles = document.createElement('span');
   detalles.className = 'integrante-detalles';
@@ -273,6 +305,13 @@ function limpiarFiltros() {
 }
 
 export function mostrarCargaUsuarios() {
+  if (frameNavegacion !== null) {
+    cancelAnimationFrame(frameNavegacion);
+  }
+
+  frameNavegacion = null;
+  document.getElementById('perfilAvatar').replaceChildren();
+
   integrantes = [];
   usuarioSeleccionado = '';
   posicionDirectorio = 0;
@@ -337,6 +376,10 @@ export function mostrarPerfil(usuario) {
 
   nombre.textContent = `${usuario.nombres} ${usuario.apellido}`;
   rol.textContent = nombreRol(usuario.rol);
+  rol.parentElement.hidden = !usuario.rol;
+
+  mostrarFoto(document.getElementById('perfilAvatar'), usuario);
+
   unidad.textContent = usuario.unidad || 'Sin asignar';
   clase.textContent = usuario.clase || 'Sin asignar';
 
@@ -359,7 +402,6 @@ export function mostrarDirectorio() {
   directorio.hidden = false;
   subtitulo.textContent = 'Conoce a los integrantes del club';
 
-  // Conserva la búsqueda, los filtros y los resultados existentes.
   programarNavegacion(() => {
     const destino = ultimoBoton?.isConnected
       ? ultimoBoton

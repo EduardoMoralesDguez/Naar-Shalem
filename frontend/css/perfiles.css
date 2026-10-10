@@ -1,0 +1,50 @@
+/* frontend/css/perfiles.css */
+
+.integrante-avatar,
+.perfil-avatar {
+  overflow: hidden;
+}
+
+.integrante-avatar img,
+.perfil-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  color: var(--club-blanco);
+  background: var(--club-azul);
+  border-bottom: 4px solid var(--club-oro);
+}
+
+.perfil-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--club-oro);
+  border-radius: 50%;
+  background: var(--club-blanco);
+  color: var(--club-azul);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.tarjeta .perfil-cabecera h2 {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+@media (min-width: 1024px) {
+  .perfil-cabecera {
+    padding: 1.25rem 1.5rem;
+  }
+}

@@ -1,6 +1,12 @@
 // frontend/js/app.js
+
 import { obtenerSupabase } from './lib/supabase.js';
 import { obtenerUsuarios } from './services/catalogo.js';
+
+import {
+  configurarAdministracion,
+  reiniciarAdministracion,
+} from './modules/integrantes-admin.js';
 
 import {
   iniciarSesion,
@@ -56,6 +62,8 @@ let temporizadorAuth = null;
 let cerrando = false;
 
 function limpiarDatos() {
+  reiniciarAdministracion();
+
   seleccionVersion += 1;
   usuarios = [];
   perfilActual = null;
@@ -116,13 +124,6 @@ function mostrarEstado(texto, reintentar = false) {
 function seleccionarUsuario(idUsuario) {
   if (!perfilActual || cerrando) return;
 
-  if (
-    perfilActual.rol !== 'directiva' &&
-    idUsuario !== perfilActual.id_usuario
-  ) {
-    return;
-  }
-
   const usuario = usuarios.find(
     (integrante) => integrante.id_usuario === idUsuario
   );
@@ -135,10 +136,7 @@ function seleccionarUsuario(idUsuario) {
   reiniciarEspecialidades();
   mostrarPerfil(usuario);
 
-  document.getElementById('navegacionPerfil').hidden =
-    perfilActual.rol !== 'directiva';
-
-  if (perfilActual.rol !== 'directiva') {
+  if (idUsuario === perfilActual.id_usuario) {
     subtitulo.textContent = 'Mi perfil';
   }
 
@@ -147,8 +145,40 @@ function seleccionarUsuario(idUsuario) {
     Boolean(perfilActual) &&
     obtenerUsuarioSeleccionado() === idUsuario;
 
-  void cargarProgreso(idUsuario, sigueVigente);
+  if (
+    perfilActual.rol === 'directiva' ||
+    idUsuario === perfilActual.id_usuario
+  ) {
+    void cargarProgreso(idUsuario, sigueVigente);
+  }
+
   void cargarEspecialidades(idUsuario, sigueVigente);
+}
+
+async function actualizarTrasGuardar(idUsuario) {
+  const version = accesoVersion;
+
+  const [integrantes, perfil] = await Promise.all([
+    obtenerUsuarios(),
+    obtenerMiPerfil(),
+  ]);
+
+  if (version !== accesoVersion || cerrando) return;
+
+  if (perfil.rol !== 'directiva') {
+    await aplicarSesion(sesionActual, true);
+    return;
+  }
+
+  usuarios = integrantes;
+  perfilActual = perfil;
+
+  mostrarUsuarios(usuarios);
+
+  sesionNombre.textContent =
+    `${perfil.nombres} ${perfil.apellido}`;
+
+  seleccionarUsuario(idUsuario);
 }
 
 async function aplicarSesion(sesion, forzar = false) {
@@ -179,16 +209,18 @@ async function aplicarSesion(sesion, forzar = false) {
 
     if (version !== accesoVersion) return;
 
-    const integrantes = perfil.rol === 'directiva'
-      ? await obtenerUsuarios()
-      : [perfil];
+    const integrantes = await obtenerUsuarios();
 
     if (version !== accesoVersion) return;
 
     perfilActual = perfil;
     usuarios = integrantes;
 
+    document.getElementById('filtroRol').closest('.filtro-campo').hidden =
+      perfil.rol !== 'directiva';
+
     mostrarUsuarios(usuarios);
+    configurarAdministracion(perfil, actualizarTrasGuardar);
 
     panelEstado.hidden = true;
     panelLogin.hidden = true;
@@ -202,12 +234,7 @@ async function aplicarSesion(sesion, forzar = false) {
       : 'Cuenta personal';
 
     aplicacion.hidden = false;
-
-    if (perfil.rol === 'directiva') {
-      subtitulo.textContent = 'Conoce a los integrantes del club';
-    } else {
-      seleccionarUsuario(perfil.id_usuario);
-    }
+    subtitulo.textContent = 'Conoce a los integrantes del club';
   } catch (error) {
     if (version !== accesoVersion) return;
 
@@ -303,7 +330,7 @@ botonReintentar.addEventListener('click', async () => {
 alElegirUsuario(seleccionarUsuario);
 
 alVolverDirectorio(() => {
-  if (perfilActual?.rol !== 'directiva') return;
+  if (!perfilActual || cerrando) return;
 
   seleccionVersion += 1;
 
