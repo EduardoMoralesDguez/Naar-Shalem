@@ -1,0 +1,88 @@
+/* frontend/css/auth.css */
+.acceso-tarjeta {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 14px;
+  background: var(--club-blanco);
+  box-shadow: 0 6px 18px rgba(41, 44, 152, 0.1);
+}
+
+.acceso-tarjeta h2 {
+  margin: 0 0 0.75rem;
+  color: var(--club-azul);
+}
+
+.acceso-tarjeta > p {
+  color: var(--color-suave);
+  line-height: 1.5;
+}
+
+.acceso-tarjeta input {
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 2px solid var(--color-borde);
+  border-radius: 10px;
+  background: white;
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.boton-acceso {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--club-azul);
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-acceso:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.barra-sesion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.barra-sesion > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.barra-sesion strong {
+  display: block;
+  color: var(--club-azul);
+}
+
+.barra-sesion span {
+  font-size: 0.85rem;
+  color: var(--color-suave);
+}
+
+.acceso-estado {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.acceso-estado p {
+  line-height: 1.5;
+}
+
+[hidden] {
+  display: none !important;
+}

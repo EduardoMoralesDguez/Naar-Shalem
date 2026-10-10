@@ -7,6 +7,7 @@
   <title>Naar-Shalem | Integrantes</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/directorio.css">
+  <link rel="stylesheet" href="css/auth.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -19,204 +20,282 @@
         width="120"
       >
       <h1>Naar-Shalem</h1>
-      <p id="subtituloPagina" class="subtitulo">
-        Conoce a los integrantes del club
-      </p>
+      <p id="subtituloPagina" class="subtitulo">Acceso al club</p>
     </header>
 
     <section
-      id="directorio"
-      class="directorio"
-      aria-labelledby="directorioTitulo"
-    >
-      <div class="directorio-cabecera">
-        <div>
-          <h2 id="directorioTitulo" tabindex="-1">Integrantes del club</h2>
-          <p class="directorio-descripcion">
-            Elige a un integrante para consultar su perfil.
-          </p>
-        </div>
-      </div>
-
-      <div class="directorio-herramientas">
-        <div class="buscador">
-          <label for="buscarIntegrante" class="etiqueta">
-            Buscar integrante
-          </label>
-          <input
-            id="buscarIntegrante"
-            type="search"
-            placeholder="Nombre, unidad o clase..."
-            autocomplete="off"
-            aria-controls="listaIntegrantes"
-            disabled
-          >
-        </div>
-
-        <fieldset class="directorio-filtros">
-          <legend>Filtrar integrantes</legend>
-
-          <div class="filtros-grid">
-            <div class="filtro-campo">
-              <label for="filtroUnidad" class="etiqueta">Unidad</label>
-              <select
-                id="filtroUnidad"
-                aria-controls="listaIntegrantes"
-                disabled
-              >
-                <option value="">Todas las unidades</option>
-              </select>
-            </div>
-
-            <div class="filtro-campo">
-              <label for="filtroRol" class="etiqueta">Tipo de usuario</label>
-              <select
-                id="filtroRol"
-                aria-controls="listaIntegrantes"
-                disabled
-              >
-                <option value="">Todos los tipos</option>
-              </select>
-            </div>
-
-            <div class="filtro-campo">
-              <label for="filtroClase" class="etiqueta">Clase</label>
-              <select
-                id="filtroClase"
-                aria-controls="listaIntegrantes"
-                disabled
-              >
-                <option value="">Todas las clases</option>
-              </select>
-            </div>
-          </div>
-        </fieldset>
-
-        <button
-          id="limpiarFiltros"
-          class="boton-limpiar"
-          type="button"
-          disabled
-        >
-          Limpiar búsqueda y filtros
-        </button>
-      </div>
-
-      <p
-        id="estadoDirectorio"
-        class="directorio-estado"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        Cargando integrantes…
-      </p>
-
-      <p id="mensaje" class="mensaje" role="alert" hidden></p>
-
-      <ul
-        id="listaIntegrantes"
-        class="integrantes-grid"
-        aria-label="Integrantes del club"
-        aria-busy="true"
-      ></ul>
-    </section>
-
-    <nav
-      id="navegacionPerfil"
-      class="navegacion-perfil"
-      aria-label="Navegación del perfil"
+      id="panelLogin"
+      class="acceso-tarjeta"
+      aria-labelledby="tituloLogin"
       hidden
     >
-      <button id="volverIntegrantes" class="boton-volver" type="button">
-        <span aria-hidden="true">←</span>
-        Volver a integrantes
+      <h2 id="tituloLogin">Iniciar sesión</h2>
+      <p>Ingresa con la cuenta que te proporcionó la directiva.</p>
+
+      <form id="formLogin">
+        <label class="etiqueta" for="loginCorreo">
+          Correo electrónico
+        </label>
+        <input
+          id="loginCorreo"
+          type="email"
+          autocomplete="username"
+          required
+        >
+
+        <label class="etiqueta" for="loginPassword">
+          Contraseña
+        </label>
+        <input
+          id="loginPassword"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button id="botonLogin" class="boton-acceso" type="submit">
+          Entrar
+        </button>
+
+        <p id="errorLogin" class="mensaje" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <div id="barraSesion" class="barra-sesion" hidden>
+      <div>
+        <strong id="sesionNombre"></strong>
+        <span id="sesionRol"></span>
+      </div>
+
+      <button id="botonSalir" class="boton-volver" type="button">
+        Cerrar sesión
       </button>
-    </nav>
+    </div>
 
     <section
-      id="tarjeta"
-      class="tarjeta"
-      aria-labelledby="tarjetaNombre"
-      hidden
+      id="panelEstadoAcceso"
+      class="acceso-estado"
+      aria-label="Estado de acceso"
     >
-      <h2 id="tarjetaNombre" tabindex="-1"></h2>
+      <p id="estadoAcceso" role="status" aria-live="polite">
+        Comprobando sesión…
+      </p>
 
-      <dl>
-        <div>
-          <dt>Rol</dt>
-          <dd id="tarjetaRol"></dd>
-        </div>
-        <div>
-          <dt>Unidad</dt>
-          <dd id="tarjetaUnidad"></dd>
-        </div>
-        <div>
-          <dt>Clase</dt>
-          <dd id="tarjetaClase"></dd>
-        </div>
-      </dl>
-
-      <div id="dashboard" class="dashboard" hidden>
-        <h3>Dashboard de progreso</h3>
-        <p id="dashboardError" class="mensaje" hidden></p>
-
-        <div id="dashboardMetricas">
-          <div class="metrica">
-            <div class="metrica-cabecera">
-              <span>Asistencia</span>
-              <strong id="asistenciaPorcentaje">0%</strong>
-            </div>
-            <div class="barra">
-              <div id="asistenciaBarra" class="barra-relleno"></div>
-            </div>
-            <small id="asistenciaDetalle"></small>
-          </div>
-
-          <div class="metrica">
-            <div class="metrica-cabecera">
-              <span>Cumplimiento de cuotas</span>
-              <strong id="cuotasPorcentaje">0%</strong>
-            </div>
-            <div class="barra">
-              <div id="cuotasBarra" class="barra-relleno"></div>
-              <span class="barra-meta" title="Meta: 70%"></span>
-            </div>
-            <small id="cuotasDetalle"></small>
-          </div>
-
-          <div class="total-pagado">
-            <span>Total pagado en cuotas</span>
-            <strong id="totalPagado">$0</strong>
-          </div>
-        </div>
-      </div>
-
-      <section
-        id="especialidades"
-        class="especialidades"
-        aria-labelledby="especialidadesTitulo"
+      <button
+        id="reintentarAcceso"
+        class="boton-volver"
+        type="button"
         hidden
       >
-        <h3 id="especialidadesTitulo">Banda de Especialidades</h3>
-
-        <div class="banda">
-          <p
-            id="especialidadesEstado"
-            class="banda-estado"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          ></p>
-
-          <ul
-            id="especialidadesLista"
-            class="banda-grid"
-            aria-label="Especialidades obtenidas"
-          ></ul>
-        </div>
-      </section>
+        Reintentar
+      </button>
     </section>
+
+    <noscript>Activa JavaScript para iniciar sesión.</noscript>
+
+    <div id="aplicacion" hidden>
+      <section
+        id="directorio"
+        class="directorio"
+        aria-labelledby="directorioTitulo"
+      >
+        <div class="directorio-cabecera">
+          <div>
+            <h2 id="directorioTitulo" tabindex="-1">
+              Integrantes del club
+            </h2>
+            <p class="directorio-descripcion">
+              Elige a un integrante para consultar su perfil.
+            </p>
+          </div>
+        </div>
+
+        <div class="directorio-herramientas">
+          <div class="buscador">
+            <label for="buscarIntegrante" class="etiqueta">
+              Buscar integrante
+            </label>
+            <input
+              id="buscarIntegrante"
+              type="search"
+              placeholder="Nombre, unidad o clase..."
+              autocomplete="off"
+              aria-controls="listaIntegrantes"
+              disabled
+            >
+          </div>
+
+          <fieldset class="directorio-filtros">
+            <legend>Filtrar integrantes</legend>
+
+            <div class="filtros-grid">
+              <div class="filtro-campo">
+                <label for="filtroUnidad" class="etiqueta">
+                  Unidad
+                </label>
+                <select
+                  id="filtroUnidad"
+                  aria-controls="listaIntegrantes"
+                  disabled
+                >
+                  <option value="">Todas las unidades</option>
+                </select>
+              </div>
+
+              <div class="filtro-campo">
+                <label for="filtroRol" class="etiqueta">
+                  Tipo de usuario
+                </label>
+                <select
+                  id="filtroRol"
+                  aria-controls="listaIntegrantes"
+                  disabled
+                >
+                  <option value="">Todos los tipos</option>
+                </select>
+              </div>
+
+              <div class="filtro-campo">
+                <label for="filtroClase" class="etiqueta">
+                  Clase
+                </label>
+                <select
+                  id="filtroClase"
+                  aria-controls="listaIntegrantes"
+                  disabled
+                >
+                  <option value="">Todas las clases</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <button
+            id="limpiarFiltros"
+            class="boton-limpiar"
+            type="button"
+            disabled
+          >
+            Limpiar búsqueda y filtros
+          </button>
+        </div>
+
+        <p
+          id="estadoDirectorio"
+          class="directorio-estado"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Cargando integrantes…
+        </p>
+
+        <p id="mensaje" class="mensaje" role="alert" hidden></p>
+
+        <ul
+          id="listaIntegrantes"
+          class="integrantes-grid"
+          aria-label="Integrantes del club"
+          aria-busy="true"
+        ></ul>
+      </section>
+
+      <nav
+        id="navegacionPerfil"
+        class="navegacion-perfil"
+        aria-label="Navegación del perfil"
+        hidden
+      >
+        <button id="volverIntegrantes" class="boton-volver" type="button">
+          <span aria-hidden="true">←</span>
+          Volver a integrantes
+        </button>
+      </nav>
+
+      <section
+        id="tarjeta"
+        class="tarjeta"
+        aria-labelledby="tarjetaNombre"
+        hidden
+      >
+        <h2 id="tarjetaNombre" tabindex="-1"></h2>
+
+        <dl>
+          <div>
+            <dt>Rol</dt>
+            <dd id="tarjetaRol"></dd>
+          </div>
+          <div>
+            <dt>Unidad</dt>
+            <dd id="tarjetaUnidad"></dd>
+          </div>
+          <div>
+            <dt>Clase</dt>
+            <dd id="tarjetaClase"></dd>
+          </div>
+        </dl>
+
+        <div id="dashboard" class="dashboard" hidden>
+          <h3>Dashboard de progreso</h3>
+          <p id="dashboardError" class="mensaje" hidden></p>
+
+          <div id="dashboardMetricas">
+            <div class="metrica">
+              <div class="metrica-cabecera">
+                <span>Asistencia</span>
+                <strong id="asistenciaPorcentaje">0%</strong>
+              </div>
+              <div class="barra">
+                <div id="asistenciaBarra" class="barra-relleno"></div>
+              </div>
+              <small id="asistenciaDetalle"></small>
+            </div>
+
+            <div class="metrica">
+              <div class="metrica-cabecera">
+                <span>Cumplimiento de cuotas</span>
+                <strong id="cuotasPorcentaje">0%</strong>
+              </div>
+              <div class="barra">
+                <div id="cuotasBarra" class="barra-relleno"></div>
+                <span class="barra-meta" title="Meta: 70%"></span>
+              </div>
+              <small id="cuotasDetalle"></small>
+            </div>
+
+            <div class="total-pagado">
+              <span>Total pagado en cuotas</span>
+              <strong id="totalPagado">$0</strong>
+            </div>
+          </div>
+        </div>
+
+        <section
+          id="especialidades"
+          class="especialidades"
+          aria-labelledby="especialidadesTitulo"
+          hidden
+        >
+          <h3 id="especialidadesTitulo">Banda de Especialidades</h3>
+
+          <div class="banda">
+            <p
+              id="especialidadesEstado"
+              class="banda-estado"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+
+            <ul
+              id="especialidadesLista"
+              class="banda-grid"
+              aria-label="Especialidades obtenidas"
+            ></ul>
+          </div>
+        </section>
+      </section>
+    </div>
   </main>
 
   <script type="module" src="js/app.js"></script>
