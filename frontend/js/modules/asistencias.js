@@ -51,8 +51,12 @@ vista.innerHTML = `
 
     <section id="asVistaReunion">
       <div id="asCrearPanel" class="as-filtros" hidden>
-        <button id="asCrear" class="boton-principal" type="button">Crear reunión de hoy</button>
+        <label>Nombre del pase de hoy
+          <input id="asNombrePase" type="text" maxlength="60" required placeholder="Ej. Mañana o Tarde" autocomplete="off">
+        </label>
+        <button id="asCrear" class="boton-principal" type="button">Crear pase de hoy</button>
       </div>
+      <nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
       <h2 id="asFechaTitulo"></h2>
       <input id="asReunion" type="hidden">
       <p id="asAvisoReunion" class="texto-suave"></p>
@@ -170,6 +174,8 @@ export function reiniciarAsistencias() {
   perfil = null;
   panel = null;
   grupo = '';
+  $('asReunion').value = '';
+  $('asNombrePase').value = '';
   sucio = false;
   guardando = false;
   estados.clear(); matriz = []; celda = null; filtroUnidad = '';
@@ -185,6 +191,7 @@ export function reiniciarAsistencias() {
     'asFechas',
     'asFiltroUnidad',
     'asGrupos',
+    'asPasesHoy',
 
 
   ]) {
@@ -231,7 +238,7 @@ function pintarPanel() {
       '';
   }
 
-  $('asFechaTitulo').textContent = `${panel.fecha} · ${panel.estado}`;
+  $('asFechaTitulo').textContent = `${panel.fecha} · ${panel.nombre || 'General'} · ${panel.estado}`;
   const seleccion = panel.grupos.find(g => g.clave === grupo);
 
   // Solo la directiva navega entre unidades.
@@ -381,10 +388,24 @@ async function cargarReuniones(id = $('asReunion').value) {
 
     if (actual !== revision) return;
 
+    const disponibles = lista.filter(r => r.estado !== 'anulada' && (admin() ? r.fecha === hoy() : r.fecha <= hoy()));
+    const fechaActual = disponibles[0]?.fecha;
+    const pasesDia = disponibles.filter(r => r.fecha === fechaActual);
     const elegido = modo === 'editar' ? lista.find(r => r.id === id)?.id
-      : lista.find(r => r.estado !== 'anulada' && (admin() ? r.fecha === hoy() : r.fecha <= hoy()))?.id;
+      : pasesDia.find(r => r.id === id)?.id || pasesDia[0]?.id;
     $('asReunion').value = elegido || '';
-    $('asCrearPanel').hidden = !admin() || modo !== 'reunion' || Boolean(elegido);
+    $('asCrearPanel').hidden = !admin() || modo !== 'reunion';
+    $('asPasesHoy').replaceChildren();
+    if (modo === 'reunion' && pasesDia.length > 1) {
+      for (const pase of pasesDia) {
+        const b = boton(`${pase.nombre || 'General'} · ${pase.estado}`, () => {
+          if (ocupado || !puedeSalirAsistencias()) return;
+          sucio = false; grupo = ''; void cargarReuniones(pase.id);
+        });
+        b.setAttribute('aria-pressed', String(pase.id === elegido));
+        $('asPasesHoy').append(b);
+      }
+    }
     const resultado = elegido
       ? await obtenerReunion(elegido)
       : null;
@@ -412,14 +433,14 @@ async function cargarReuniones(id = $('asReunion').value) {
 
 function pintarMatriz() {
   const filas = matriz.filter(r => !filtroUnidad || r.unidad_clave === filtroUnidad);
-  const fechas = [...new Map(filas.map(r => [r.reunion, { id: r.reunion, fecha: r.fecha }])).values()];
+  const fechas = [...new Map(filas.map(r => [r.reunion, { id: r.reunion, fecha: r.fecha, nombre: r.nombre_pase || 'General' }])).values()];
   const integrantes = [...new Map(filas.map(r => [r.id_usuario, r.nombre])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], 'es'));
   const registros = new Map(filas.map(r => [`${r.id_usuario}/${r.reunion}`, r]));
   const tabla = $('asMatriz'); tabla.replaceChildren();
   const caption = document.createElement('caption'); caption.textContent = 'Historial de reuniones cerradas'; tabla.append(caption);
   const head = document.createElement('thead'), tr = document.createElement('tr');
-  for (const texto of ['Integrante', ...fechas.map(f => f.fecha), '%']) {
+  for (const texto of ['Integrante', ...fechas.map(f => `${f.fecha}\n${f.nombre}`), '%']) {
     const th = document.createElement('th'); th.scope = 'col'; th.textContent = texto; tr.append(th);
   }
   head.append(tr); tabla.append(head);
@@ -436,7 +457,7 @@ function pintarMatriz() {
         const marca = admin() ? boton(etiquetas[r.estado][0], () => abrirCelda(r)) : document.createElement('span');
         marca.className = 'as-marca'; marca.dataset.estado = r.estado;
         marca.textContent = etiquetas[r.estado][0];
-        marca.setAttribute('aria-label', `${nombre}, ${fecha.fecha}: ${etiquetas[r.estado]}${admin() ? '. Editar' : ''}`);
+        marca.setAttribute('aria-label', `${nombre}, ${fecha.fecha}, ${fecha.nombre}: ${etiquetas[r.estado]}${admin() ? '. Editar' : ''}`);
         td.append(marca);
       }
       row.append(td);
@@ -459,7 +480,7 @@ async function cargarHistorial() {
     $('asFiltroUnidad').value = filtroUnidad; $('asFiltroUnidadCampo').hidden = !admin();
     if (!admin()) filtroUnidad = '';
     $('asAdministrarFechas').hidden = !admin();
-    for (const f of fechas) $('asFechas').append(boton(`${f.fecha} · ${f.estado}`, () => {
+    for (const f of fechas) $('asFechas').append(boton(`${f.fecha} · ${f.nombre || 'General'} · ${f.estado}`, () => {
       modo = 'editar'; $('asVistaHistorial').hidden = true; $('asVistaReunion').hidden = false;
       void cargarReuniones(f.id);
     }));
@@ -474,7 +495,7 @@ dialogo.innerHTML = `<h2 id="asCeldaTitulo">Editar asistencia</h2><p id="asCelda
 dialogo.setAttribute('aria-labelledby', 'asCeldaTitulo'); document.body.append(dialogo);
 function abrirCelda(registro) {
   if (ocupado || !admin()) return;
-  celda = registro; $('asCeldaTitulo').textContent = `${registro.nombre} · ${registro.fecha}`;
+  celda = registro; $('asCeldaTitulo').textContent = `${registro.nombre} · ${registro.fecha} · ${registro.nombre_pase || 'General'}`;
   $('asCeldaEstado').textContent = 'Selecciona el estado correcto.';
   $('asCeldaOpciones').replaceChildren(...Object.entries(etiquetas).map(([valor, texto]) => boton(texto, () => void guardarCelda(valor))));
   dialogo.showModal();
@@ -583,7 +604,8 @@ export async function abrirAsistencias(cuenta) {
 $('asCrear').addEventListener('click', async () => {
   if (
     ocupado ||
-    !puedeSalirAsistencias()
+    !puedeSalirAsistencias() ||
+    !$('asNombrePase').reportValidity()
   ) {
     return;
   }
@@ -596,7 +618,7 @@ $('asCrear').addEventListener('click', async () => {
   let id;
 
   try {
-    id = await crearReunion(hoy());
+    id = await crearReunion(hoy(), $('asNombrePase').value.trim());
   } catch (error) {
     if (actual === revision) mensaje(error.message);
   } finally {
@@ -607,6 +629,7 @@ $('asCrear').addEventListener('click', async () => {
   }
 
   if (actual === revision && id) {
+    $('asNombrePase').value = '';
     sucio = false;
     grupo = '';
     await cargarReuniones(id);

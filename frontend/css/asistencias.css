@@ -148,3 +148,6 @@ button.as-marca { cursor:pointer; }
 #asFechas { margin-top:1rem; }
 #dashboardMetricas.solo-asistencia > .metrica:first-child { grid-column:1/-1; }
 @media(max-width:550px) { .as-tabla th,.as-tabla td { padding:.65rem .5rem; } .as-opciones { gap:.3rem; } .as-matriz th:first-child { min-width:130px; max-width:170px; } }
+
+.as-matriz thead th { white-space:pre-line; min-width:110px; }
+#asPasesHoy button[aria-pressed="true"] { background:var(--club-azul); color:white; }
