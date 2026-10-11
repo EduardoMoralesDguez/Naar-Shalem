@@ -121,3 +121,30 @@
     width: 100%;
   }
 }
+/* Tablas: el desplazamiento queda dentro del módulo, también en móvil. */
+.as-scroll { max-width:100%; overflow:auto; margin:1rem 0; border:1px solid var(--color-borde); border-radius:12px; }
+.as-tabla { width:100%; border-collapse:separate; border-spacing:0; text-align:left; }
+.as-tabla caption { text-align:left; padding:1rem; color:var(--club-azul); font-weight:700; }
+.as-tabla th,.as-tabla td { padding:.8rem 1rem; border-bottom:1px solid var(--color-borde); vertical-align:middle; }
+.as-tabla th { background:#f1f2fc; color:var(--club-azul); }
+.as-tabla td strong,.as-tabla td small { display:block; }
+.as-tabla td small { margin-top:.4rem; color:var(--color-suave); overflow-wrap:anywhere; }
+.as-tabla .as-controles { display:table-cell; }
+.as-opciones { display:flex; gap:.4rem; }
+.as-opciones button,.as-marca { min-width:44px; min-height:44px; padding:.6rem; border:1px solid var(--color-borde); border-radius:8px; font:inherit; font-weight:750; text-align:center; }
+.as-opciones button { background:white; color:var(--club-azul); cursor:pointer; }
+.as-opciones button[aria-pressed="true"] { outline:2px solid currentColor; outline-offset:1px; }
+.as-opciones [data-estado="asistencia"][aria-pressed="true"],.as-marca[data-estado="asistencia"] { background:#e6f4e9; color:#185d30; }
+.as-opciones [data-estado="justificado"][aria-pressed="true"],.as-marca[data-estado="justificado"] { background:#fff3c0; color:#654d00; }
+.as-opciones [data-estado="falta"][aria-pressed="true"],.as-marca[data-estado="falta"] { background:#ffeded; color:#9a2222; }
+.as-marca { display:inline-block; }
+button.as-marca { cursor:pointer; }
+.as-matriz th:first-child { position:sticky; left:0; z-index:1; min-width:150px; max-width:260px; }
+.as-matriz td { text-align:center; white-space:nowrap; }
+.as-matriz thead th { white-space:nowrap; }
+.as-dialogo { max-width:min(92vw,520px); border:1px solid var(--color-borde); border-radius:16px; padding:1.5rem; color:var(--color-texto); }
+.as-dialogo::backdrop { background:#11143b88; }
+#asAdministrarFechas summary { padding:1rem 0; cursor:pointer; color:var(--club-azul); }
+#asFechas { margin-top:1rem; }
+#dashboardMetricas.solo-asistencia > .metrica:first-child { grid-column:1/-1; }
+@media(max-width:550px) { .as-tabla th,.as-tabla td { padding:.65rem .5rem; } .as-opciones { gap:.3rem; } .as-matriz th:first-child { min-width:130px; max-width:170px; } }

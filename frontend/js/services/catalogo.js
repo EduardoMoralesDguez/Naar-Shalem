@@ -13,7 +13,10 @@ export async function obtenerUsuarios() {
       .order('id_usuario')
   );
 
-  return firmarFotos(filas);
+  const presentacion = await consultarTodasLasFilas(() => obtenerSupabase()
+    .rpc('presentacion_integrantes').order('id_usuario'));
+  const porId = new Map(presentacion.map(p => [p.id_usuario, p]));
+  return firmarFotos(filas.map(u => ({ ...u, ...porId.get(u.id_usuario) })));
 }
 
 export function calcularProgreso(registrosAsistencia, registrosCuotas) {
@@ -62,7 +65,7 @@ export function calcularProgreso(registrosAsistencia, registrosCuotas) {
   };
 }
 
-export async function obtenerProgreso(idUsuario) {
+export async function obtenerProgreso(idUsuario, cobraCuotas = true) {
   const supabase = obtenerSupabase();
 
   const [asistencias, cuotas] = await Promise.all([
@@ -78,7 +81,7 @@ export async function obtenerProgreso(idUsuario) {
         .eq('ciclos.es_activo', true)
         .order('id_asistencia')
     ),
-    consultarTodasLasFilas(() =>
+    cobraCuotas ? consultarTodasLasFilas(() =>
       supabase
         .from('cuotas')
         .select(`
@@ -89,7 +92,7 @@ export async function obtenerProgreso(idUsuario) {
         .eq('id_usuario', idUsuario)
         .eq('ciclos.es_activo', true)
         .order('id_cuota')
-    ),
+    ) : Promise.resolve([]),
   ]);
 
   return calcularProgreso(asistencias, cuotas);

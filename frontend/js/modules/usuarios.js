@@ -174,6 +174,7 @@ function renderizar() {
     detalle.textContent =
       `${usuario.unidad || 'Sin unidad'} · ${usuario.clase || 'Sin clase'}`;
 
+    detalle.hidden = usuario.es_directiva || usuario.rol === 'directiva';
     informacion.append(nombre, detalle);
 
     if (usuario.rol || !usuario.es_activo) {
@@ -215,6 +216,9 @@ export function mostrarPerfil(usuario) {
   $('tarjetaRol').parentElement.hidden = !usuario.rol;
   $('tarjetaUnidad').textContent = usuario.unidad || 'Sin asignar';
   $('tarjetaClase').textContent = usuario.clase || 'Sin asignar';
+  const esDirectiva = usuario.es_directiva || usuario.rol === 'directiva';
+  $('tarjetaUnidad').parentElement.hidden = esDirectiva;
+  $('tarjetaClase').parentElement.hidden = esDirectiva;
   $('perfilEstado').hidden = usuario.es_activo;
 
   mostrarFoto($('perfilAvatar'), usuario);

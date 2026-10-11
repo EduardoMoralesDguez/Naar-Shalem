@@ -4,8 +4,7 @@ import {
   crearReunion,
   obtenerReunion,
   actuarReunion,
-  obtenerListaAsistencias,
-  obtenerHistorialAsistencias,
+  obtenerMatriz,
 } from '../services/asistencias.js';
 
 const estilo = document.createElement('link');
@@ -40,7 +39,7 @@ vista.innerHTML = `
 
     <div class="acciones">
       <button id="asDia" type="button" class="boton-volver">
-        Reuniones
+        Reunión
       </button>
       <button id="asHistorial" type="button" class="boton-volver">
         Historial
@@ -52,20 +51,10 @@ vista.innerHTML = `
 
     <section id="asVistaReunion">
       <div id="asCrearPanel" class="as-filtros" hidden>
-        <label>
-          Fecha de la reunión
-          <input id="asNuevaFecha" type="date" required>
-        </label>
-        <button id="asCrear" class="boton-volver" type="button">
-          Crear o abrir reunión
-        </button>
+        <button id="asCrear" class="boton-principal" type="button">Crear reunión de hoy</button>
       </div>
-
-      <label class="as-selector">
-        Reunión
-        <select id="asReunion"></select>
-      </label>
-
+      <h2 id="asFechaTitulo"></h2>
+      <input id="asReunion" type="hidden">
       <p id="asAvisoReunion" class="texto-suave"></p>
 
       <nav
@@ -77,12 +66,12 @@ vista.innerHTML = `
       <h2 id="asUnidadTitulo"></h2>
       <p id="asResumen" class="texto-suave"></p>
 
-      <ul
-        id="asLista"
-        class="as-lista"
-        aria-label="Integrantes convocados"
-      ></ul>
-
+      <div class="as-scroll" tabindex="0" role="region" aria-label="Pase de lista por unidad">
+        <table class="as-tabla"><thead><tr><th scope="col">Integrante</th><th scope="col">A / J / F</th></tr></thead>
+          <tbody id="asLista"></tbody>
+        </table>
+      </div>
+      <p id="asBloqueo" class="texto-suave" role="status"></p>
       <div class="as-pie" id="asAccionesAdmin" hidden>
         <button id="asGuardar" type="button" class="boton-principal">
           Revisar y guardar unidad
@@ -100,16 +89,13 @@ vista.innerHTML = `
     </section>
 
     <section id="asVistaHistorial" hidden>
-      <label class="as-selector">
-        Integrante
-        <select id="asPersona"></select>
-      </label>
-      <p id="asResumenHistorial" class="texto-suave"></p>
-      <ul
-        id="asListaHistorial"
-        class="as-lista"
-        aria-label="Historial personal"
-      ></ul>
+      <label id="asFiltroUnidadCampo" class="as-selector" hidden>Unidad<select id="asFiltroUnidad"></select></label>
+      <p>A: asistencia · J: justificado · F: falta · —: no convocado. Porcentaje: (A + J) / reuniones registradas.</p>
+      <p id="asResumenHistorial" class="texto-suave" role="status"></p>
+      <div class="as-scroll" tabindex="0" role="region" aria-label="Matriz de asistencias">
+        <table id="asMatriz" class="as-tabla as-matriz"></table>
+      </div>
+      <details id="asAdministrarFechas" hidden><summary>Administrar reuniones y borradores</summary><div id="asFechas" class="acciones"></div></details>
     </section>
   </fieldset>
 `;
@@ -120,8 +106,8 @@ const $ = id => document.getElementById(id);
 
 const etiquetas = {
   asistencia: 'Asistencia',
-  falta: 'Falta',
   justificado: 'Justificado',
+  falta: 'Falta',
 };
 
 let perfil = null;
@@ -133,6 +119,9 @@ let ocupado = false;
 let guardando = false;
 let sucio = false;
 let estados = new Map();
+let matriz = [];
+let filtroUnidad = '';
+let celda = null;
 
 const admin = () => perfil?.rol === 'directiva';
 
@@ -183,17 +172,21 @@ export function reiniciarAsistencias() {
   grupo = '';
   sucio = false;
   guardando = false;
-  estados.clear();
+  estados.clear(); matriz = []; celda = null; filtroUnidad = '';
+  dialogo.close();
+  dialogo.querySelectorAll('button').forEach(b => b.disabled = false);
 
   bloquear(false);
   mensaje('');
 
   for (const id of [
     'asLista',
-    'asListaHistorial',
+    'asMatriz',
+    'asFechas',
+    'asFiltroUnidad',
     'asGrupos',
-    'asReunion',
-    'asPersona',
+
+
   ]) {
     $(id).replaceChildren();
   }
@@ -225,7 +218,9 @@ function pintarPanel() {
   if (!panel) {
     $('asUnidadTitulo').textContent = '';
     $('asResumen').textContent = '';
-    $('asAvisoReunion').textContent = 'No hay reuniones disponibles.';
+    $('asFechaTitulo').textContent = '';
+    $('asBloqueo').textContent = '';
+    $('asAvisoReunion').textContent = admin() && modo === 'reunion' ? 'Todavía no hay una reunión de hoy.' : 'No hay reuniones disponibles.';
     return;
   }
 
@@ -236,6 +231,7 @@ function pintarPanel() {
       '';
   }
 
+  $('asFechaTitulo').textContent = `${panel.fecha} · ${panel.estado}`;
   const seleccion = panel.grupos.find(g => g.clave === grupo);
 
   // Solo la directiva navega entre unidades.
@@ -280,10 +276,9 @@ function pintarPanel() {
   $('asResumen').textContent = resumen(filas);
 
   for (const u of filas) {
-    const li = document.createElement('li');
-    li.className = 'as-fila';
+    const li = document.createElement('tr');
 
-    const datos = document.createElement('div');
+    const datos = document.createElement('td');
     const nombre = document.createElement('strong');
     nombre.textContent = u.nombre;
     datos.append(nombre);
@@ -294,36 +289,27 @@ function pintarPanel() {
       datos.append(nota);
     }
 
-    const acciones = document.createElement('div');
+    const acciones = document.createElement('td');
     acciones.className = 'as-controles';
 
     if (admin() && panel.estado !== 'anulada') {
-      const select = document.createElement('select');
-      select.setAttribute('aria-label', `Estado de ${u.nombre}`);
-
-      select.append(
-        ...Object.entries(etiquetas).map(
-          ([valor, texto]) => new Option(texto, valor)
-        )
-      );
-
-      select.value = u.estado;
-
-      select.addEventListener('change', () => {
-        estados.set(u.id_usuario, select.value);
-
-        sucio = filas.some(
-          f => estados.get(f.id_usuario) !== f.estado
-        );
-
-        $('asCerrar').disabled =
-          sucio ||
-          panel.estado !== 'borrador' ||
-          revisadas !== panel.grupos.length ||
-          panel.fecha > panel.hoy;
-      });
-
-      acciones.append(select);
+      const opciones = document.createElement('div');
+      opciones.className = 'as-opciones';
+      opciones.setAttribute('role', 'group');
+      opciones.setAttribute('aria-label', `Asistencia de ${u.nombre}`);
+      for (const [valor, texto] of Object.entries(etiquetas)) {
+        const b = boton(texto[0], () => {
+          estados.set(u.id_usuario, valor);
+          opciones.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.estado === valor)));
+          sucio = filas.some(f => estados.get(f.id_usuario) !== f.estado);
+          actualizarCierre();
+        });
+        b.dataset.estado = valor;
+        b.setAttribute('aria-label', `${texto}: ${u.nombre}`);
+        b.setAttribute('aria-pressed', String(u.estado === valor));
+        opciones.append(b);
+      }
+      acciones.append(opciones);
     } else {
       const estado = document.createElement('span');
       estado.className = 'as-estado';
@@ -335,7 +321,7 @@ function pintarPanel() {
         panel.puede_justificar &&
         u.puede_justificar &&
         panel.estado !== 'anulada' &&
-        u.estado !== 'justificado'
+        u.estado === 'falta'
       ) {
         acciones.append(boton('Marcar justificado', () => {
           const motivo = prompt(
@@ -370,12 +356,18 @@ function pintarPanel() {
 
   $('asCerrar').hidden = panel.estado !== 'borrador';
 
-  $('asCerrar').disabled =
-    revisadas !== panel.grupos.length ||
-    panel.fecha > panel.hoy;
+  actualizarCierre();
 
   $('asAnular').hidden = panel.estado === 'anulada';
   $('asRestaurar').hidden = panel.estado !== 'anulada';
+}
+
+function actualizarCierre() {
+  const motivo = sucio ? 'Guarda los cambios de esta unidad antes de cerrar.'
+    : panel.grupos.some(g => !g.revisada) ? 'Revisa y guarda todas las unidades, incluida Sin unidad.'
+    : panel.fecha > panel.hoy ? `Podrás cerrar este pase a partir del ${panel.fecha}.` : '';
+  $('asBloqueo').textContent = panel.estado === 'borrador' ? motivo : '';
+  $('asCerrar').disabled = Boolean(motivo) || panel.estado !== 'borrador';
 }
 
 async function cargarReuniones(id = $('asReunion').value) {
@@ -389,21 +381,10 @@ async function cargarReuniones(id = $('asReunion').value) {
 
     if (actual !== revision) return;
 
-    $('asReunion').replaceChildren(...lista.map(r => new Option(
-      `${r.fecha} · ${r.estado}${
-        r.importada && r.estado === 'borrador'
-          ? ' · Revisar datos anteriores'
-          : ''
-      }`,
-      r.id
-    )));
-
-    const elegido =
-      lista.find(r => r.id === id)?.id ||
-      lista[0]?.id;
-
-    if (elegido) $('asReunion').value = elegido;
-
+    const elegido = modo === 'editar' ? lista.find(r => r.id === id)?.id
+      : lista.find(r => r.estado !== 'anulada' && (admin() ? r.fecha === hoy() : r.fecha <= hoy()))?.id;
+    $('asReunion').value = elegido || '';
+    $('asCrearPanel').hidden = !admin() || modo !== 'reunion' || Boolean(elegido);
     const resultado = elegido
       ? await obtenerReunion(elegido)
       : null;
@@ -429,51 +410,94 @@ async function cargarReuniones(id = $('asReunion').value) {
   }
 }
 
-async function cargarHistorial() {
-  const actual = ++revision;
-
-  bloquear(true);
-  mensaje('Cargando historial…');
-
-  $('asListaHistorial').replaceChildren();
-  $('asResumenHistorial').textContent = '';
-
-  try {
-    const filas = $('asPersona').value
-      ? await obtenerHistorialAsistencias($('asPersona').value)
-      : [];
-
-    if (actual !== revision) return;
-
-    for (const r of filas) {
-      const li = document.createElement('li');
-      li.className = 'as-fila';
-
-      const fecha = document.createElement('time');
-      fecha.dateTime = r.fecha;
-      fecha.textContent = r.fecha;
-
-      const estado = document.createElement('span');
-      estado.className = 'as-estado';
-      estado.dataset.estado = r.estado;
-      estado.textContent = etiquetas[r.estado];
-
-      li.append(fecha, estado);
-      $('asListaHistorial').append(li);
-    }
-
-    $('asResumenHistorial').textContent =
-      `${resumen(filas)}. Solo reuniones cerradas.`;
-
-    mensaje('');
-  } catch (error) {
-    if (actual === revision) {
-      mensaje(error.message || 'No se pudo cargar el historial.');
-    }
-  } finally {
-    if (actual === revision) bloquear(false);
+function pintarMatriz() {
+  const filas = matriz.filter(r => !filtroUnidad || r.unidad_clave === filtroUnidad);
+  const fechas = [...new Map(filas.map(r => [r.reunion, { id: r.reunion, fecha: r.fecha }])).values()];
+  const integrantes = [...new Map(filas.map(r => [r.id_usuario, r.nombre])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const registros = new Map(filas.map(r => [`${r.id_usuario}/${r.reunion}`, r]));
+  const tabla = $('asMatriz'); tabla.replaceChildren();
+  const caption = document.createElement('caption'); caption.textContent = 'Historial de reuniones cerradas'; tabla.append(caption);
+  const head = document.createElement('thead'), tr = document.createElement('tr');
+  for (const texto of ['Integrante', ...fechas.map(f => f.fecha), '%']) {
+    const th = document.createElement('th'); th.scope = 'col'; th.textContent = texto; tr.append(th);
   }
+  head.append(tr); tabla.append(head);
+  const body = document.createElement('tbody');
+  for (const [id, nombre] of integrantes) {
+    const row = document.createElement('tr'), th = document.createElement('th');
+    th.scope = 'row'; th.textContent = nombre; row.append(th);
+    let total = 0, cumplidas = 0;
+    for (const fecha of fechas) {
+      const r = registros.get(`${id}/${fecha.id}`), td = document.createElement('td');
+      if (!r) { td.textContent = '—'; td.title = 'No convocado'; }
+      else {
+        total++; if (r.estado !== 'falta') cumplidas++;
+        const marca = admin() ? boton(etiquetas[r.estado][0], () => abrirCelda(r)) : document.createElement('span');
+        marca.className = 'as-marca'; marca.dataset.estado = r.estado;
+        marca.textContent = etiquetas[r.estado][0];
+        marca.setAttribute('aria-label', `${nombre}, ${fecha.fecha}: ${etiquetas[r.estado]}${admin() ? '. Editar' : ''}`);
+        td.append(marca);
+      }
+      row.append(td);
+    }
+    const porcentaje = document.createElement('td'); porcentaje.textContent = total ? `${Math.round(100 * cumplidas / total)}%` : '—'; row.append(porcentaje); body.append(row);
+  }
+  tabla.append(body);
+  $('asResumenHistorial').textContent = filas.length ? `${integrantes.length} integrantes · ${fechas.length} reuniones` : 'No hay reuniones cerradas para esta unidad.';
 }
+async function cargarHistorial() {
+  const actual = ++revision; bloquear(true); mensaje('Cargando historial…');
+  $('asMatriz').replaceChildren(); $('asFechas').replaceChildren();
+  try {
+    const [filas, fechas] = await Promise.all([obtenerMatriz(), admin() ? listarReuniones() : Promise.resolve([])]);
+    if (actual !== revision) return;
+    matriz = filas;
+    const unidades = new Map(filas.map(r => [r.unidad_clave, r.unidad]));
+    if (!unidades.has(filtroUnidad)) filtroUnidad = unidades.keys().next().value || '';
+    $('asFiltroUnidad').replaceChildren(...Array.from(unidades, ([id, nombre]) => new Option(nombre, id)));
+    $('asFiltroUnidad').value = filtroUnidad; $('asFiltroUnidadCampo').hidden = !admin();
+    if (!admin()) filtroUnidad = '';
+    $('asAdministrarFechas').hidden = !admin();
+    for (const f of fechas) $('asFechas').append(boton(`${f.fecha} · ${f.estado}`, () => {
+      modo = 'editar'; $('asVistaHistorial').hidden = true; $('asVistaReunion').hidden = false;
+      void cargarReuniones(f.id);
+    }));
+    pintarMatriz(); mensaje('');
+  } catch (error) { if (actual === revision) mensaje(error.message || 'No se pudo cargar el historial.'); }
+  finally { if (actual === revision) bloquear(false); }
+}
+
+const dialogo = document.createElement('dialog');
+dialogo.className = 'as-dialogo';
+dialogo.innerHTML = `<h2 id="asCeldaTitulo">Editar asistencia</h2><p id="asCeldaEstado" role="status"></p><div id="asCeldaOpciones" class="acciones"></div><button type="button" id="asCeldaCancelar" class="boton-volver">Cancelar</button>`;
+dialogo.setAttribute('aria-labelledby', 'asCeldaTitulo'); document.body.append(dialogo);
+function abrirCelda(registro) {
+  if (ocupado || !admin()) return;
+  celda = registro; $('asCeldaTitulo').textContent = `${registro.nombre} · ${registro.fecha}`;
+  $('asCeldaEstado').textContent = 'Selecciona el estado correcto.';
+  $('asCeldaOpciones').replaceChildren(...Object.entries(etiquetas).map(([valor, texto]) => boton(texto, () => void guardarCelda(valor))));
+  dialogo.showModal();
+}
+async function guardarCelda(estado) {
+  if (guardando || !celda) return;
+  const actual = revision; guardando = true; bloquear(true);
+  dialogo.querySelectorAll('button').forEach(b => b.disabled = true);
+  let exito = false;
+  try {
+    await actuarReunion({ id: celda.reunion, version: celda.version }, 'celda', { id_usuario: celda.id_usuario, estado });
+    exito = true;
+  } catch (error) {
+    if (actual === revision) $('asCeldaEstado').textContent = error.code === '40001' ? 'El registro cambió. Cancela y pulsa Recargar antes de editar.' : error.message;
+  } finally {
+    if (actual === revision) { guardando = false; bloquear(false); }
+    if (actual === revision) dialogo.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+  if (actual === revision && exito) { dialogo.close(); await cargarHistorial(); }
+}
+$('asCeldaCancelar').addEventListener('click', () => dialogo.close());
+dialogo.addEventListener('cancel', e => { if (guardando) e.preventDefault(); });
+$('asFiltroUnidad').addEventListener('change', () => { filtroUnidad = $('asFiltroUnidad').value; pintarMatriz(); });
 
 async function cambiarModo(nuevo) {
   if (ocupado || !puedeSalirAsistencias()) return;
@@ -481,10 +505,10 @@ async function cambiarModo(nuevo) {
   sucio = false;
   modo = nuevo;
 
-  $('asVistaReunion').hidden = modo !== 'reunion';
+  $('asVistaReunion').hidden = modo === 'historial';
   $('asVistaHistorial').hidden = modo !== 'historial';
 
-  if (modo === 'reunion') {
+  if (modo !== 'historial') {
     await cargarReuniones();
   } else {
     await cargarHistorial();
@@ -551,40 +575,15 @@ export async function abrirAsistencias(cuenta) {
   $('asVistaReunion').hidden = false;
   $('asVistaHistorial').hidden = true;
   $('asCrearPanel').hidden = !admin();
-  $('asNuevaFecha').value = hoy();
 
-  const actual = revision;
 
-  bloquear(true);
-
-  try {
-    const lista = await obtenerListaAsistencias();
-
-    if (actual !== revision) return;
-
-    $('asPersona').replaceChildren(...lista.map(u => new Option(
-      `${u.nombres} ${u.apellido}`,
-      u.id_usuario
-    )));
-
-    if (lista.some(u => u.id_usuario === cuenta.id_usuario)) {
-      $('asPersona').value = cuenta.id_usuario;
-    }
-
-    await cargarReuniones();
-  } catch (error) {
-    if (actual === revision) {
-      mensaje(error.message);
-      bloquear(false);
-    }
-  }
+  await cargarReuniones();
 }
 
 $('asCrear').addEventListener('click', async () => {
   if (
     ocupado ||
-    !puedeSalirAsistencias() ||
-    !$('asNuevaFecha').reportValidity()
+    !puedeSalirAsistencias()
   ) {
     return;
   }
@@ -597,7 +596,7 @@ $('asCrear').addEventListener('click', async () => {
   let id;
 
   try {
-    id = await crearReunion($('asNuevaFecha').value);
+    id = await crearReunion(hoy());
   } catch (error) {
     if (actual === revision) mensaje(error.message);
   } finally {
@@ -612,17 +611,6 @@ $('asCrear').addEventListener('click', async () => {
     grupo = '';
     await cargarReuniones(id);
   }
-});
-
-$('asReunion').addEventListener('change', () => {
-  if (ocupado || !puedeSalirAsistencias()) {
-    $('asReunion').value = panel?.id || '';
-    return;
-  }
-
-  sucio = false;
-  grupo = '';
-  void cargarReuniones();
 });
 
 $('asGuardar').addEventListener('click', () => {
@@ -668,10 +656,6 @@ $('asHistorial').addEventListener('click', () => {
 
 $('asRecargar').addEventListener('click', () => {
   void cambiarModo(modo);
-});
-
-$('asPersona').addEventListener('change', () => {
-  void cargarHistorial();
 });
 
 window.addEventListener('beforeunload', evento => {

@@ -1,0 +1,12 @@
+{
+  "name": "naar-shalem",
+  "private": true,
+  "scripts": {
+    "test": "node tests/asistencias-sql.mjs",
+    "test:ui": "node tests/asistencias-ui.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "ws": "8.22.0"
+  }
+}

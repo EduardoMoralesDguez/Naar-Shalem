@@ -28,13 +28,18 @@ export function reiniciarProgreso() {
   dashboardError.textContent = '';
 }
 
-function pintarProgreso({ asistencia, cuotas }) {
+function pintarProgreso({ asistencia, cuotas }, cobraCuotas) {
+  dashboardMetricas.classList.toggle('solo-asistencia', !cobraCuotas);
+  cuotasPorcentaje.closest('.metrica').hidden = !cobraCuotas;
+  totalPagado.closest('.total-pagado').hidden = !cobraCuotas;
   asistenciaPorcentaje.textContent = `${asistencia.porcentaje}%`;
   asistenciaBarra.style.width = `${asistencia.porcentaje}%`;
 
   asistenciaDetalle.textContent =
     `${asistencia.asistencias} asistencias + ${asistencia.justificados} justificadas ` +
     `de ${asistencia.total_registros} reuniones`;
+
+  if (!cobraCuotas) return;
 
   cuotasPorcentaje.textContent = `${cuotas.porcentaje}%`;
   cuotasBarra.style.width = `${cuotas.porcentaje}%`;
@@ -51,13 +56,13 @@ function pintarProgreso({ asistencia, cuotas }) {
   totalPagado.textContent = formatoMoneda.format(cuotas.total_pagado);
 }
 
-export async function cargarProgreso(idUsuario, sigueVigente) {
+export async function cargarProgreso(idUsuario, sigueVigente, cobraCuotas = true) {
   try {
-    const progreso = await obtenerProgreso(idUsuario);
+    const progreso = await obtenerProgreso(idUsuario, cobraCuotas);
 
     if (!sigueVigente()) return;
 
-    pintarProgreso(progreso);
+    pintarProgreso(progreso, cobraCuotas);
     dashboardError.hidden = true;
     dashboardMetricas.hidden = false;
     dashboard.hidden = false;
