@@ -33,15 +33,16 @@ const attendance=`
 const f=window.fixture;
 f.users[0].unidad=null;
 f.users.push({id_usuario:'d0000000-0000-4000-8000-000000000002',nombres:'Daniel',apellido:'Torres',rol:'capitan',unidad:'Jaspe',es_activo:true},
-{id_usuario:'d0000000-0000-4000-8000-000000000001',nombres:'Laura',apellido:'Mendoza',rol:'consejero',unidad:'Jaspe',es_activo:true});
+{id_usuario:'d0000000-0000-4000-8000-000000000001',nombres:'Laura',apellido:'Mendoza',rol:'consejero',unidad:'Jaspe',es_activo:true},{id_usuario:'d0000000-0000-4000-8000-000000000005',nombres:'Otro',apellido:'Integrante',rol:'conquistador',unidad:null,es_activo:true});
 const parts=new Intl.DateTimeFormat('en',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const today=['year','month','day'].map(t=>parts.find(p=>p.type===t).value).join('-');
-f.meeting={id:'meeting-1',fecha:today,hoy:today,estado:'borrador',version:1,importada:false,
+f.meeting={id:'meeting-1',nombre:'General',numero:1,fecha:today,hoy:today,estado:'borrador',version:1,importada:false,
  grupos:[{clave:'Diamante',nombre:'Diamante',revisada:false},{clave:'Jaspe',nombre:'Jaspe',revisada:false},{clave:'sin-unidad',nombre:'Sin unidad',revisada:false}],
- integrantes:f.users.map(u=>({id_usuario:u.id_usuario,nombre:u.nombres+' '+u.apellido,clave:u.unidad||'sin-unidad',estado:'falta',motivo:null}))};
-export async function listarReuniones(){return [{id:'future',fecha:'2099-01-01',estado:'borrador'},{id:f.meeting.id,fecha:f.meeting.fecha,estado:f.meeting.estado},{id:'older',fecha:'2020-01-01',estado:'cerrada'}];}
-export async function crearReunion(){return f.meeting.id;}
-export async function obtenerReunion(){const actor=f.users[f.actor];const p=structuredClone(f.meeting);p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>['capitan','consejero'].includes(actor.rol)?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
-export async function actuarReunion(p,accion,datos){const m=f.meeting;if(f.conflict){f.conflict=false;throw {code:'40001'};}
+ integrantes:f.users.filter(u=>u.rol!=='directiva').map(u=>({id_usuario:u.id_usuario,nombre:u.nombres+' '+u.apellido,clave:u.unidad||'sin-unidad',estado:'falta',motivo:null}))};
+f.meetings=[f.meeting];
+export async function listarReuniones(){return [{id:'future',fecha:'2099-01-01',nombre:'Futuro',numero:1,estado:'borrador'},...f.meetings.slice().reverse().map(m=>({id:m.id,fecha:m.fecha,nombre:m.nombre,numero:m.numero,estado:m.estado})),{id:'older',fecha:'2020-01-01',nombre:'General',numero:1,estado:'cerrada'}];}
+export async function crearReunion(fecha,nombre){const previo=f.meetings.find(m=>m.nombre.toLowerCase()===nombre.trim().toLowerCase());if(previo)return previo.id;const m=structuredClone(f.meeting);m.id='meeting-'+(f.meetings.length+1);m.nombre=nombre.trim();m.numero=f.meetings.length+1;m.estado='borrador';m.grupos.forEach(g=>g.revisada=false);m.integrantes.forEach(u=>u.estado='falta');f.meetings.push(m);return m.id;}
+export async function obtenerReunion(id=f.meeting.id){const actor=f.users[f.actor];const p=structuredClone(f.meetings.find(m=>m.id===id));p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>['capitan','consejero'].includes(actor.rol)?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
+export async function actuarReunion(p,accion,datos){const m=f.meetings.find(m=>m.id===p.id);if(f.conflict){f.conflict=false;throw {code:'40001'};}
  if(accion==='unidad'){for(const x of datos.integrantes)Object.assign(m.integrantes.find(u=>u.id_usuario===x.id_usuario),x);m.grupos.find(g=>g.clave===datos.clave).revisada=true;}
  if(accion==='celda')Object.assign(m.integrantes.find(u=>u.id_usuario===datos.id_usuario),{estado:datos.estado});
  if(accion==='cerrar')m.estado='cerrada';
@@ -51,7 +52,7 @@ export async function actuarReunion(p,accion,datos){const m=f.meeting;if(f.confl
  m.version++;
 }
 export async function obtenerListaAsistencias(){const a=f.users[f.actor];return f.users.filter(u=>a.rol==='directiva'||u.id_usuario===a.id_usuario||(['capitan','consejero'].includes(a.rol)&&u.unidad===a.unidad));}
-export async function obtenerMatriz(){const p=await obtenerReunion();return p.integrantes.flatMap(u=>[{reunion:'older',fecha:'2020-01-01',version:1,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave,estado:'falta'},...(p.estado==='cerrada'?[{reunion:p.id,fecha:p.fecha,version:p.version,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave,estado:u.estado}]:[])]);}
+export async function obtenerMatriz(){const registros=[];for(const m of f.meetings){if(m.estado!=='cerrada')continue;const p=await obtenerReunion(m.id);for(const u of p.integrantes)registros.push({reunion:p.id,fecha:p.fecha,version:p.version,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave==='sin-unidad'?'Sin unidad':u.clave,estado:u.estado,nombre_pase:p.nombre,numero:p.numero});}const p=await obtenerReunion();return [...p.integrantes.map(u=>({reunion:'older',fecha:'2020-01-01',version:1,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave==='sin-unidad'?'Sin unidad':u.clave,estado:'falta',nombre_pase:'General',numero:1})),...registros];}
 export async function obtenerHistorialAsistencias(id){return f.meeting.estado==='cerrada'?f.meeting.integrantes.filter(u=>u.id_usuario===id).map(u=>({...u,fecha:f.meeting.fecha})):[];}
 `;
 const mocks={'/js/services/asistencias.js':attendance,'/js/lib/supabase.js':lib,'/js/services/auth.js':auth,'/js/services/catalogo.js':catalogo,'/js/services/integrantes-admin.js':admin};
@@ -114,12 +115,33 @@ assert.equal(await evaluate("document.querySelectorAll('#asLista button').length
 await evaluate("location.hash='perfil/'+fixture.users[3].id_usuario");await waitFor("!document.getElementById('dashboard').hidden");
 assert.equal(await evaluate("document.getElementById('cuotasPorcentaje').closest('.metrica').hidden"),true);
 assert.equal(await evaluate("fixture.progress.at(-1).cobraCuotas"),false);
-await evaluate("fixture.emit(0);location.hash='perfil/'+fixture.users[0].id_usuario");await waitFor("!document.getElementById('dashboard').hidden&&document.getElementById('tarjetaUnidad').parentElement.hidden");
+await evaluate("fixture.emit(0);location.hash='perfil/'+fixture.users[0].id_usuario");await waitFor("document.getElementById('dashboard').hidden&&!document.getElementById('vistaPerfil').hidden&&document.getElementById('tarjetaUnidad').parentElement.hidden");
 assert.equal(await evaluate("document.getElementById('tarjetaClase').parentElement.hidden"),true);
 await evaluate("location.hash='consultar'");await waitFor("!document.getElementById('directorio').hidden");
 assert.equal(await evaluate("document.querySelector('a[href=\"#perfil/'+fixture.users[0].id_usuario+'\"] .integrante-detalles').hidden"),true);
 await evaluate("location.hash='perfil/'+fixture.users[1].id_usuario");await waitFor("!document.getElementById('dashboard').hidden&&!document.getElementById('cuotasPorcentaje').closest('.metrica').hidden");
 assert.equal(await evaluate('fixture.progress.at(-1).cobraCuotas'),true);
+
+// Segundo pase del mismo día y exclusión de directiva.
+await evaluate("location.hash='asistencias'");await waitFor("!document.getElementById('asCampos').disabled&&!document.getElementById('vistaAsistencias').hidden");
+assert.equal(await evaluate("document.getElementById('asCrearPanel').hidden"),false);
+assert.ok(await evaluate("!document.getElementById('asLista').textContent.includes('Ezequiel')"));
+await evaluate("document.getElementById('asNombrePase').value='Tarde';document.getElementById('asCrear').click()");
+await waitFor("fixture.meetings.length===2&&!document.getElementById('asCampos').disabled");
+assert.ok(await evaluate("document.getElementById('asFechaTitulo').textContent.includes('Tarde')"));
+assert.equal(await evaluate("document.querySelectorAll('#asPasesHoy button').length"),2);
+for(let i=0;i<3;i++){
+ await evaluate(`document.querySelectorAll('#asGrupos button')[${i}].click();document.getElementById('asGuardar').click()`);
+ await waitFor(`!document.getElementById('asCampos').disabled&&fixture.meetings[1].grupos[${i}].revisada`);
+}
+await evaluate("document.getElementById('asCerrar').click()");await waitFor("fixture.meetings[1].estado==='cerrada'&&!document.getElementById('asCampos').disabled");
+await evaluate("document.getElementById('asNombrePase').value='Tarde';document.getElementById('asCrear').click()");await waitFor("!document.getElementById('asCampos').disabled");
+assert.equal(await evaluate('fixture.meetings.length'),2);
+await evaluate("document.getElementById('asHistorial').click()");await waitFor("document.querySelectorAll('#asMatriz thead th').length===5&&!document.getElementById('asCampos').disabled");
+assert.ok(await evaluate("document.getElementById('asMatriz').textContent.includes('Tarde')"));
+assert.ok(await evaluate("!document.getElementById('asMatriz').textContent.includes('Ezequiel')"));
+await shot('pases-mismo-dia-mobile');
+assert.equal(await evaluate('document.documentElement.scrollWidth<=window.innerWidth'),true);
 await evaluate("document.getElementById('botonSalir').click()");await waitFor("!document.getElementById('panelLogin').hidden");
-console.log('UI OK: reunión actual, botones A/J/F, matriz editable/porcentajes, permisos, perfiles por rol, móvil y logout. Capturas: '+output);
+console.log('UI OK: varios pases por día, directiva exenta, reunión actual, botones A/J/F, matriz editable/porcentajes, permisos, perfiles por rol, móvil y logout. Capturas: '+output);
 } finally{ws.close();chrome.kill();server.close()}

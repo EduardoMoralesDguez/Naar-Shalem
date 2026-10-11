@@ -72,5 +72,51 @@ await actor(0);await assert.rejects(db.query('SELECT * FROM historial_matriz()')
 await assert.rejects(db.query('SELECT * FROM presentacion_integrantes()'),e=>e.code==='42501');
 await db.exec('RESET ROLE');
 await db.exec(m8);
-console.log('SQL OK: creación solo hoy, revisión completa, matriz por rol/unidad, corrección atómica/versionada, capitán no sobrescribe asistencia, cuotas privadas y presentación por rol.');
+
+// 009: migrar registros existentes y separar pases de un mismo día.
+const m9=file('migrations/009_pases_por_reunion.sql');
+const originales=(await db.query('SELECT id_asistencia FROM asistencias ORDER BY id_asistencia')).rows;
+await db.exec(m9);await db.exec(m9);
+assert.deepEqual((await db.query('SELECT id_asistencia FROM asistencias ORDER BY id_asistencia')).rows,originales);
+await actor(4);
+assert.equal((await panel(id)).integrantes.length,3);
+assert.ok(!(await panel(id)).grupos.some(g=>g.nombre==='Sin unidad'));
+assert.equal((await db.query('SELECT * FROM asistencias WHERE id_usuario=$1',[uid(4)])).rows.length,0);
+assert.ok(!(await db.query('SELECT * FROM historial_matriz_turnos()')).rows.some(x=>x.id_usuario===uid(4)));
+await assert.rejects(act(await panel(id),'celda',{id_usuario:uid(4),estado:'asistencia'}),e=>e.code==='22023');
+await db.exec('RESET ROLE');
+await db.query("INSERT INTO usuarios(id_usuario,id_ciclo,nombres,apellido,rol) VALUES($1,'c0000000-0000-4000-8000-000000000001','Sin','Unidad','conquistador')",[uid(5)]);
+await actor(4);
+const crear=async nombre=>(await db.query('SELECT reunion_crear_turno($1,$2) id',[dates.today,nombre])).rows[0].id;
+const manana=await crear('Mañana'),tarde=await crear('Tarde');
+assert.notEqual(manana,tarde);
+assert.equal(await crear('  TARDE  '),tarde);
+assert.equal((await panel(tarde)).integrantes.length,4);
+assert.ok((await panel(tarde)).grupos.some(g=>g.nombre==='Sin unidad'));
+assert.ok(!(await panel(tarde)).integrantes.some(x=>x.id_usuario===uid(4)));
+await assert.rejects(crear('  '),e=>e.code==='22023');
+async function cerrarPase(reunion,estado) {
+  let p=await panel(reunion);
+  for(const g of p.grupos){p=await panel(reunion);await act(p,'unidad',{clave:g.clave,integrantes:p.integrantes.filter(u=>u.clave===g.clave).map(u=>({id_usuario:u.id_usuario,estado}))});}
+  await act(await panel(reunion),'cerrar');
+}
+await cerrarPase(manana,'falta');await cerrarPase(tarde,'asistencia');
+const registros=async()=>(await db.query('SELECT id_reunion,estado FROM asistencias WHERE id_usuario=$1 AND id_reunion IN ($2,$3) ORDER BY id_reunion',[uid(3),manana,tarde])).rows;
+assert.equal((await registros()).length,2);
+await act(await panel(manana),'celda',{id_usuario:uid(3),estado:'justificado'});
+assert.equal((await registros()).find(x=>x.id_reunion===tarde).estado,'asistencia');
+assert.equal((await registros()).find(x=>x.id_reunion===manana).estado,'justificado');
+await act(await panel(manana),'anular',{motivo:'Prueba de independencia'});
+assert.deepEqual(await registros(),[{id_reunion:tarde,estado:'asistencia'}]);
+await actor(2);
+await assert.rejects(act(await panel(tarde),'justificar',{id_usuario:uid(1),motivo:'Ya asistió'}),e=>e.code==='22023');
+await actor(4);await act(await panel(id),'celda',{id_usuario:uid(2),estado:'falta'});
+await actor(2);await act(await panel(id),'justificar',{id_usuario:uid(2),motivo:'Solo el pase General'});
+await actor(4);
+assert.equal((await db.query('SELECT estado FROM asistencias WHERE id_usuario=$1 AND id_reunion=$2',[uid(2),tarde])).rows[0].estado,'asistencia');
+await db.exec('RESET ROLE');await db.exec(m9);
+assert.equal((await db.query('SELECT * FROM asistencias WHERE id_usuario=$1',[uid(4)])).rows.length,1);
+await actor(0);await assert.rejects(db.query('SELECT * FROM historial_matriz_turnos()'),e=>e.code==='42501');
+await assert.rejects(db.query('SELECT reunion_crear_turno($1,$2)',[dates.today,'No permitido']),e=>e.code==='42501');
+console.log('SQL OK: migraciones 008/009 repetibles, roles, dos pases por día, reintentos sin duplicar, correcciones/anulaciones aisladas y directiva exenta sin borrar registros.');
 await db.close();

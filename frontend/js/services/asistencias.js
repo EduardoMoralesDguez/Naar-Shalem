@@ -16,14 +16,15 @@ async function rpc(nombre, parametros) {
 export function listarReuniones() {
   return consultarTodasLasFilas(() =>
     obtenerSupabase()
-      .rpc('reuniones_listar')
+      .rpc('reuniones_listar_turnos')
       .order('fecha', { ascending: false })
+      .order('numero', { ascending: false })
       .order('id')
   );
 }
 
-export const crearReunion = fecha =>
-  rpc('reunion_crear', { p_fecha: fecha });
+export const crearReunion = (fecha, nombre) =>
+  rpc('reunion_crear_turno', { p_fecha: fecha, p_nombre: nombre });
 
 export const obtenerReunion = id =>
   rpc('reunion_panel', { p_id: id });
@@ -37,6 +38,6 @@ export const actuarReunion = (panel, accion, datos = {}) =>
   });
 
 export function obtenerMatriz() {
-  return consultarTodasLasFilas(() => obtenerSupabase().rpc('historial_matriz')
-    .order('fecha').order('reunion').order('id_usuario'));
+  return consultarTodasLasFilas(() => obtenerSupabase().rpc('historial_matriz_turnos')
+    .order('fecha').order('numero').order('reunion').order('id_usuario'));
 }

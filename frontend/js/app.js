@@ -246,7 +246,7 @@ async function renderRuta(forzar = false) {
 
         // El dashboard incluye cuotas y conserva sus permisos.
         // Al abrir el perfil consulta nuevamente los registros guardados.
-        if (admin() || id === perfil.id_usuario) {
+        if ((admin() || id === perfil.id_usuario) && !usuario.es_directiva && usuario.rol !== 'directiva') {
           void cargarProgreso(id, vigente, ['conquistador', 'capitan'].includes(usuario.rol));
         }
 
