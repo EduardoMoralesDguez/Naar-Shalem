@@ -1,0 +1,457 @@
+/* frontend/css/portal.css */
+
+a { color: var(--club-azul); }
+button, input, select { font: inherit; }
+button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--club-azul);
+  outline-offset: 4px;
+}
+
+button:disabled { opacity: .55; cursor: wait; }
+.boton-volver { text-decoration: none; }
+
+.boton-principal {
+  padding: .85rem 1.4rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--club-azul);
+  color: white;
+  font-weight: 750;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.boton-principal:hover { background: #202373; }
+.texto-suave { color: var(--color-suave); line-height: 1.6; }
+
+.sobre-titulo {
+  display: block;
+  color: var(--club-azul);
+  font-size: .72rem;
+  letter-spacing: .16em;
+  font-weight: 800;
+}
+
+.login {
+  min-height: 100dvh;
+  display: grid;
+}
+
+.login-imagen {
+  display: none;
+  background:
+    linear-gradient(0deg, #171a53d9, #292c9820),
+    url('../img/login/portada.jpg') center/cover,
+    var(--club-azul);
+}
+
+.login-lema {
+  align-self: end;
+  padding: clamp(2rem, 5vw, 5rem);
+  color: white;
+}
+
+.login-lema span {
+  font-size: .8rem;
+  letter-spacing: .2em;
+  color: var(--club-oro);
+}
+
+.login-lema h2 {
+  font-size: clamp(2.5rem, 4vw, 4.5rem);
+  line-height: 1.1;
+  margin: 1rem 0;
+}
+
+.login-formulario {
+  width: 100%;
+  max-width: 540px;
+  align-self: center;
+  justify-self: center;
+  padding: 2rem 1.5rem;
+}
+
+.login-logo {
+  display: block;
+  width: 110px;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+.login h1 {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.2;
+  margin: .8rem 0;
+}
+
+.login label {
+  display: block;
+  font-weight: 650;
+  margin: 1.25rem 0 .5rem;
+}
+
+.login input,
+.campos-grid input,
+.campos-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: .8rem 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: white;
+  color: var(--color-texto);
+}
+
+.password-campo {
+  display: flex;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: white;
+}
+
+.password-campo input { border: 0; }
+
+.password-campo button {
+  background: transparent;
+  border: 0;
+  padding: .5rem .8rem;
+  color: var(--club-azul);
+  cursor: pointer;
+}
+
+.login .boton-principal {
+  width: 100%;
+  margin-top: 1.75rem;
+}
+
+.login-ayuda {
+  color: var(--color-suave);
+  font-size: .8rem;
+  margin-top: 2rem;
+}
+
+.portal-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 3vw, 3.5rem);
+  border-bottom: 3px solid var(--club-rojo);
+  background: white;
+}
+
+.portal-inicio {
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.portal-inicio span {
+  display: block;
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--color-suave);
+  margin-top: .25rem;
+}
+
+.cabecera-derecha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.cuenta {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  min-width: 0;
+  max-width: 320px;
+  text-decoration: none;
+}
+
+.cuenta strong {
+  display: block;
+  font-size: .9rem;
+  overflow-wrap: anywhere;
+}
+
+.cuenta small {
+  display: block;
+  color: var(--color-suave);
+  margin-top: .2rem;
+}
+
+.cuenta .integrante-avatar {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+}
+
+.marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  font-size: .8rem;
+}
+
+.marca img { width: 68px; height: auto; }
+
+.portal-contenido {
+  width: 100%;
+  max-width: 1600px;
+  margin: auto;
+  padding: 1rem clamp(1rem, 3vw, 3.5rem) 3rem;
+}
+
+.ruta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin: .7rem 0 2rem;
+  font-size: .85rem;
+}
+
+.ruta a { text-decoration: none; }
+.ruta span { color: var(--color-suave); }
+
+.bienvenida {
+  border-radius: 20px;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: linear-gradient(110deg, #292c98, #383bae);
+  color: white;
+  border-bottom: 5px solid var(--club-oro);
+}
+
+.bienvenida .sobre-titulo { color: var(--club-oro); }
+
+.bienvenida h1 {
+  color: white;
+  margin-top: .8rem;
+  font-size: clamp(1.7rem, 3vw, 2.8rem);
+}
+
+.titulo-seccion {
+  color: var(--club-azul);
+  margin-top: 2rem;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.modulo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.75rem;
+  border: 1px solid var(--color-borde);
+  border-radius: 18px;
+  background: white;
+  text-decoration: none;
+  box-shadow: 0 6px 18px #292c9808;
+}
+
+.modulo:hover {
+  border-color: var(--club-azul);
+  box-shadow: 0 8px 25px #292c9812;
+}
+
+.modulo h2 { margin: .8rem 0 .3rem; }
+
+.modulo p {
+  color: var(--color-suave);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.modulo strong { margin-top: auto; }
+
+.modulo-icono {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: #ffca002e;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+#panelFiltros summary {
+  color: var(--club-azul);
+  font-weight: 700;
+  cursor: pointer;
+  padding: .65rem 0;
+}
+
+#panelFiltros .filtros-grid {
+  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+#cantidadFiltros { font-size: .8rem; }
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+
+.aviso {
+  padding: 1rem;
+  border: 1px solid var(--color-borde);
+  border-left: 4px solid var(--club-oro);
+  border-radius: 10px;
+  background: white;
+  line-height: 1.5;
+}
+
+.panel-estado {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.editor-titulo { margin-bottom: 1.5rem; }
+.editor-titulo h1 { margin-top: .6rem; }
+
+.editor-formulario {
+  background: white;
+  border: 1px solid var(--color-borde);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  background: #eef0fa;
+  min-width: 0;
+}
+
+.foto-preview {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid white;
+  background: var(--club-azul);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 800;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+
+.foto-preview img,
+.integrante-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.integrante-avatar { overflow: hidden; }
+#fotoArchivo { max-width: 100%; font-size: .8rem; }
+
+#fotoArchivo::file-selector-button {
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  padding: .65rem .8rem;
+  background: white;
+  color: var(--club-azul);
+  font: inherit;
+  cursor: pointer;
+}
+
+.nota {
+  margin-top: 2rem;
+  font-size: .85rem;
+  line-height: 1.6;
+  color: var(--color-suave);
+}
+
+.editor-datos {
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  min-width: 0;
+}
+
+.editor-datos h2 {
+  color: var(--club-azul);
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.campos-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+}
+
+.campos-grid label {
+  display: grid;
+  gap: .55rem;
+  color: var(--club-azul);
+  font-weight: 650;
+  min-width: 0;
+}
+
+.editor-pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .75rem;
+  padding: 1.25rem 2rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+body:has(#panelLogin:not([hidden])) .portal-contenido {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .login { grid-template-columns: 1.05fr 1fr; }
+  .login-imagen { display: grid; }
+  .editor-layout { grid-template-columns: 300px minmax(0, 1fr); }
+  .cabecera-derecha { margin-left: auto; }
+}
+
+@media (max-width: 639px) {
+  .portal-inicio { display: none; }
+  .cabecera-derecha { width: 100%; gap: .6rem; }
+  .cuenta { flex: 1; }
+  .marca strong { display: none; }
+  .marca img { width: 48px; }
+  .portal-cabecera .boton-volver { padding: .55rem; }
+}

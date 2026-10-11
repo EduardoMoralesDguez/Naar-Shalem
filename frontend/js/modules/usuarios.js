@@ -1,73 +1,34 @@
 // frontend/js/modules/usuarios.js
 
-const directorio = document.getElementById('directorio');
-const tituloDirectorio = document.getElementById('directorioTitulo');
-const buscador = document.getElementById('buscarIntegrante');
-const filtroUnidad = document.getElementById('filtroUnidad');
-const filtroRol = document.getElementById('filtroRol');
-const filtroClase = document.getElementById('filtroClase');
-const botonLimpiar = document.getElementById('limpiarFiltros');
+const $ = id => document.getElementById(id);
 
-const lista = document.getElementById('listaIntegrantes');
-const estado = document.getElementById('estadoDirectorio');
-const mensaje = document.getElementById('mensaje');
-
-const navegacionPerfil = document.getElementById('navegacionPerfil');
-const botonVolver = document.getElementById('volverIntegrantes');
-const subtitulo = document.getElementById('subtituloPagina');
-
-const tarjeta = document.getElementById('tarjeta');
-const nombre = document.getElementById('tarjetaNombre');
-const rol = document.getElementById('tarjetaRol');
-const unidad = document.getElementById('tarjetaUnidad');
-const clase = document.getElementById('tarjetaClase');
-
-const SIN_ASIGNAR = '__sin_asignar__';
-
-const NOMBRES_ROLES = {
+const roles = {
   directiva: 'Directiva',
   consejero: 'Consejero',
   capitan: 'Capitán',
   conquistador: 'Conquistador',
 };
 
-let integrantes = [];
-let usuarioSeleccionado = '';
-let posicionDirectorio = 0;
-let ultimoBoton = null;
-let callbackSeleccion = null;
-let callbackVolver = null;
-let frameNavegacion = null;
+const filtros = ['filtroUnidad', 'filtroRol', 'filtroClase'];
 
-function capitalizar(texto = '') {
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
+const normalizar = texto => String(texto || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim();
+
+let filas = [];
+
+export function nombreRol(rol) {
+  return roles[rol] || '';
 }
 
-function nombreRol(valor) {
-  return NOMBRES_ROLES[valor] || capitalizar(valor || '');
-}
+export function mostrarFoto(contenedor, usuario) {
+  const iniciales = (
+    (usuario.nombres?.trim()[0] || '') +
+    (usuario.apellido?.trim()[0] || '')
+  ).toUpperCase() || 'NS';
 
-function normalizar(texto) {
-  return String(texto || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function valorAsignacion(valor) {
-  return valor || SIN_ASIGNAR;
-}
-
-function obtenerIniciales(usuario) {
-  const primera = usuario.nombres?.trim().charAt(0) || '';
-  const segunda = usuario.apellido?.trim().charAt(0) || '';
-
-  return `${primera}${segunda}`.toUpperCase() || 'NS';
-}
-
-function mostrarFoto(contenedor, usuario) {
-  const iniciales = obtenerIniciales(usuario);
   contenedor.textContent = iniciales;
 
   if (!usuario.url_foto) return;
@@ -77,14 +38,15 @@ function mostrarFoto(contenedor, usuario) {
   try {
     url = new URL(usuario.url_foto, document.baseURI);
 
-    if (!['http:', 'https:'].includes(url.protocol)) return;
+    if (!['http:', 'https:', 'blob:'].includes(url.protocol)) {
+      return;
+    }
   } catch {
     return;
   }
 
   const imagen = document.createElement('img');
   imagen.alt = '';
-  imagen.loading = 'lazy';
   imagen.decoding = 'async';
   imagen.referrerPolicy = 'no-referrer';
 
@@ -98,354 +60,175 @@ function mostrarFoto(contenedor, usuario) {
   contenedor.replaceChildren(imagen);
 }
 
-function programarNavegacion(callback) {
-  if (frameNavegacion !== null) {
-    cancelAnimationFrame(frameNavegacion);
-  }
+export function limpiarUsuarios() {
+  filas = [];
 
-  frameNavegacion = requestAnimationFrame(() => {
-    frameNavegacion = null;
-    callback();
+  $('buscarIntegrante').value = '';
+
+  filtros.forEach(id => {
+    $(id).replaceChildren(new Option('Todos', ''));
+  });
+
+  $('filtroEstado').value = 'activos';
+  $('panelFiltros').open = false;
+  $('listaIntegrantes').replaceChildren();
+  $('perfilAvatar').replaceChildren();
+
+  [
+    'tarjetaNombre',
+    'tarjetaRol',
+    'tarjetaUnidad',
+    'tarjetaClase',
+  ].forEach(id => {
+    $(id).textContent = '';
   });
 }
 
-function deshabilitarControles(deshabilitado) {
-  buscador.disabled = deshabilitado;
-  filtroUnidad.disabled = deshabilitado;
-  filtroRol.disabled = deshabilitado;
-  filtroClase.disabled = deshabilitado;
+export function mostrarUsuarios(usuarios, admin) {
+  filas = usuarios;
 
-  if (deshabilitado) {
-    botonLimpiar.disabled = true;
+  $('campoFiltroRol').hidden = !admin;
+  $('campoFiltroEstado').hidden = !admin;
+
+  if (!admin) {
+    $('filtroRol').value = '';
+    $('filtroEstado').value = 'activos';
   }
-}
 
-function hayFiltrosActivos() {
-  return Boolean(
-    buscador.value ||
-    filtroUnidad.value ||
-    filtroRol.value ||
-    filtroClase.value
-  );
-}
+  const configuraciones = [
+    ['filtroUnidad', 'unidad', 'Todas las unidades'],
+    ['filtroRol', 'rol', 'Todos los tipos'],
+    ['filtroClase', 'clase', 'Todas las clases'],
+  ];
 
-function llenarFiltro(select, valores, textoTodos, obtenerEtiqueta) {
-  const seleccionAnterior = select.value;
-  const opciones = [...new Set(valores)].sort((a, b) =>
-    obtenerEtiqueta(a).localeCompare(obtenerEtiqueta(b), 'es')
-  );
+  for (const [id, clave, etiqueta] of configuraciones) {
+    const previo = $(id).value;
 
-  select.replaceChildren(new Option(textoTodos, ''));
+    const valores = [...new Set(
+      filas.map(usuario => usuario[clave] || '__sin__')
+    )].sort((a, b) => a.localeCompare(b, 'es'));
 
-  opciones.forEach((valor) => {
-    select.appendChild(new Option(obtenerEtiqueta(valor), valor));
-  });
+    $(id).replaceChildren(new Option(etiqueta, ''));
 
-  if (opciones.includes(seleccionAnterior)) {
-    select.value = seleccionAnterior;
+    valores.forEach(valor => {
+      const texto = valor === '__sin__'
+        ? 'Sin asignar'
+        : clave === 'rol'
+          ? nombreRol(valor)
+          : valor;
+
+      $(id).add(new Option(texto, valor));
+    });
+
+    $(id).value = valores.includes(previo) ? previo : '';
   }
+
+  renderizar();
 }
 
-function actualizarOpcionesFiltros() {
-  llenarFiltro(
-    filtroUnidad,
-    integrantes.map((usuario) => valorAsignacion(usuario.unidad)),
-    'Todas las unidades',
-    (valor) => valor === SIN_ASIGNAR ? 'Sin unidad asignada' : valor
+function renderizar() {
+  const termino = normalizar($('buscarIntegrante').value);
+  const estado = $('filtroEstado').value;
+
+  const encontrados = filas.filter(usuario =>
+    normalizar(
+      `${usuario.nombres} ${usuario.apellido} ${usuario.unidad || ''} ${usuario.clase || ''}`
+    ).includes(termino) &&
+    filtros.every((id, indice) =>
+      !$(id).value ||
+      $(id).value === (
+        usuario[['unidad', 'rol', 'clase'][indice]] || '__sin__'
+      )
+    ) &&
+    (
+      estado === 'todos' ||
+      (estado === 'activos' ? usuario.es_activo : !usuario.es_activo)
+    )
   );
-
-  llenarFiltro(
-    filtroRol,
-    integrantes.map((usuario) => usuario.rol).filter(Boolean),
-    'Todos los tipos',
-    nombreRol
-  );
-
-  llenarFiltro(
-    filtroClase,
-    integrantes.map((usuario) => valorAsignacion(usuario.clase)),
-    'Todas las clases',
-    (valor) => valor === SIN_ASIGNAR ? 'Sin clase asignada' : valor
-  );
-}
-
-function crearTarjetaIntegrante(usuario) {
-  const item = document.createElement('li');
-  item.className = 'integrante-item';
-
-  const boton = document.createElement('button');
-  boton.type = 'button';
-  boton.className = 'integrante-boton';
-  boton.dataset.usuarioId = usuario.id_usuario;
-
-  boton.setAttribute(
-    'aria-label',
-    `Ver perfil de ${usuario.nombres} ${usuario.apellido}`
-  );
-
-  const avatar = document.createElement('span');
-  avatar.className = 'integrante-avatar';
-  mostrarFoto(avatar, usuario);
-  avatar.setAttribute('aria-hidden', 'true');
-
-  const informacion = document.createElement('span');
-  informacion.className = 'integrante-info';
-
-  const nombreIntegrante = document.createElement('strong');
-  nombreIntegrante.className = 'integrante-nombre';
-  nombreIntegrante.textContent =
-    `${usuario.nombres} ${usuario.apellido}`;
-
-  const rolIntegrante = document.createElement('span');
-  rolIntegrante.className = 'integrante-rol';
-  rolIntegrante.textContent = nombreRol(usuario.rol);
-  rolIntegrante.hidden = !usuario.rol;
-
-  const detalles = document.createElement('span');
-  detalles.className = 'integrante-detalles';
-
-  const unidadIntegrante = document.createElement('span');
-  unidadIntegrante.textContent =
-    `Unidad: ${usuario.unidad || 'Sin asignar'}`;
-
-  const claseIntegrante = document.createElement('span');
-  claseIntegrante.textContent =
-    `Clase: ${usuario.clase || 'Sin asignar'}`;
-
-  detalles.append(unidadIntegrante, claseIntegrante);
-  informacion.append(nombreIntegrante, rolIntegrante, detalles);
-
-  const flecha = document.createElement('span');
-  flecha.className = 'integrante-flecha';
-  flecha.textContent = '→';
-  flecha.setAttribute('aria-hidden', 'true');
-
-  boton.append(avatar, informacion, flecha);
-  item.appendChild(boton);
-
-  return item;
-}
-
-function renderizarDirectorio() {
-  const termino = normalizar(buscador.value);
-  const unidadElegida = filtroUnidad.value;
-  const rolElegido = filtroRol.value;
-  const claseElegida = filtroClase.value;
-
-  const filtrados = integrantes.filter((usuario) => {
-    const contenido = normalizar([
-      usuario.nombres,
-      usuario.apellido,
-      usuario.unidad,
-      usuario.clase,
-      nombreRol(usuario.rol),
-    ].filter(Boolean).join(' '));
-
-    const coincideBusqueda = contenido.includes(termino);
-
-    const coincideUnidad =
-      !unidadElegida ||
-      valorAsignacion(usuario.unidad) === unidadElegida;
-
-    const coincideRol =
-      !rolElegido || usuario.rol === rolElegido;
-
-    const coincideClase =
-      !claseElegida ||
-      valorAsignacion(usuario.clase) === claseElegida;
-
-    return (
-      coincideBusqueda &&
-      coincideUnidad &&
-      coincideRol &&
-      coincideClase
-    );
-  });
 
   const fragmento = document.createDocumentFragment();
 
-  filtrados.forEach((usuario) => {
-    fragmento.appendChild(crearTarjetaIntegrante(usuario));
-  });
+  for (const usuario of encontrados) {
+    const item = document.createElement('li');
+    item.className = 'integrante-item';
 
-  lista.replaceChildren(fragmento);
-  botonLimpiar.disabled =
-    integrantes.length === 0 || !hayFiltrosActivos();
+    const enlace = document.createElement('a');
+    enlace.className = 'integrante-boton';
+    enlace.style.textDecoration = 'none';
+    enlace.href = `#perfil/${usuario.id_usuario}`;
 
-  if (integrantes.length === 0) {
-    estado.textContent = 'No hay integrantes disponibles.';
-    return;
+    const foto = document.createElement('span');
+    foto.className = 'integrante-avatar';
+    foto.setAttribute('aria-hidden', 'true');
+    mostrarFoto(foto, usuario);
+
+    const informacion = document.createElement('span');
+    informacion.className = 'integrante-info';
+
+    const nombre = document.createElement('strong');
+    nombre.className = 'integrante-nombre';
+    nombre.textContent = `${usuario.nombres} ${usuario.apellido}`;
+
+    const detalle = document.createElement('span');
+    detalle.className = 'integrante-detalles';
+    detalle.textContent =
+      `${usuario.unidad || 'Sin unidad'} · ${usuario.clase || 'Sin clase'}`;
+
+    informacion.append(nombre, detalle);
+
+    if (usuario.rol || !usuario.es_activo) {
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'integrante-rol';
+      etiqueta.textContent = !usuario.es_activo
+        ? 'Inactivo'
+        : nombreRol(usuario.rol);
+
+      informacion.append(etiqueta);
+    }
+
+    enlace.append(foto, informacion);
+    item.append(enlace);
+    fragmento.append(item);
   }
 
-  if (filtrados.length === 0) {
-    estado.textContent =
-      'No hay integrantes que coincidan. Prueba otros filtros o pulsa “Limpiar búsqueda y filtros”.';
-    return;
-  }
+  $('listaIntegrantes').replaceChildren(fragmento);
 
-  if (hayFiltrosActivos()) {
-    estado.textContent =
-      `Mostrando ${filtrados.length} de ${integrantes.length} integrantes`;
-    return;
-  }
+  $('estadoDirectorio').textContent = encontrados.length
+    ? `${encontrados.length} de ${filas.length} integrantes`
+    : 'No hay integrantes que coincidan con tu búsqueda.';
 
-  estado.textContent = integrantes.length === 1
-    ? '1 integrante'
-    : `${integrantes.length} integrantes`;
-}
+  const cantidad =
+    filtros.filter(id => $(id).value).length +
+    Number(estado !== 'activos');
 
-function limpiarFiltros() {
-  buscador.value = '';
-  filtroUnidad.value = '';
-  filtroRol.value = '';
-  filtroClase.value = '';
-
-  renderizarDirectorio();
-  buscador.focus({ preventScroll: true });
-}
-
-export function mostrarCargaUsuarios() {
-  if (frameNavegacion !== null) {
-    cancelAnimationFrame(frameNavegacion);
-  }
-
-  frameNavegacion = null;
-  document.getElementById('perfilAvatar').replaceChildren();
-
-  integrantes = [];
-  usuarioSeleccionado = '';
-  posicionDirectorio = 0;
-  ultimoBoton = null;
-
-  directorio.hidden = false;
-  tarjeta.hidden = true;
-  navegacionPerfil.hidden = true;
-
-  buscador.value = '';
-
-  filtroUnidad.replaceChildren(new Option('Todas las unidades', ''));
-  filtroRol.replaceChildren(new Option('Todos los tipos', ''));
-  filtroClase.replaceChildren(new Option('Todas las clases', ''));
-
-  deshabilitarControles(true);
-
-  lista.replaceChildren();
-  lista.setAttribute('aria-busy', 'true');
-
-  mensaje.textContent = '';
-  mensaje.hidden = true;
-  estado.textContent = 'Cargando integrantes…';
-  subtitulo.textContent = 'Conoce a los integrantes del club';
-}
-
-export function mostrarUsuarios(usuarios) {
-  integrantes = [...usuarios];
-
-  mensaje.hidden = true;
-  lista.setAttribute('aria-busy', 'false');
-
-  actualizarOpcionesFiltros();
-  deshabilitarControles(integrantes.length === 0);
-  renderizarDirectorio();
-}
-
-export function mostrarErrorUsuarios(texto) {
-  integrantes = [];
-  usuarioSeleccionado = '';
-
-  directorio.hidden = false;
-  tarjeta.hidden = true;
-  navegacionPerfil.hidden = true;
-
-  deshabilitarControles(true);
-
-  lista.replaceChildren();
-  lista.setAttribute('aria-busy', 'false');
-
-  estado.textContent = '';
-  mensaje.textContent = texto;
-  mensaje.hidden = false;
+  $('cantidadFiltros').textContent = cantidad
+    ? `(${cantidad} activos)`
+    : '';
 }
 
 export function mostrarPerfil(usuario) {
-  if (!directorio.hidden) {
-    posicionDirectorio = window.scrollY;
-  }
+  $('tarjeta').hidden = false;
+  $('tarjetaNombre').textContent =
+    `${usuario.nombres} ${usuario.apellido}`;
 
-  usuarioSeleccionado = usuario.id_usuario;
+  $('tarjetaRol').textContent = nombreRol(usuario.rol);
+  $('tarjetaRol').parentElement.hidden = !usuario.rol;
+  $('tarjetaUnidad').textContent = usuario.unidad || 'Sin asignar';
+  $('tarjetaClase').textContent = usuario.clase || 'Sin asignar';
+  $('perfilEstado').hidden = usuario.es_activo;
 
-  nombre.textContent = `${usuario.nombres} ${usuario.apellido}`;
-  rol.textContent = nombreRol(usuario.rol);
-  rol.parentElement.hidden = !usuario.rol;
-
-  mostrarFoto(document.getElementById('perfilAvatar'), usuario);
-
-  unidad.textContent = usuario.unidad || 'Sin asignar';
-  clase.textContent = usuario.clase || 'Sin asignar';
-
-  directorio.hidden = true;
-  navegacionPerfil.hidden = false;
-  tarjeta.hidden = false;
-  subtitulo.textContent = 'Perfil del integrante';
-
-  programarNavegacion(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    nombre.focus({ preventScroll: true });
-  });
+  mostrarFoto($('perfilAvatar'), usuario);
 }
 
-export function mostrarDirectorio() {
-  usuarioSeleccionado = '';
+$('buscarIntegrante').addEventListener('input', renderizar);
 
-  tarjeta.hidden = true;
-  navegacionPerfil.hidden = true;
-  directorio.hidden = false;
-  subtitulo.textContent = 'Conoce a los integrantes del club';
-
-  programarNavegacion(() => {
-    const destino = ultimoBoton?.isConnected
-      ? ultimoBoton
-      : tituloDirectorio;
-
-    destino.focus({ preventScroll: true });
-
-    window.scrollTo({
-      top: posicionDirectorio,
-      left: 0,
-      behavior: 'instant',
-    });
-  });
-}
-
-export function obtenerUsuarioSeleccionado() {
-  return usuarioSeleccionado;
-}
-
-export function alElegirUsuario(callback) {
-  callbackSeleccion = callback;
-}
-
-export function alVolverDirectorio(callback) {
-  callbackVolver = callback;
-}
-
-buscador.addEventListener('input', renderizarDirectorio);
-
-[filtroUnidad, filtroRol, filtroClase].forEach((select) => {
-  select.addEventListener('change', renderizarDirectorio);
+[...filtros, 'filtroEstado'].forEach(id => {
+  $(id).addEventListener('change', renderizar);
 });
 
-botonLimpiar.addEventListener('click', limpiarFiltros);
-
-lista.addEventListener('click', (evento) => {
-  const boton = evento.target.closest('button[data-usuario-id]');
-
-  if (!boton || !lista.contains(boton)) return;
-
-  ultimoBoton = boton;
-  callbackSeleccion?.(boton.dataset.usuarioId);
-});
-
-botonVolver.addEventListener('click', () => {
-  callbackVolver?.();
+$('limpiarFiltros').addEventListener('click', () => {
+  $('buscarIntegrante').value = '';
+  filtros.forEach(id => $(id).value = '');
+  $('filtroEstado').value = 'activos';
+  renderizar();
 });

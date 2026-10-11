@@ -1,12 +1,6 @@
 // frontend/js/app.js
 
 import { obtenerSupabase } from './lib/supabase.js';
-import { obtenerUsuarios } from './services/catalogo.js';
-
-import {
-  configurarAdministracion,
-  reiniciarAdministracion,
-} from './modules/integrantes-admin.js';
 
 import {
   iniciarSesion,
@@ -14,15 +8,26 @@ import {
   obtenerMiPerfil,
 } from './services/auth.js';
 
+import { obtenerUsuarios } from './services/catalogo.js';
+
 import {
-  mostrarCargaUsuarios,
+  obtenerIntegranteEditable,
+  cambiarEstado,
+} from './services/integrantes-admin.js';
+
+import {
   mostrarUsuarios,
   mostrarPerfil,
-  mostrarDirectorio,
-  obtenerUsuarioSeleccionado,
-  alElegirUsuario,
-  alVolverDirectorio,
+  mostrarFoto,
+  limpiarUsuarios,
+  nombreRol,
 } from './modules/usuarios.js';
+
+import {
+  abrirEditor,
+  reiniciarEditor,
+  puedeSalir,
+} from './modules/integrantes-admin.js';
 
 import {
   reiniciarProgreso,
@@ -34,325 +39,394 @@ import {
   cargarEspecialidades,
 } from './modules/especialidades.js';
 
-const aplicacion = document.getElementById('aplicacion');
-const panelLogin = document.getElementById('panelLogin');
-const formLogin = document.getElementById('formLogin');
-const correo = document.getElementById('loginCorreo');
-const password = document.getElementById('loginPassword');
-const botonLogin = document.getElementById('botonLogin');
-const errorLogin = document.getElementById('errorLogin');
+const $ = id => document.getElementById(id);
 
-const barraSesion = document.getElementById('barraSesion');
-const sesionNombre = document.getElementById('sesionNombre');
-const sesionRol = document.getElementById('sesionRol');
-const botonSalir = document.getElementById('botonSalir');
+const vistas = [
+  'inicio',
+  'menuIntegrantes',
+  'directorio',
+  'vistaPerfil',
+  'editor',
+];
 
-const panelEstado = document.getElementById('panelEstadoAcceso');
-const estadoAcceso = document.getElementById('estadoAcceso');
-const botonReintentar = document.getElementById('reintentarAcceso');
-const subtitulo = document.getElementById('subtituloPagina');
-
+let perfil = null;
 let usuarios = [];
-let perfilActual = null;
-let seleccionVersion = 0;
-let accesoVersion = 0;
-let tokenProcesado;
-let sesionActual = null;
-let temporizadorAuth = null;
+let sesion = null;
+let authRevision = 0;
+let vistaRevision = 0;
+let rutaActual = '';
+let token;
+let temporizador;
 let cerrando = false;
+let cambiandoEstado = false;
 
-function limpiarDatos() {
-  reiniciarAdministracion();
+const admin = () => perfil?.rol === 'directiva';
 
-  seleccionVersion += 1;
+function aviso(texto) {
+  $('avisoGlobal').textContent = texto;
+  $('avisoGlobal').hidden = !texto;
+}
+
+function ocultarVistas() {
+  vistas.forEach(id => $(id).hidden = true);
+  reiniciarProgreso();
+  reiniciarEspecialidades();
+}
+
+function limpiar() {
+  authRevision += 1;
+  vistaRevision += 1;
+  perfil = null;
   usuarios = [];
-  perfilActual = null;
-  aplicacion.hidden = true;
+  rutaActual = '';
 
-  mostrarCargaUsuarios();
-  mostrarUsuarios([]);
-  reiniciarProgreso();
-  reiniciarEspecialidades();
+  reiniciarEditor();
+  limpiarUsuarios();
+  ocultarVistas();
+  aviso('');
 
-  for (const id of [
-    'tarjetaNombre',
-    'tarjetaRol',
-    'tarjetaUnidad',
-    'tarjetaClase',
-    'asistenciaPorcentaje',
-    'asistenciaDetalle',
-    'cuotasPorcentaje',
-    'cuotasDetalle',
-    'totalPagado',
-  ]) {
-    document.getElementById(id).textContent = '';
-  }
-
-  document.getElementById('asistenciaBarra').style.width = '0%';
-  document.getElementById('cuotasBarra').style.width = '0%';
-
-  subtitulo.textContent = 'Acceso al club';
+  $('aplicacion').hidden = true;
+  $('barraSesion').hidden = true;
+  $('sesionNombre').textContent = '';
+  $('sesionRol').textContent = '';
+  $('sesionAvatar').replaceChildren();
 }
 
-function mostrarLogin(texto = '') {
-  aplicacion.hidden = true;
-  panelEstado.hidden = true;
-  barraSesion.hidden = true;
-  panelLogin.hidden = false;
-
-  sesionNombre.textContent = '';
-  sesionRol.textContent = '';
-  password.value = '';
-
-  errorLogin.textContent = texto;
-  errorLogin.hidden = !texto;
+function estado(texto, reintentar = false) {
+  $('panelLogin').hidden = true;
+  $('panelEstadoAcceso').hidden = false;
+  $('estadoAcceso').textContent = texto;
+  $('reintentarAcceso').hidden = !reintentar;
 }
 
-function mostrarEstado(texto, reintentar = false) {
-  panelLogin.hidden = true;
-  aplicacion.hidden = true;
-  panelEstado.hidden = false;
-
-  estadoAcceso.textContent = texto;
-  botonReintentar.hidden = !reintentar;
-
-  barraSesion.hidden = !sesionActual;
-  sesionNombre.textContent = sesionActual?.user?.email || '';
-  sesionRol.textContent = '';
-}
-
-function seleccionarUsuario(idUsuario) {
-  if (!perfilActual || cerrando) return;
-
+function cuenta() {
   const usuario = usuarios.find(
-    (integrante) => integrante.id_usuario === idUsuario
-  );
+    integrante => integrante.id_usuario === perfil.id_usuario
+  ) || perfil;
 
-  if (!usuario) return;
+  $('sesionNombre').textContent =
+    `${usuario.nombres} ${usuario.apellido}`;
 
-  const version = ++seleccionVersion;
+  $('sesionRol').textContent = nombreRol(perfil.rol);
+  $('saludoNombre').textContent = usuario.nombres;
+  $('miPerfil').href = `#perfil/${perfil.id_usuario}`;
 
-  reiniciarProgreso();
-  reiniciarEspecialidades();
-  mostrarPerfil(usuario);
+  mostrarFoto($('sesionAvatar'), usuario);
+}
 
-  if (idUsuario === perfilActual.id_usuario) {
-    subtitulo.textContent = 'Mi perfil';
+async function renderRuta(forzar = false) {
+  if (!perfil || cerrando) return;
+
+  let ruta = location.hash.slice(1) || 'inicio';
+
+  if (!forzar && (cambiandoEstado || !puedeSalir())) {
+    history.replaceState(null, '', `#${rutaActual || 'inicio'}`);
+    return;
   }
-
-  const sigueVigente = () =>
-    version === seleccionVersion &&
-    Boolean(perfilActual) &&
-    obtenerUsuarioSeleccionado() === idUsuario;
 
   if (
-    perfilActual.rol === 'directiva' ||
-    idUsuario === perfilActual.id_usuario
+    !admin() &&
+    (/^(registrar|editar\/)/.test(ruta) || ruta === 'integrantes')
   ) {
-    void cargarProgreso(idUsuario, sigueVigente);
+    ruta = 'consultar';
   }
 
-  void cargarEspecialidades(idUsuario, sigueVigente);
-}
-
-async function actualizarTrasGuardar(idUsuario) {
-  const version = accesoVersion;
-
-  const [integrantes, perfil] = await Promise.all([
-    obtenerUsuarios(),
-    obtenerMiPerfil(),
-  ]);
-
-  if (version !== accesoVersion || cerrando) return;
-
-  if (perfil.rol !== 'directiva') {
-    await aplicarSesion(sesionActual, true);
-    return;
+  if (
+    !/^(inicio|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+  ) {
+    ruta = 'inicio';
   }
 
-  usuarios = integrantes;
-  perfilActual = perfil;
+  history.replaceState(null, '', `#${ruta}`);
+  rutaActual = ruta;
 
-  mostrarUsuarios(usuarios);
+  const actual = ++vistaRevision;
 
-  sesionNombre.textContent =
-    `${perfil.nombres} ${perfil.apellido}`;
-
-  seleccionarUsuario(idUsuario);
-}
-
-async function aplicarSesion(sesion, forzar = false) {
-  if (cerrando && sesion) return;
-
-  const token = sesion?.access_token || null;
-
-  if (!forzar && tokenProcesado === token) return;
-
-  tokenProcesado = token;
-  sesionActual = sesion;
-
-  const version = ++accesoVersion;
-
-  limpiarDatos();
-
-  if (!sesion) {
-    mostrarLogin();
-    return;
-  }
-
-  mostrarEstado('Comprobando acceso…');
+  reiniciarEditor();
+  ocultarVistas();
+  aviso('');
+  $('subtituloPagina').textContent = '';
 
   try {
-    // El rol procede de la base de datos.
-    // No se utiliza user_metadata para conceder permisos.
-    const perfil = await obtenerMiPerfil();
+    if (ruta === 'inicio') {
+      $('inicio').hidden = false;
+    } else if (ruta === 'integrantes') {
+      $('menuIntegrantes').hidden = false;
+    } else if (ruta === 'registrar' || ruta.startsWith('editar/')) {
+      $('editor').hidden = false;
+      $('subtituloPagina').textContent =
+        ruta === 'registrar' ? ' / Registrar' : ' / Editar';
 
-    if (version !== accesoVersion) return;
+      await abrirEditor(ruta.split('/')[1] || null, async id => {
+        const revision = authRevision;
+        const lista = await obtenerUsuarios();
 
-    const integrantes = await obtenerUsuarios();
+        if (revision !== authRevision) return;
 
-    if (version !== accesoVersion) return;
+        usuarios = lista;
+        cuenta();
+        location.hash = `perfil/${id}`;
+      });
+    } else {
+      aviso('Cargando integrantes…');
 
-    perfilActual = perfil;
-    usuarios = integrantes;
+      const lista = await obtenerUsuarios();
 
-    document.getElementById('filtroRol').closest('.filtro-campo').hidden =
-      perfil.rol !== 'directiva';
+      if (actual !== vistaRevision || !perfil) return;
 
-    mostrarUsuarios(usuarios);
-    configurarAdministracion(perfil, actualizarTrasGuardar);
+      usuarios = lista;
+      cuenta();
+      aviso('');
 
-    panelEstado.hidden = true;
-    panelLogin.hidden = true;
-    barraSesion.hidden = false;
+      if (ruta === 'consultar') {
+        mostrarUsuarios(usuarios, admin());
+        $('directorio').hidden = false;
+        $('subtituloPagina').textContent = ' / Consultar';
+      } else {
+        const id = ruta.split('/')[1];
+        const usuario = usuarios.find(
+          integrante => integrante.id_usuario === id
+        );
 
-    sesionNombre.textContent =
-      `${perfil.nombres} ${perfil.apellido}`;
+        if (!usuario) {
+          throw new Error(
+            'Este perfil no está disponible para tu cuenta.'
+          );
+        }
 
-    sesionRol.textContent = perfil.rol === 'directiva'
-      ? 'Directiva'
-      : 'Cuenta personal';
+        mostrarPerfil(usuario);
+        $('vistaPerfil').hidden = false;
 
-    aplicacion.hidden = false;
-    subtitulo.textContent = 'Conoce a los integrantes del club';
+        $('editarPerfil').hidden = !admin() || !usuario.es_activo;
+        $('editarPerfil').href = `#editar/${id}`;
+
+        $('estadoPerfil').hidden =
+          !admin() || id === perfil.id_usuario;
+
+        $('estadoPerfil').textContent = usuario.es_activo
+          ? 'Desactivar integrante'
+          : 'Reactivar integrante';
+
+        $('subtituloPagina').textContent =
+          id === perfil.id_usuario ? ' / Mi perfil' : ' / Perfil';
+
+        const vigente = () =>
+          actual === vistaRevision && Boolean(perfil);
+
+        if (admin() || id === perfil.id_usuario) {
+          void cargarProgreso(id, vigente);
+        }
+
+        void cargarEspecialidades(id, vigente);
+      }
+    }
+
+    if (actual !== vistaRevision) return;
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
   } catch (error) {
-    if (version !== accesoVersion) return;
+    if (actual !== vistaRevision) return;
 
-    console.error('Error al comprobar acceso:', error);
+    console.error(error);
 
-    limpiarDatos();
+    aviso(
+      error.message ||
+      'No se pudo cargar la pantalla. Vuelve a intentarlo desde Inicio.'
+    );
+  }
+}
 
-    mostrarEstado(
+async function aplicarSesion(nueva, forzar = false) {
+  if (cerrando && nueva) return;
+
+  if (!forzar && token === (nueva?.access_token || null)) {
+    return;
+  }
+
+  token = nueva?.access_token || null;
+  sesion = nueva;
+  limpiar();
+
+  const actual = authRevision;
+
+  if (!sesion) {
+    $('panelEstadoAcceso').hidden = true;
+    $('panelLogin').hidden = false;
+    return;
+  }
+
+  estado('Comprobando acceso…');
+
+  try {
+    const propio = await obtenerMiPerfil();
+    const lista = await obtenerUsuarios();
+
+    if (actual !== authRevision) return;
+
+    perfil = propio;
+    usuarios = lista;
+    cuenta();
+
+    $('panelEstadoAcceso').hidden = true;
+    $('panelLogin').hidden = true;
+    $('barraSesion').hidden = false;
+    $('aplicacion').hidden = false;
+
+    await renderRuta(true);
+  } catch (error) {
+    if (actual !== authRevision) return;
+
+    console.error(error);
+    limpiar();
+
+    $('barraSesion').hidden = false;
+    $('miPerfil').removeAttribute('href');
+
+    estado(
       error.code === 'SIN_EXPEDIENTE'
         ? error.message
-        : 'No se pudo comprobar tu acceso. Revisa la conexión y vuelve a intentarlo.',
+        : 'No se pudo comprobar el acceso. Revisa la conexión.',
       true
     );
   }
 }
 
-formLogin.addEventListener('submit', async (evento) => {
+$('formLogin').addEventListener('submit', async evento => {
   evento.preventDefault();
-
-  botonLogin.disabled = true;
-  botonLogin.textContent = 'Entrando…';
-  errorLogin.hidden = true;
+  $('botonLogin').disabled = true;
+  $('errorLogin').hidden = true;
 
   try {
-    await iniciarSesion(correo.value.trim(), password.value);
-
-    // onAuthStateChange abre la pantalla correspondiente.
+    await iniciarSesion(
+      $('loginCorreo').value.trim(),
+      $('loginPassword').value
+    );
   } catch (error) {
-    console.error('Error al iniciar sesión:', error);
-
-    errorLogin.textContent = error.code === 'invalid_credentials'
-      ? 'Correo o contraseña incorrectos.'
-      : error.code === 'email_not_confirmed'
-        ? 'Tu correo todavía no está confirmado. Contacta a la directiva.'
+    $('errorLogin').textContent =
+      error.code === 'invalid_credentials'
+        ? 'Correo o contraseña incorrectos.'
         : 'No se pudo iniciar sesión. Revisa tus datos y la conexión.';
 
-    errorLogin.hidden = false;
+    $('errorLogin').hidden = false;
   } finally {
-    password.value = '';
-    botonLogin.disabled = false;
-    botonLogin.textContent = 'Entrar';
+    $('loginPassword').value = '';
+    $('botonLogin').disabled = false;
   }
 });
 
-botonSalir.addEventListener('click', async () => {
-  if (cerrando) return;
+$('verPassword').addEventListener('click', () => {
+  const visible = $('loginPassword').type === 'password';
+
+  $('loginPassword').type = visible ? 'text' : 'password';
+  $('verPassword').textContent = visible ? 'Ocultar' : 'Mostrar';
+  $('verPassword').setAttribute('aria-pressed', String(visible));
+});
+
+$('botonSalir').addEventListener('click', async () => {
+  if (cerrando || cambiandoEstado || !puedeSalir()) return;
 
   cerrando = true;
-  accesoVersion += 1;
-
-  clearTimeout(temporizadorAuth);
-  limpiarDatos();
-  mostrarEstado('Cerrando sesión…');
-
-  botonSalir.disabled = true;
+  clearTimeout(temporizador);
+  limpiar();
+  estado('Cerrando sesión…');
+  $('botonSalir').disabled = true;
 
   try {
     await cerrarSesion();
+    history.replaceState(null, '', '#inicio');
     await aplicarSesion(null, true);
-  } catch (error) {
-    console.error('Error al cerrar sesión:', error);
-
-    mostrarEstado(
-      'No se pudo cerrar la sesión. Revisa la conexión y pulsa Cerrar sesión nuevamente.'
-    );
+  } catch {
+    $('barraSesion').hidden = false;
+    estado('No se pudo cerrar la sesión. Pulsa Salir para reintentar.');
   } finally {
     cerrando = false;
-    botonSalir.disabled = false;
+    $('botonSalir').disabled = false;
   }
 });
 
-botonReintentar.addEventListener('click', async () => {
-  botonReintentar.disabled = true;
-
+$('reintentarAcceso').addEventListener('click', async () => {
   try {
     const { data, error } = await obtenerSupabase().auth.getSession();
 
     if (error) throw error;
 
     await aplicarSesion(data.session, true);
-  } catch (error) {
-    console.error('Error al recuperar sesión:', error);
-
-    mostrarEstado(
-      'No se pudo recuperar tu sesión. Revisa la conexión.',
-      true
-    );
-  } finally {
-    botonReintentar.disabled = false;
+  } catch {
+    estado('No se pudo recuperar la sesión. Revisa tu conexión.', true);
   }
 });
 
-alElegirUsuario(seleccionarUsuario);
+$('estadoPerfil').addEventListener('click', async () => {
+  if (!admin() || cambiandoEstado) return;
 
-alVolverDirectorio(() => {
-  if (!perfilActual || cerrando) return;
+  const id = rutaActual.split('/')[1];
+  const usuario = usuarios.find(
+    integrante => integrante.id_usuario === id
+  );
 
-  seleccionVersion += 1;
+  if (!usuario) return;
 
-  reiniciarProgreso();
-  reiniciarEspecialidades();
-  mostrarDirectorio();
+  const texto = usuario.es_activo
+    ? `¿Desactivar a ${usuario.nombres} ${usuario.apellido}? Conservará su historial, pero perderá el acceso al portal.`
+    : `¿Reactivar a ${usuario.nombres} ${usuario.apellido}?`;
+
+  if (!confirm(texto)) return;
+
+  const actual = authRevision;
+  cambiandoEstado = true;
+  $('estadoPerfil').disabled = true;
+
+  try {
+    const vigente = await obtenerIntegranteEditable(id);
+
+    if (actual !== authRevision) return;
+
+    await cambiarEstado(vigente, !usuario.es_activo);
+
+    if (actual !== authRevision) return;
+
+    cambiandoEstado = false;
+    await renderRuta(true);
+
+    aviso(
+      usuario.es_activo
+        ? 'Integrante desactivado. Su historial se conserva.'
+        : 'Integrante reactivado.'
+    );
+  } catch (error) {
+    if (actual === authRevision) {
+      aviso(error.message || 'No se pudo cambiar el estado.');
+    }
+  } finally {
+    cambiandoEstado = false;
+    $('estadoPerfil').disabled = false;
+  }
+});
+
+window.addEventListener('hashchange', () => {
+  void renderRuta();
 });
 
 try {
-  const supabase = obtenerSupabase();
+  obtenerSupabase().auth.onAuthStateChange((evento, nueva) => {
+    clearTimeout(temporizador);
 
-  // INITIAL_SESSION restaura una sesión guardada.
-  // También se reciben cierres desde otras pestañas y renovaciones.
-  supabase.auth.onAuthStateChange((_evento, sesion) => {
-    clearTimeout(temporizadorAuth);
+    temporizador = setTimeout(() => {
+      // Renovar el token no borra un formulario en edición.
+      if (
+        evento === 'TOKEN_REFRESHED' &&
+        perfil &&
+        sesion?.user.id === nueva?.user.id
+      ) {
+        sesion = nueva;
+        token = nueva.access_token;
+        return;
+      }
 
-    // Ejecutar consultas fuera del callback evita bloqueos de Auth.
-    temporizadorAuth = setTimeout(() => {
-      void aplicarSesion(sesion);
+      void aplicarSesion(nueva);
     }, 0);
   });
 } catch (error) {
-  limpiarDatos();
-  mostrarLogin(error.message);
+  limpiar();
+  estado(error.message);
 }

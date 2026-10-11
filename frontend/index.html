@@ -3,305 +3,398 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Naar-Shalem | Integrantes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Naar-Shalem | Portal del club</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/directorio.css">
-  <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/perfiles.css">
+  <link rel="stylesheet" href="css/portal.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <main class="contenedor">
-    <header class="cabecera">
-      <img
-        src="img/LogoNS.png"
-        alt="Logo del club Naar Shalem"
-        class="logo"
-        width="120"
-      >
-      <h1>Naar-Shalem</h1>
-      <p id="subtituloPagina" class="subtitulo">Acceso al club</p>
-    </header>
+  <section id="panelLogin" class="login" aria-labelledby="tituloLogin" hidden>
+    <div class="login-imagen">
+      <div class="login-lema">
+        <span>CLUB NAAR-SHALEM</span>
+        <h2>Siervo de<br>Dios</h2>
+        <p>Un sentimiento que se lleva en el corazón.</p>
+      </div>
+    </div>
 
-    <section
-      id="panelLogin"
-      class="acceso-tarjeta"
-      aria-labelledby="tituloLogin"
-      hidden
-    >
-      <h2 id="tituloLogin">Iniciar sesión</h2>
-      <p>Ingresa con la cuenta que te proporcionó la directiva.</p>
+    <div class="login-formulario">
+      <img src="img/LogoNS.png" alt="Naar-Shalem" class="login-logo" width="130">
+      <span class="sobre-titulo">BIENVENIDO AL CLUB</span>
+      <h1 id="tituloLogin">Tu próxima aventura<br>comienza aquí.</h1>
+      <p class="texto-suave">Inicia sesión para entrar a tu espacio.</p>
 
       <form id="formLogin">
-        <label class="etiqueta" for="loginCorreo">
-          Correo electrónico
-        </label>
+        <label for="loginCorreo">Correo electrónico</label>
         <input
           id="loginCorreo"
           type="email"
           autocomplete="username"
+          placeholder="tu@correo.com"
           required
         >
 
-        <label class="etiqueta" for="loginPassword">
-          Contraseña
-        </label>
-        <input
-          id="loginPassword"
-          type="password"
-          autocomplete="current-password"
-          required
-        >
+        <label for="loginPassword">Contraseña</label>
+        <div class="password-campo">
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+          <button id="verPassword" type="button" aria-pressed="false">
+            Mostrar
+          </button>
+        </div>
 
-        <button id="botonLogin" class="boton-acceso" type="submit">
-          Entrar
+        <button id="botonLogin" class="boton-principal" type="submit">
+          Iniciar sesión
         </button>
-
         <p id="errorLogin" class="mensaje" role="alert" hidden></p>
       </form>
-    </section>
 
-    <div id="barraSesion" class="barra-sesion" hidden>
-      <div>
-        <strong id="sesionNombre"></strong>
-        <span id="sesionRol"></span>
-      </div>
-
-      <button id="botonSalir" class="boton-volver" type="button">
-        Cerrar sesión
-      </button>
-    </div>
-
-    <section
-      id="panelEstadoAcceso"
-      class="acceso-estado"
-      aria-label="Estado de acceso"
-    >
-      <p id="estadoAcceso" role="status" aria-live="polite">
-        Comprobando sesión…
+      <p class="login-ayuda">
+        ¿Necesitas acceso? Contacta a la directiva del club.
       </p>
+    </div>
+  </section>
 
-      <button
-        id="reintentarAcceso"
-        class="boton-volver"
-        type="button"
-        hidden
-      >
+  <header id="barraSesion" class="portal-cabecera" hidden>
+    <a href="#inicio" class="portal-inicio">
+      Portal del club
+      <span>Inicio</span>
+    </a>
+
+    <div class="cabecera-derecha">
+      <a id="miPerfil" class="cuenta" href="#inicio" aria-label="Abrir mi perfil">
+        <span id="sesionAvatar" class="integrante-avatar" aria-hidden="true"></span>
+        <span>
+          <strong id="sesionNombre"></strong>
+          <small id="sesionRol"></small>
+        </span>
+      </a>
+
+      <a class="marca" href="#inicio" aria-label="Naar-Shalem, inicio">
+        <img src="img/LogoNS.png" alt="" width="76">
+        <strong>Naar-Shalem</strong>
+      </a>
+
+      <button id="botonSalir" class="boton-volver" type="button">Salir</button>
+    </div>
+  </header>
+
+  <main class="portal-contenido">
+    <section id="panelEstadoAcceso" class="panel-estado" aria-label="Estado de acceso">
+      <p id="estadoAcceso" role="status">Comprobando sesión…</p>
+      <button id="reintentarAcceso" class="boton-volver" type="button" hidden>
         Reintentar
       </button>
     </section>
 
-    <noscript>Activa JavaScript para iniciar sesión.</noscript>
+    <noscript>Activa JavaScript para utilizar el portal.</noscript>
 
     <div id="aplicacion" hidden>
+      <nav class="ruta" aria-label="Navegación">
+        <a href="#inicio">Inicio</a>
+        <span aria-hidden="true">/</span>
+        <a href="#integrantes">Integrantes</a>
+        <span id="subtituloPagina"></span>
+      </nav>
+
+      <p id="avisoGlobal" class="aviso" role="status" hidden></p>
+
+      <section id="inicio" class="vista" hidden>
+        <div class="bienvenida">
+          <span class="sobre-titulo">TU ESPACIO EN EL CLUB</span>
+          <h1>Hola, <span id="saludoNombre"></span></h1>
+          <p>¿Qué te gustaría hacer hoy?</p>
+        </div>
+
+        <h2 class="titulo-seccion">Módulos</h2>
+
+        <div class="menu-grid">
+          <a href="#integrantes" class="modulo">
+            <span class="modulo-icono" aria-hidden="true">◉</span>
+            <span class="sobre-titulo">COMUNIDAD</span>
+            <h2>Integrantes</h2>
+            <p>Conoce a los miembros del club y consulta sus perfiles.</p>
+            <strong>Entrar al módulo <span aria-hidden="true">→</span></strong>
+          </a>
+        </div>
+      </section>
+
+      <section id="menuIntegrantes" class="vista" hidden>
+        <span class="sobre-titulo">COMUNIDAD</span>
+        <h1>Integrantes</h1>
+        <p class="texto-suave">Elige la tarea que deseas realizar.</p>
+
+        <div class="menu-grid">
+          <a class="modulo" href="#consultar">
+            <span class="modulo-icono" aria-hidden="true">⌕</span>
+            <h2>Consultar integrantes</h2>
+            <p>Busca perfiles, revisa su información y administra su estado.</p>
+            <strong>Consultar →</strong>
+          </a>
+
+          <a class="modulo" href="#registrar">
+            <span class="modulo-icono" aria-hidden="true">＋</span>
+            <h2>Registrar integrante</h2>
+            <p>Agrega un nuevo miembro a la comunidad del club.</p>
+            <strong>Registrar →</strong>
+          </a>
+        </div>
+      </section>
+
       <section
         id="directorio"
-        class="directorio"
+        class="vista directorio"
         aria-labelledby="directorioTitulo"
+        hidden
       >
         <div class="directorio-cabecera">
-          <div>
-            <h2 id="directorioTitulo" tabindex="-1">
-              Integrantes del club
-            </h2>
-            <p class="directorio-descripcion">
-              Elige a un integrante para consultar su perfil.
-            </p>
-          </div>
+          <h1 id="directorioTitulo" tabindex="-1">Consultar integrantes</h1>
+          <p class="texto-suave">Encuentra a un integrante y abre su perfil.</p>
         </div>
 
         <div class="directorio-herramientas">
           <div class="buscador">
-            <label for="buscarIntegrante" class="etiqueta">
-              Buscar integrante
-            </label>
+            <label for="buscarIntegrante" class="etiqueta">Buscar integrante</label>
             <input
               id="buscarIntegrante"
               type="search"
-              placeholder="Nombre, unidad o clase..."
-              autocomplete="off"
+              placeholder="Nombre, unidad o clase…"
               aria-controls="listaIntegrantes"
-              disabled
             >
           </div>
 
-          <fieldset class="directorio-filtros">
-            <legend>Filtrar integrantes</legend>
+          <details id="panelFiltros">
+            <summary>Filtros <span id="cantidadFiltros"></span></summary>
 
             <div class="filtros-grid">
               <div class="filtro-campo">
-                <label for="filtroUnidad" class="etiqueta">
-                  Unidad
-                </label>
-                <select
-                  id="filtroUnidad"
-                  aria-controls="listaIntegrantes"
-                  disabled
-                >
+                <label for="filtroUnidad" class="etiqueta">Unidad</label>
+                <select id="filtroUnidad">
                   <option value="">Todas las unidades</option>
                 </select>
               </div>
 
-              <div class="filtro-campo">
-                <label for="filtroRol" class="etiqueta">
-                  Tipo de usuario
-                </label>
-                <select
-                  id="filtroRol"
-                  aria-controls="listaIntegrantes"
-                  disabled
-                >
+              <div class="filtro-campo" id="campoFiltroRol">
+                <label for="filtroRol" class="etiqueta">Tipo de usuario</label>
+                <select id="filtroRol">
                   <option value="">Todos los tipos</option>
                 </select>
               </div>
 
               <div class="filtro-campo">
-                <label for="filtroClase" class="etiqueta">
-                  Clase
-                </label>
-                <select
-                  id="filtroClase"
-                  aria-controls="listaIntegrantes"
-                  disabled
-                >
+                <label for="filtroClase" class="etiqueta">Clase</label>
+                <select id="filtroClase">
                   <option value="">Todas las clases</option>
                 </select>
+              </div>
+
+              <div class="filtro-campo" id="campoFiltroEstado">
+                <label for="filtroEstado" class="etiqueta">Estado</label>
+                <select id="filtroEstado">
+                  <option value="activos">Activos</option>
+                  <option value="inactivos">Inactivos</option>
+                  <option value="todos">Todos</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="limpiarFiltros" class="boton-limpiar" type="button">
+              Limpiar búsqueda y filtros
+            </button>
+          </details>
+        </div>
+
+        <p id="estadoDirectorio" class="directorio-estado" role="status"></p>
+        <ul id="listaIntegrantes" class="integrantes-grid" aria-label="Integrantes"></ul>
+      </section>
+
+      <section id="vistaPerfil" class="vista" hidden>
+        <nav id="navegacionPerfil" class="acciones" aria-label="Acciones del perfil">
+          <a href="#consultar" class="boton-volver">← Volver a consultar</a>
+          <a id="editarPerfil" href="#inicio" class="boton-volver" hidden>
+            Editar perfil
+          </a>
+          <button id="estadoPerfil" type="button" class="boton-volver" hidden>
+            Desactivar
+          </button>
+        </nav>
+
+        <p id="perfilEstado" class="aviso" hidden>Este integrante está inactivo.</p>
+
+        <section
+          id="tarjeta"
+          class="tarjeta"
+          aria-labelledby="tarjetaNombre"
+          hidden
+        >
+          <div class="perfil-cabecera">
+            <span id="perfilAvatar" class="perfil-avatar" aria-hidden="true"></span>
+            <h2 id="tarjetaNombre" tabindex="-1"></h2>
+          </div>
+
+          <dl>
+            <div>
+              <dt>Rol</dt>
+              <dd id="tarjetaRol"></dd>
+            </div>
+            <div>
+              <dt>Unidad</dt>
+              <dd id="tarjetaUnidad"></dd>
+            </div>
+            <div>
+              <dt>Clase</dt>
+              <dd id="tarjetaClase"></dd>
+            </div>
+          </dl>
+
+          <div id="dashboard" class="dashboard" hidden>
+            <h3>Dashboard de progreso</h3>
+            <p id="dashboardError" class="mensaje" hidden></p>
+
+            <div id="dashboardMetricas">
+              <div class="metrica">
+                <div class="metrica-cabecera">
+                  <span>Asistencia</span>
+                  <strong id="asistenciaPorcentaje">0%</strong>
+                </div>
+                <div class="barra">
+                  <div id="asistenciaBarra" class="barra-relleno"></div>
+                </div>
+                <small id="asistenciaDetalle"></small>
+              </div>
+
+              <div class="metrica">
+                <div class="metrica-cabecera">
+                  <span>Cumplimiento de cuotas</span>
+                  <strong id="cuotasPorcentaje">0%</strong>
+                </div>
+                <div class="barra">
+                  <div id="cuotasBarra" class="barra-relleno"></div>
+                  <span class="barra-meta" title="Meta: 70%"></span>
+                </div>
+                <small id="cuotasDetalle"></small>
+              </div>
+
+              <div class="total-pagado">
+                <span>Total pagado en cuotas</span>
+                <strong id="totalPagado">$0</strong>
+              </div>
+            </div>
+          </div>
+
+          <section
+            id="especialidades"
+            class="especialidades"
+            aria-labelledby="especialidadesTitulo"
+            hidden
+          >
+            <h3 id="especialidadesTitulo">Banda de Especialidades</h3>
+
+            <div class="banda">
+              <p
+                id="especialidadesEstado"
+                class="banda-estado"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              ></p>
+
+              <ul
+                id="especialidadesLista"
+                class="banda-grid"
+                aria-label="Especialidades obtenidas"
+              ></ul>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section id="editor" class="vista" hidden>
+        <div class="editor-titulo">
+          <span class="sobre-titulo">INTEGRANTES</span>
+          <h1 id="adminTitulo" tabindex="-1">Registrar integrante</h1>
+          <p class="texto-suave">Completa los datos de su perfil en el club.</p>
+        </div>
+
+        <p id="adminEstado" role="status" class="texto-suave"></p>
+        <p id="adminError" role="alert" class="mensaje" hidden></p>
+
+        <form id="adminFormulario" class="editor-formulario">
+          <fieldset id="adminCampos" class="editor-layout">
+            <div class="editor-foto">
+              <span class="sobre-titulo">FOTO DEL INTEGRANTE</span>
+              <span id="fotoPreview" class="foto-preview" aria-hidden="true">NS</span>
+
+              <label for="fotoArchivo" class="etiqueta">Seleccionar imagen</label>
+              <input
+                id="fotoArchivo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              >
+
+              <p class="texto-suave">JPG, PNG o WebP, hasta 8 MB.</p>
+              <button id="quitarFoto" class="boton-volver" type="button">
+                Quitar foto
+              </button>
+
+              <p class="nota">
+                La cuenta para iniciar sesión se vincula por separado.
+              </p>
+            </div>
+
+            <div class="editor-datos">
+              <h2>Información del integrante</h2>
+
+              <div class="campos-grid">
+                <label>
+                  Nombre(s)
+                  <input name="nombres" maxlength="100" required autocomplete="off">
+                </label>
+
+                <label>
+                  Apellidos
+                  <input name="apellido" maxlength="100" required autocomplete="off">
+                </label>
+
+                <label>
+                  Rol
+                  <select name="rol" required>
+                    <option value="conquistador">Conquistador</option>
+                    <option value="consejero">Consejero</option>
+                    <option value="capitan">Capitán</option>
+                    <option value="directiva">Directiva</option>
+                  </select>
+                </label>
+
+                <label>
+                  Unidad
+                  <select name="id_unidad"></select>
+                </label>
+
+                <label>
+                  Clase
+                  <select name="id_clase"></select>
+                </label>
               </div>
             </div>
           </fieldset>
 
-          <button
-            id="limpiarFiltros"
-            class="boton-limpiar"
-            type="button"
-            disabled
-          >
-            Limpiar búsqueda y filtros
-          </button>
-        </div>
-
-        <p
-          id="estadoDirectorio"
-          class="directorio-estado"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          Cargando integrantes…
-        </p>
-
-        <p id="mensaje" class="mensaje" role="alert" hidden></p>
-
-        <ul
-          id="listaIntegrantes"
-          class="integrantes-grid"
-          aria-label="Integrantes del club"
-          aria-busy="true"
-        ></ul>
-      </section>
-
-      <nav
-        id="navegacionPerfil"
-        class="navegacion-perfil"
-        aria-label="Navegación del perfil"
-        hidden
-      >
-        <button id="volverIntegrantes" class="boton-volver" type="button">
-          <span aria-hidden="true">←</span>
-          Volver a integrantes
-        </button>
-      </nav>
-
-      <section
-        id="tarjeta"
-        class="tarjeta"
-        aria-labelledby="tarjetaNombre"
-        hidden
-      >
-        <div class="perfil-cabecera">
-          <span
-            id="perfilAvatar"
-            class="perfil-avatar"
-            aria-hidden="true"
-          ></span>
-          <h2 id="tarjetaNombre" tabindex="-1"></h2>
-        </div>
-
-        <dl>
-          <div>
-            <dt>Rol</dt>
-            <dd id="tarjetaRol"></dd>
+          <div class="editor-pie">
+            <a id="cancelarEdicion" href="#integrantes" class="boton-volver">
+              Cancelar
+            </a>
+            <button id="adminGuardar" class="boton-principal" type="submit">
+              Guardar integrante
+            </button>
           </div>
-          <div>
-            <dt>Unidad</dt>
-            <dd id="tarjetaUnidad"></dd>
-          </div>
-          <div>
-            <dt>Clase</dt>
-            <dd id="tarjetaClase"></dd>
-          </div>
-        </dl>
-
-        <div id="dashboard" class="dashboard" hidden>
-          <h3>Dashboard de progreso</h3>
-          <p id="dashboardError" class="mensaje" hidden></p>
-
-          <div id="dashboardMetricas">
-            <div class="metrica">
-              <div class="metrica-cabecera">
-                <span>Asistencia</span>
-                <strong id="asistenciaPorcentaje">0%</strong>
-              </div>
-              <div class="barra">
-                <div id="asistenciaBarra" class="barra-relleno"></div>
-              </div>
-              <small id="asistenciaDetalle"></small>
-            </div>
-
-            <div class="metrica">
-              <div class="metrica-cabecera">
-                <span>Cumplimiento de cuotas</span>
-                <strong id="cuotasPorcentaje">0%</strong>
-              </div>
-              <div class="barra">
-                <div id="cuotasBarra" class="barra-relleno"></div>
-                <span class="barra-meta" title="Meta: 70%"></span>
-              </div>
-              <small id="cuotasDetalle"></small>
-            </div>
-
-            <div class="total-pagado">
-              <span>Total pagado en cuotas</span>
-              <strong id="totalPagado">$0</strong>
-            </div>
-          </div>
-        </div>
-
-        <section
-          id="especialidades"
-          class="especialidades"
-          aria-labelledby="especialidadesTitulo"
-          hidden
-        >
-          <h3 id="especialidadesTitulo">Banda de Especialidades</h3>
-
-          <div class="banda">
-            <p
-              id="especialidadesEstado"
-              class="banda-estado"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            ></p>
-
-            <ul
-              id="especialidadesLista"
-              class="banda-grid"
-              aria-label="Especialidades obtenidas"
-            ></ul>
-          </div>
-        </section>
+        </form>
       </section>
     </div>
   </main>

@@ -30,13 +30,13 @@ export async function obtenerOpcionesIntegrante() {
   return { unidades, clases, ciclos };
 }
 
-export async function obtenerIntegranteEditable(idUsuario) {
+export async function obtenerIntegranteEditable(id) {
   const { data, error } = await obtenerSupabase()
     .from('usuarios')
     .select(
-      'id_usuario,nombres,apellido,rol,id_unidad,id_clase,url_foto,es_activo,version_perfil'
+      'id_usuario,nombres,apellido,rol,id_unidad,id_clase,url_foto,foto_path,es_activo,version_perfil'
     )
-    .eq('id_usuario', idUsuario)
+    .eq('id_usuario', id)
     .single();
 
   if (error) throw error;
@@ -44,22 +44,32 @@ export async function obtenerIntegranteEditable(idUsuario) {
   return data;
 }
 
-export async function guardarIntegrante(registro) {
-  const { data, error } = await obtenerSupabase().rpc(
-    'admin_guardar_integrante',
-    {
-      p_id_usuario: registro.id_usuario,
-      p_version: registro.version_perfil,
-      p_nombres: registro.nombres,
-      p_apellido: registro.apellido,
-      p_rol: registro.rol,
-      p_id_unidad: registro.id_unidad,
-      p_id_clase: registro.id_clase,
-      p_url_foto: registro.url_foto,
-    }
-  );
+export async function guardarIntegrante(usuario) {
+  const { data, error } = await obtenerSupabase()
+    .rpc('admin_guardar_perfil', {
+      p_id_usuario: usuario.id_usuario,
+      p_version: usuario.version_perfil,
+      p_nombres: usuario.nombres,
+      p_apellido: usuario.apellido,
+      p_rol: usuario.rol,
+      p_id_unidad: usuario.id_unidad,
+      p_id_clase: usuario.id_clase,
+      p_url_foto: usuario.url_foto,
+      p_foto_path: usuario.foto_path,
+    });
 
   if (error) throw error;
 
   return data;
+}
+
+export async function cambiarEstado(usuario, activo) {
+  const { error } = await obtenerSupabase()
+    .rpc('admin_estado_integrante', {
+      p_id_usuario: usuario.id_usuario,
+      p_version: usuario.version_perfil,
+      p_activo: activo,
+    });
+
+  if (error) throw error;
 }

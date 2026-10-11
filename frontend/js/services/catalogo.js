@@ -1,36 +1,39 @@
 // frontend/js/services/catalogo.js
 
+import { firmarFotos } from './fotos.js';
 import { obtenerSupabase } from '../lib/supabase.js';
 import { consultarTodasLasFilas } from '../lib/consultas.js';
 
 export async function obtenerUsuarios() {
-  return consultarTodasLasFilas(() =>
+  const filas = await consultarTodasLasFilas(() =>
     obtenerSupabase()
-      .rpc('directorio_integrantes')
+      .rpc('directorio_portal')
       .order('nombres')
       .order('apellido')
       .order('id_usuario')
   );
+
+  return firmarFotos(filas);
 }
 
 export function calcularProgreso(registrosAsistencia, registrosCuotas) {
   const asistencias = registrosAsistencia.filter(
-    (registro) => registro.estado === 'asistencia'
+    registro => registro.estado === 'asistencia'
   ).length;
 
   const justificados = registrosAsistencia.filter(
-    (registro) => registro.estado === 'justificado'
+    registro => registro.estado === 'justificado'
   ).length;
 
   const faltas = registrosAsistencia.filter(
-    (registro) => registro.estado === 'falta'
+    registro => registro.estado === 'falta'
   ).length;
 
   const totalRegistros = registrosAsistencia.length;
   const semanasRegistradas = registrosCuotas.length;
 
   const semanasPagadas = registrosCuotas.filter(
-    (registro) => Number(registro.monto_pagado) > 0
+    registro => Number(registro.monto_pagado) > 0
   ).length;
 
   const totalPagado = registrosCuotas.reduce(
@@ -38,7 +41,6 @@ export function calcularProgreso(registrosAsistencia, registrosCuotas) {
     0
   );
 
-  // Conserva las fórmulas utilizadas por el dashboard actual.
   return {
     asistencia: {
       asistencias,
