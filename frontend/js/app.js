@@ -1,5 +1,4 @@
 // frontend/js/app.js
-
 import { obtenerSupabase } from './lib/supabase.js';
 
 import {
@@ -39,6 +38,12 @@ import {
   cargarEspecialidades,
 } from './modules/especialidades.js';
 
+import {
+  abrirAsistencias,
+  reiniciarAsistencias,
+  puedeSalirAsistencias,
+} from './modules/asistencias.js';
+
 const $ = id => document.getElementById(id);
 
 const vistas = [
@@ -47,6 +52,7 @@ const vistas = [
   'directorio',
   'vistaPerfil',
   'editor',
+  'vistaAsistencias',
 ];
 
 let perfil = null;
@@ -80,6 +86,7 @@ function limpiar() {
   usuarios = [];
   rutaActual = '';
 
+  reiniciarAsistencias();
   reiniciarEditor();
   limpiarUsuarios();
   ocultarVistas();
@@ -119,7 +126,14 @@ async function renderRuta(forzar = false) {
 
   let ruta = location.hash.slice(1) || 'inicio';
 
-  if (!forzar && (cambiandoEstado || !puedeSalir())) {
+  if (
+    !forzar &&
+    (
+      cambiandoEstado ||
+      !puedeSalir() ||
+      !puedeSalirAsistencias()
+    )
+  ) {
     history.replaceState(null, '', `#${rutaActual || 'inicio'}`);
     return;
   }
@@ -132,7 +146,7 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|asistencias|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
@@ -142,18 +156,34 @@ async function renderRuta(forzar = false) {
 
   const actual = ++vistaRevision;
 
+  reiniciarAsistencias();
   reiniciarEditor();
   ocultarVistas();
   aviso('');
+
   $('subtituloPagina').textContent = '';
+
+  const enlaceModulo = document.querySelector(
+    '.ruta a[href="#integrantes"], .ruta a[href="#asistencias"]'
+  );
+
+  enlaceModulo.href =
+    ruta === 'asistencias' ? '#asistencias' : '#integrantes';
+
+  enlaceModulo.textContent =
+    ruta === 'asistencias' ? 'Asistencias' : 'Integrantes';
 
   try {
     if (ruta === 'inicio') {
       $('inicio').hidden = false;
+    } else if (ruta === 'asistencias') {
+      $('vistaAsistencias').hidden = false;
+      await abrirAsistencias(perfil);
     } else if (ruta === 'integrantes') {
       $('menuIntegrantes').hidden = false;
     } else if (ruta === 'registrar' || ruta.startsWith('editar/')) {
       $('editor').hidden = false;
+
       $('subtituloPagina').textContent =
         ruta === 'registrar' ? ' / Registrar' : ' / Editar';
 
@@ -184,6 +214,7 @@ async function renderRuta(forzar = false) {
         $('subtituloPagina').textContent = ' / Consultar';
       } else {
         const id = ruta.split('/')[1];
+
         const usuario = usuarios.find(
           integrante => integrante.id_usuario === id
         );
@@ -213,6 +244,8 @@ async function renderRuta(forzar = false) {
         const vigente = () =>
           actual === vistaRevision && Boolean(perfil);
 
+        // El dashboard incluye cuotas y conserva sus permisos.
+        // Al abrir el perfil consulta nuevamente los registros guardados.
         if (admin() || id === perfil.id_usuario) {
           void cargarProgreso(id, vigente);
         }
@@ -323,7 +356,14 @@ $('verPassword').addEventListener('click', () => {
 });
 
 $('botonSalir').addEventListener('click', async () => {
-  if (cerrando || cambiandoEstado || !puedeSalir()) return;
+  if (
+    cerrando ||
+    cambiandoEstado ||
+    !puedeSalir() ||
+    !puedeSalirAsistencias()
+  ) {
+    return;
+  }
 
   cerrando = true;
   clearTimeout(temporizador);
@@ -360,6 +400,7 @@ $('estadoPerfil').addEventListener('click', async () => {
   if (!admin() || cambiandoEstado) return;
 
   const id = rutaActual.split('/')[1];
+
   const usuario = usuarios.find(
     integrante => integrante.id_usuario === id
   );
