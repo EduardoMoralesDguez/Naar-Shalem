@@ -36,23 +36,7 @@ export const actuarReunion = (panel, accion, datos = {}) =>
     p_datos: datos,
   });
 
-export function obtenerListaAsistencias() {
-  return consultarTodasLasFilas(() =>
-    obtenerSupabase()
-      .rpc('integrantes_asistencias')
-      .order('apellido')
-      .order('nombres')
-      .order('id_usuario')
-  );
-}
-
-export function obtenerHistorialAsistencias(id) {
-  return consultarTodasLasFilas(() =>
-    obtenerSupabase()
-      .from('asistencias')
-      .select('id_asistencia,fecha,estado')
-      .eq('id_usuario', id)
-      .order('fecha', { ascending: false })
-      .order('id_asistencia')
-  );
+export function obtenerMatriz() {
+  return consultarTodasLasFilas(() => obtenerSupabase().rpc('historial_matriz')
+    .order('fecha').order('reunion').order('id_usuario'));
 }
