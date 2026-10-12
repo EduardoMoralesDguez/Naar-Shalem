@@ -365,7 +365,7 @@ function pintarPanel() {
 function actualizarCierre() {
   const motivo = sucio ? 'Guarda los cambios de esta unidad antes de cerrar.'
     : panel.grupos.some(g => !g.revisada) ? 'Revisa y guarda todas las unidades, incluida Sin unidad.'
-    : panel.fecha > panel.hoy ? `Podrás cerrar este pase a partir del ${panel.fecha}.` : '';
+    : '';
   $('asBloqueo').textContent = panel.estado === 'borrador' ? motivo : '';
   $('asCerrar').disabled = Boolean(motivo) || panel.estado !== 'borrador';
 }
@@ -617,7 +617,7 @@ $('asCerrar').addEventListener('click', () => {
 
 $('asAnular').addEventListener('click', () => {
   const motivo = prompt(
-    'Esta actividad dejará de contar para asistencia. Si es el último cobro del domingo organizado desde Calendario, sus pagos quedarán como saldo a favor. Escribe el motivo de anulación:'
+    'Esta actividad dejará de contar para asistencia. Su cobro se desactivará y los pagos quedarán como saldo a favor. Escribe el motivo de anulación:'
   );
 
   if (motivo !== null) void ejecutar('anular', { motivo });

@@ -16,7 +16,7 @@
 .cal-dialogo { width:min(92vw,620px); max-height:90vh; overflow:auto; padding:1.5rem; border:1px solid var(--color-borde); border-radius:18px; color:var(--color-texto); }
 .cal-dialogo::backdrop { background:#11143b88; }
 .cal-dialogo label { display:grid; gap:.5rem; margin:1rem 0; color:var(--club-azul); font-weight:600; }
-.cal-dialogo input:not([type=checkbox]) { width:100%; min-width:0; min-height:48px; padding:.7rem; border:1px solid var(--color-borde); border-radius:10px; font:inherit; }
+.cal-dialogo input:not([type=checkbox]), .cal-dialogo select { width:100%; min-width:0; min-height:48px; padding:.7rem; border:1px solid var(--color-borde); border-radius:10px; font:inherit; }
 .cal-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
 .cal-dialogo .cal-check { display:flex; align-items:center; }
 .cal-check input { width:24px; height:24px; accent-color:var(--club-azul); }
@@ -25,3 +25,7 @@
 
 .cal-barra > h2 { margin:.4rem 0; }
 @media(max-width:550px) { #calMes { order:-1; width:100%; } .cal-barra { gap:.6rem; } .cal-barra .boton-principal,.cal-barra .boton-volver { padding:.65rem .8rem; font-size:.85rem; } }
+
+#calCampos { border:0; padding:0; margin:0; min-width:0; }
+.cal-dialogo [hidden] { display:none; }
+.cal-eliminar { color:#a42020; }

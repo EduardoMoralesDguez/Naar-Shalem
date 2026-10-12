@@ -50,7 +50,7 @@ function pintarProgreso({ asistencia, cuotas }, cobraCuotas) {
   );
 
   cuotasDetalle.textContent =
-    `${cuotas.semanas_pagadas} de ${cuotas.semanas_registradas} semanas pagadas ` +
+    `${cuotas.semanas_pagadas} de ${cuotas.semanas_registradas} cuotas pagadas ` +
     `(meta: ${META_CUOTAS}%)`;
 
   totalPagado.textContent = formatoMoneda.format(cuotas.total_pagado);

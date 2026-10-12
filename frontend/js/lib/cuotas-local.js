@@ -36,8 +36,15 @@ export function olvidarCuenta() { localStorage.removeItem(accesoKey); }
 export function cuentaRecordada() { return localStorage.getItem(accesoKey); }
 export async function guardarOperacion(id, operacion) {
   return localCuotas(id, d => {
-    if (d.cola.some(o => o.datos.id_usuario && o.datos.id_usuario === operacion.datos.id_usuario)) {
-      throw new Error('Este integrante ya tiene un movimiento pendiente. Sincronízalo o revísalo antes de registrar otro.');
+    const anteriores = d.cola.filter(o => o.datos.id_usuario && o.datos.id_usuario === operacion.datos.id_usuario);
+    if (anteriores.length) {
+      const pagoCompleto = o => o.accion === 'pago' && o.datos.importe === 1000 && o.datos.periodos?.length === 1;
+      const independientes = pagoCompleto(operacion) && anteriores.every(o => pagoCompleto(o) && !o.error && !o.revisar
+        && o.datos.id_ciclo === operacion.datos.id_ciclo && o.datos.epoca === operacion.datos.epoca
+        && o.datos.periodos[0] !== operacion.datos.periodos[0]);
+      if (!independientes) throw new Error('Hay un movimiento pendiente para este integrante. Sincronízalo o revísalo antes de registrar un abono o repetir el cobro.');
+      // La RPC incrementa la versión por cada pago confirmado, en este mismo orden.
+      operacion.datos.version = anteriores.at(-1).datos.version + 1;
     }
     d.cola.push(operacion);
   });

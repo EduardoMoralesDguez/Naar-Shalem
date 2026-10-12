@@ -152,5 +152,46 @@ await evaluate("[...document.querySelectorAll('#cuLista button')].find(b=>b.text
 await waitFor("document.getElementById('cuDialogo').open");await shot('cuotas-anticipo');
 await evaluate("document.getElementById('cuMonto').value='50';document.getElementById('cuFormulario').requestSubmit()");
 await waitFor("!document.getElementById('cuDialogo').open&&JSON.parse(localStorage.getItem('test-cuotas')).integrantes.some(u=>u.saldo===5000)");
-console.log('Cuotas UI OK: preparación, recarga sin red, sincronización, respuesta perdida, conflicto, aislamiento entre cuentas y móvil. Capturas: '+output);
+// Dos cobros del mismo día para la misma persona se guardan offline por separado.
+await evaluate(`{
+ const datos=JSON.parse(localStorage.getItem('test-cuotas'));
+ for(const [id,nombre,hora] of [['manana','Mañana','09:00'],['tarde','Tarde','16:00']]) {
+  datos.periodos.unshift({id,fecha:datos.hoy,nombre,hora,legado:false});
+  datos.cargos.push({id_usuario:fixture.users[2].id_usuario,periodo:id,importe:1000,pagado:0});
+ }
+ localStorage.setItem('test-cuotas',JSON.stringify(datos));fixture.emit(2);
+}`);
+await waitFor("!document.getElementById('cuCalendario').hidden===false&&document.getElementById('cuPeriodo').options.length===3&&!document.getElementById('cuSync').disabled");
+assert.ok(await evaluate("document.getElementById('cuPeriodo').textContent.includes('Tarde')&&document.getElementById('cuPeriodo').textContent.includes('Mañana')"));
+await evaluate("localStorage.setItem('test-offline','true');window.dispatchEvent(new Event('offline'))");
+for(const periodo of ['manana','tarde']) {
+ await evaluate(`document.getElementById('cuPeriodo').value='${periodo}';document.getElementById('cuPeriodo').dispatchEvent(new Event('change'));document.querySelector('#cuLista input[type=checkbox]').click();document.getElementById('cuGuardar').click()`);
+ await waitFor(`document.getElementById('cuCola').children.length===${periodo==='manana'?1:2}`);
+}
+await evaluate("document.getElementById('cuPeriodo').value='manana';document.getElementById('cuPeriodo').dispatchEvent(new Event('change'))");
+assert.equal(await evaluate("document.querySelectorAll('#cuLista input[type=checkbox]').length"),0);
+// Respuesta perdida del primero: el segundo espera y ambos terminan una sola vez.
+await evaluate("fixture.perderRespuesta=true;localStorage.removeItem('test-offline');window.dispatchEvent(new Event('online'))");
+await waitFor("document.getElementById('cuCola').textContent.includes('Respuesta perdida')&&!document.getElementById('cuSync').disabled");
+await evaluate("document.getElementById('cuSync').click()");await waitFor("document.getElementById('cuCola').children.length===0&&!document.getElementById('cuSync').disabled");
+assert.deepEqual(await evaluate("JSON.parse(localStorage.getItem('test-cuotas')).cargos.filter(c=>['manana','tarde'].includes(c.periodo)).map(c=>c.pagado)"),[1000,1000]);
+// Si un tercero cambia el saldo, bloquea también los pagos que dependían del primero.
+await evaluate(`{
+ const datos=JSON.parse(localStorage.getItem('test-cuotas'));
+ for(const id of ['conflicto-a','conflicto-b']) {
+  datos.periodos.unshift({id,fecha:datos.hoy,nombre:id,hora:'18:00',legado:false});
+  datos.cargos.push({id_usuario:fixture.users[2].id_usuario,periodo:id,importe:1000,pagado:0});
+ }
+ localStorage.setItem('test-cuotas',JSON.stringify(datos));document.getElementById('cuSync').click();
+}`);
+await waitFor("document.getElementById('cuPeriodo').options.length===5&&!document.getElementById('cuSync').disabled");
+await evaluate("localStorage.setItem('test-offline','true');window.dispatchEvent(new Event('offline'))");
+for(const [index,periodo] of ['conflicto-a','conflicto-b'].entries()) {
+ await evaluate(`document.getElementById('cuPeriodo').value='${periodo}';document.getElementById('cuPeriodo').dispatchEvent(new Event('change'));document.querySelector('#cuLista input[type=checkbox]').click();document.getElementById('cuGuardar').click()`);
+ await waitFor(`document.getElementById('cuCola').children.length===${index+1}`);
+}
+await evaluate(`{const datos=JSON.parse(localStorage.getItem('test-cuotas'));datos.integrantes.find(u=>u.id_usuario===fixture.users[2].id_usuario).version++;localStorage.setItem('test-cuotas',JSON.stringify(datos));localStorage.removeItem('test-offline');window.dispatchEvent(new Event('online'));}`);
+await waitFor("document.getElementById('cuCola').textContent.includes('Un pago anterior')&&!document.getElementById('cuSync').disabled");
+assert.deepEqual(await evaluate("JSON.parse(localStorage.getItem('test-cuotas')).cargos.filter(c=>c.periodo.startsWith('conflicto-')).map(c=>c.pagado)"),[0,0]);
+console.log('Cuotas UI OK: preparación, recarga sin red, sincronización, respuesta perdida, conflicto, aislamiento entre cuentas, móvil y varios cobros offline con conflictos encadenados. Capturas: '+output);
 } catch (e) { console.error(await evaluate('document.body.innerText')); await shot('error'); console.error(output); throw e; } finally { ws.close();chrome.kill();server.close(); }
