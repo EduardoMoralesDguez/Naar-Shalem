@@ -1,4 +1,5 @@
 // frontend/js/app.js
+import { abrirCalendario, reiniciarCalendario, puedeSalirCalendario } from './modules/calendario.js';
 import { SUPABASE_URL } from './config.js';
 import { abrirCuotas, reiniciarCuotas, puedeSalirCuotas, pendientesCuotas } from './modules/cuotas.js';
 import { localCuotas, recordarCuenta, olvidarCuenta, cuentaRecordada } from './lib/cuotas-local.js';
@@ -57,6 +58,7 @@ const vistas = [
   'editor',
   'vistaAsistencias',
   'vistaCuotas',
+  'vistaCalendario',
 ];
 
 let perfil = null;
@@ -92,6 +94,7 @@ function limpiar() {
 
   reiniciarAsistencias();
   reiniciarCuotas();
+  reiniciarCalendario();
   reiniciarEditor();
   limpiarUsuarios();
   ocultarVistas();
@@ -137,7 +140,7 @@ async function renderRuta(forzar = false) {
       cambiandoEstado ||
       !puedeSalir() ||
       !puedeSalirAsistencias() ||
-      !puedeSalirCuotas()
+      !puedeSalirCuotas() || !puedeSalirCalendario()
     )
   ) {
     history.replaceState(null, '', `#${rutaActual || 'inicio'}`);
@@ -152,7 +155,7 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|cuotas|asistencias|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
@@ -165,6 +168,7 @@ async function renderRuta(forzar = false) {
 
   reiniciarAsistencias();
   reiniciarCuotas();
+  reiniciarCalendario();
   reiniciarEditor();
   ocultarVistas();
   aviso('');
@@ -176,10 +180,10 @@ async function renderRuta(forzar = false) {
   );
 
   enlaceModulo.href =
-    ruta === 'cuotas' ? '#cuotas' : ruta === 'asistencias' ? '#asistencias' : '#integrantes';
+    ruta === 'calendario' ? '#calendario' : ruta === 'cuotas' ? '#cuotas' : ruta.startsWith('asistencias') ? '#asistencias' : '#integrantes';
 
   enlaceModulo.textContent =
-    ruta === 'cuotas' ? 'Cuotas' : ruta === 'asistencias' ? 'Asistencias' : 'Integrantes';
+    ruta === 'calendario' ? 'Calendario' : ruta === 'cuotas' ? 'Cuotas' : ruta.startsWith('asistencias') ? 'Asistencias' : 'Integrantes';
 
   try {
     if (ruta === 'inicio') {
@@ -187,9 +191,12 @@ async function renderRuta(forzar = false) {
     } else if (ruta === 'cuotas') {
       $('vistaCuotas').hidden = false;
       await abrirCuotas(perfil, sesion.user.id);
-    } else if (ruta === 'asistencias') {
+    } else if (ruta === 'calendario') {
+      $('vistaCalendario').hidden = false;
+      await abrirCalendario(perfil);
+    } else if (ruta.startsWith('asistencias')) {
       $('vistaAsistencias').hidden = false;
-      await abrirAsistencias(perfil);
+      await abrirAsistencias(perfil, ruta.split('/')[1]);
     } else if (ruta === 'integrantes') {
       $('menuIntegrantes').hidden = false;
     } else if (ruta === 'registrar' || ruta.startsWith('editar/')) {
@@ -379,7 +386,7 @@ $('botonSalir').addEventListener('click', async () => {
     cambiandoEstado ||
     !puedeSalir() ||
     !puedeSalirAsistencias() ||
-    !puedeSalirCuotas()
+    !puedeSalirCuotas() || !puedeSalirCalendario()
   ) {
     return;
   }

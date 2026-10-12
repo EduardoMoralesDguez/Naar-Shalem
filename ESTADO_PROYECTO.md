@@ -16,7 +16,7 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 
 ## Asistencias: pases por reunión
 
-- Reunión: directiva crea pases de hoy con nombre (por ejemplo, Mañana y Tarde). Se permiten varios por fecha; repetir el mismo nombre abre el existente y evita duplicados por reintentos. Los demás ven el día más reciente no futuro y no anulado. Los botones permiten elegir entre los pases de ese día.
+- Las actividades y sus pases se crean desde Calendario, para hoy o fechas futuras. Asistencias abre el pase de hoy/último día disponible o el pase concreto enlazado desde Calendario; los botones permiten elegir entre pases del día.
 - Cada asistencia se identifica por reunión e integrante, no por fecha. Corregir o anular un pase no afecta a otro del mismo día.
 - Pase en tabla con botones A/J/F; todas las unidades y “Sin unidad” deben revisarse antes de cerrar. Los no marcados quedan con falta.
 - Historial: matriz de integrantes por fecha y nombre del pase, A verde/J amarilla/F roja y porcentaje `(A + J) / registros`. “—” significa no convocado y no cuenta como falta.
@@ -32,7 +32,7 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 
 ## Cuotas semanales
 
-- Nuevo módulo Inicio → Cuotas. $10 por domingo preparado por directiva, independiente de los pases de asistencia.
+- Inicio → Cuotas registra pagos. Los domingos de $10 se preparan desde Calendario activando cobro; varias actividades del día comparten una sola cuota.
 - Capitán y subcapitán registran cuotas completas de su unidad. Conquistadores solo consultan lo propio. Directiva cobra en cualquier unidad y administra abonos, anticipos, saldo, correcciones y anulaciones.
 - Subcapitán es un rol explícito, seleccionable en el editor, con los mismos permisos de asistencia que capitán. Consejeros/directiva no generan cuotas.
 - Libro privado de ingresos y aplicaciones en centavos. Un ingreso de $50 puede aplicarse a cinco cuotas, sin duplicar dinero.
@@ -41,16 +41,23 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 - Sincronización al abrir Cuotas con conexión, al recuperar red o pulsando el botón. No se garantiza ejecución con app cerrada. Conflictos se revisan explícitamente; nunca se sobreescriben automáticamente.
 - Dashboard usa cuotas completamente cubiertas y domingos transcurridos. Total recibido incluye saldo a favor y excluye anulaciones.
 
+## Calendario
+
+- Inicio → Calendario: mes, agenda, creación, edición y cancelación para directiva; consulta básica para miembros autenticados.
+- Cada actividad tiene nombre, fecha/hora de Ciudad de México y un pase propio. Se permiten fechas de hoy/futuras del ciclo activo y nombres diferentes para mañana/tarde.
+- Cobro opcional solo en domingo; se comparte el período de $10. Al cancelar el último cobro gestionado por calendario se liberan aplicaciones y queda saldo a favor, sin borrar dinero. Cancelar no afecta cobros independientes anteriores.
+- Cambiar fecha exige borrador de hoy/futuro sin asistencia capturada/unidades revisadas. Reintentos de creación reutilizan el UUID; ediciones usan versión.
+- Se conservan convocatorias con integrantes/unidades de su creación. No se incorporan automáticamente altas posteriores a actividades ya preparadas.
+- El calendario requiere conexión. El modo offline continúa limitado a cuotas y exige actualizar la lista después de preparar actividades.
+
 ## Instalación de esta iteración
 
-1. Confirmar migraciones 001–009 aplicadas.
-2. Ejecutar `database/migrations/010_cuotas.sql` en SQL Editor de Supabase como postgres.
-3. Integrar/publicar el frontend completo y recargar. El despliegue o git pull no ejecutan SQL.
-4. Crear domingos de cobro y asignar el rol Subcapitán donde corresponda desde el editor.
+1. Confirmar migraciones 001–010 aplicadas.
+2. Ejecutar `database/migrations/011_calendario.sql` en SQL Editor de Supabase como postgres.
+3. Integrar/publicar el frontend completo. Abrir con conexión para descargar la nueva PWA, cerrar todas sus pestañas y volver a abrir. No borrar pagos pendientes del navegador.
+4. Organizar actividades desde Inicio → Calendario.
 
-La migración importa las cuotas antiguas una sola vez y mantiene sus fechas originales; no borra registros ni crea cuentas Auth. No volver a ejecutar schema.sql sobre producción. Instrucciones de uso, anticipos, preparación sin conexión y resolución de conflictos en [docs/CUOTAS.md](docs/CUOTAS.md).
-
-Las migraciones 007–009 de asistencia permanecen vigentes. Revisar borradores históricos antes de cerrarlos; no borrar registros individuales para igualar contadores.
+La migración es repetible y conserva datos existentes; no vuelve a generar datos borrados ni crea cuentas Auth. No ejecutar schema.sql en producción. El despliegue o git pull no ejecuta SQL. Guías: [Calendario](docs/CALENDARIO.md) y [Cuotas](docs/CUOTAS.md).
 
 ## Pruebas
 

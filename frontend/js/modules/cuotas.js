@@ -15,7 +15,7 @@ vista.innerHTML = `
  <div class="acciones"><button id="cuPreparar" class="boton-principal">Preparar / actualizar para el domingo</button><button id="cuSync" class="boton-volver">Sincronizar pendientes</button></div>
  <p id="cuPreparacion" class="texto-suave"></p>
  <section id="cuPendientes" class="cu-panel" hidden><h2>Guardado en este dispositivo</h2><p>Estos movimientos todavía no están confirmados en Supabase. Se enviarán con la cuenta que los capturó.</p><div id="cuCola"></div></section>
- <form id="cuCalendario" class="cu-panel" hidden><h2>Domingos de cobro</h2><p>Agrega solo los domingos en que habrá club. Puedes preparar varias fechas por adelantado; el saldo disponible se aplica automáticamente.</p><div class="cu-form"><label>Domingo<input id="cuNuevaFecha" type="date" required></label><button class="boton-principal">Agregar domingo de $10</button></div></form>
+ <section id="cuCalendario" class="cu-panel" hidden><h2>Domingos de cobro</h2><p>Las fechas de cobro se preparan al crear actividades en el calendario.</p><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
  <section class="cu-panel"><div class="cu-form"><label>Domingo<select id="cuPeriodo"></select></label><label id="cuUnidadCampo">Unidad<select id="cuUnidad"></select></label></div>
  <div class="cu-scroll"><table class="cu-tabla"><caption>Registro de cuotas</caption><thead><tr><th>Integrante</th><th>Aplicado / cuota</th><th>Saldo a favor</th><th>Registro</th></tr></thead><tbody id="cuLista"></tbody></table></div>
  <p id="cuVacio"></p><button id="cuGuardar" class="boton-principal" hidden>Guardar pagos marcados</button></section>
@@ -208,7 +208,6 @@ $('cuGuardar').onclick = async () => {
   } catch (e) { mensaje(e.message); pintar(); }
   finally { guardando = false; }
 };
-$('cuCalendario').onsubmit = async e => { e.preventDefault(); if (ocupado) return; try { await guardar('periodo', { fecha: $('cuNuevaFecha').value }); await sincronizar(); } catch (e) { mensaje(e.message); } };
 $('cuPreparar').onclick = async () => {
   if (!puedeSalirCuotas()) return; marcados.clear(); if (!await sincronizar()) return;
   try {

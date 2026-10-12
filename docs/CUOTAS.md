@@ -1,10 +1,12 @@
 # Cuotas del club
 
+Desde la migración 011, los domingos se preparan desde **Inicio → Calendario**, activando el cobro de la actividad. Ver [CALENDARIO.md](CALENDARIO.md) para cancelaciones y cobros compartidos.
+
 ## Activar
 
 1. Aplicar `database/migrations/010_cuotas.sql` en Supabase SQL Editor como postgres, después de 001–009. No ejecutar otra vez schema.sql.
 2. Integrar y desplegar el frontend en Vercel. Publicar la carpeta frontend completa, incluidos vendor, sw.js y manifest.webmanifest.
-3. Entrar en Inicio → Cuotas con directiva y agregar los domingos de cobro. Cada fecha cobra $10; crear otra reunión de asistencia ese día no modifica cuotas.
+3. Entrar en Inicio → Calendario con directiva y crear actividades de domingo con cobro. Cada fecha cobra $10; crear otra reunión de asistencia ese día no modifica cuotas.
 4. En Integrantes → Editar, asignar el rol Subcapitán y su unidad a quien corresponda. No se crean cuentas ni se reasignan perfiles automáticamente.
 
 La migración es repetible y no borra las tablas anteriores. Importa una sola vez los registros de cuotas de conquistadores/capitanes: conserva fechas originales aunque fueran sábados, dinero recibido y pendientes. Los registros de directivos/consejeros permanecen en la tabla antigua y no generan nuevas obligaciones. Los pagos posteriores se administran desde las nuevas RPC; no editar public.cuotas para modificar este módulo.
