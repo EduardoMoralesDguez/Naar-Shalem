@@ -1,0 +1,27 @@
+/* frontend/css/calendario.css */
+.cal-panel { background:white; padding:clamp(.7rem,2vw,1.5rem); border:1px solid var(--color-borde); border-radius:18px; margin:1.3rem 0; min-width:0; }
+.cal-barra { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+#calMes,#calFecha { text-transform:capitalize; }
+.cal-semana,.cal-dias { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.45rem; }
+.cal-semana { text-align:center; color:var(--color-suave); padding:.8rem 0; }
+.cal-dia { display:flex; flex-direction:column; align-items:start; gap:.35rem; min-height:94px; padding:.8rem; border:1px solid var(--color-borde); background:var(--color-fondo,#f5f5fc); border-radius:10px; color:var(--club-azul); font:inherit; font-weight:700; cursor:pointer; }
+.cal-dia small { font-size:.75rem; font-weight:400; }
+.cal-dia > span { color:#644900; background:#fff3c0; border-radius:5px; padding:.15rem .3rem; font-size:.75rem; }
+.cal-dia[aria-pressed=true] { outline:2px solid var(--club-azul); }
+.cal-dia[aria-current=date] { border-bottom:4px solid var(--club-rojo,#ff2525); }
+.cal-actividad { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:center; padding:1.1rem 0; border-bottom:1px solid var(--color-borde); overflow-wrap:anywhere; }
+.cal-actividad h3 { margin:.4rem 0; }
+.cal-actividad small { color:var(--color-suave); }
+.cal-actividad[data-estado=anulada] { opacity:.65; }
+.cal-dialogo { width:min(92vw,620px); max-height:90vh; overflow:auto; padding:1.5rem; border:1px solid var(--color-borde); border-radius:18px; color:var(--color-texto); }
+.cal-dialogo::backdrop { background:#11143b88; }
+.cal-dialogo label { display:grid; gap:.5rem; margin:1rem 0; color:var(--club-azul); font-weight:600; }
+.cal-dialogo input:not([type=checkbox]) { width:100%; min-width:0; min-height:48px; padding:.7rem; border:1px solid var(--color-borde); border-radius:10px; font:inherit; }
+.cal-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.cal-dialogo .cal-check { display:flex; align-items:center; }
+.cal-check input { width:24px; height:24px; accent-color:var(--club-azul); }
+#calError { color:#a42020; }
+@media(max-width:550px) { .cal-semana,.cal-dias { gap:.2rem; } .cal-dia { min-height:72px; padding:.4rem .15rem; font-size:.9rem; align-items:center; } .cal-dia small { font-size:.6rem; overflow-wrap:anywhere; } .cal-form-grid { grid-template-columns:1fr; gap:0; } }
+
+.cal-barra > h2 { margin:.4rem 0; }
+@media(max-width:550px) { #calMes { order:-1; width:100%; } .cal-barra { gap:.6rem; } .cal-barra .boton-principal,.cal-barra .boton-volver { padding:.65rem .8rem; font-size:.85rem; } }

@@ -127,16 +127,16 @@ assert.equal(await evaluate('fixture.progress.at(-1).cobraCuotas'),true);
 await evaluate("location.hash='asistencias'");await waitFor("!document.getElementById('asCampos').disabled&&!document.getElementById('vistaAsistencias').hidden");
 assert.equal(await evaluate("document.getElementById('asCrearPanel').hidden"),false);
 assert.ok(await evaluate("!document.getElementById('asLista').textContent.includes('Ezequiel')"));
-await evaluate("document.getElementById('asNombrePase').value='Tarde';document.getElementById('asCrear').click()");
+await evaluate("(async()=>{await (await import('/js/services/asistencias.js')).crearReunion(fixture.meeting.fecha,'Tarde');document.getElementById('asRecargar').click()})()");
 await waitFor("fixture.meetings.length===2&&!document.getElementById('asCampos').disabled");
-assert.ok(await evaluate("document.getElementById('asFechaTitulo').textContent.includes('Tarde')"));
+await evaluate("[...document.querySelectorAll('#asPasesHoy button')].find(b=>b.textContent.includes('Tarde')).click()");await waitFor("document.getElementById('asFechaTitulo').textContent.includes('Tarde')&&!document.getElementById('asCampos').disabled");
 assert.equal(await evaluate("document.querySelectorAll('#asPasesHoy button').length"),2);
 for(let i=0;i<3;i++){
  await evaluate(`document.querySelectorAll('#asGrupos button')[${i}].click();document.getElementById('asGuardar').click()`);
  await waitFor(`!document.getElementById('asCampos').disabled&&fixture.meetings[1].grupos[${i}].revisada`);
 }
 await evaluate("document.getElementById('asCerrar').click()");await waitFor("fixture.meetings[1].estado==='cerrada'&&!document.getElementById('asCampos').disabled");
-await evaluate("document.getElementById('asNombrePase').value='Tarde';document.getElementById('asCrear').click()");await waitFor("!document.getElementById('asCampos').disabled");
+await evaluate("(async()=>{await (await import('/js/services/asistencias.js')).crearReunion(fixture.meeting.fecha,'Tarde');document.getElementById('asRecargar').click()})()");await waitFor("!document.getElementById('asCampos').disabled");
 assert.equal(await evaluate('fixture.meetings.length'),2);
 await evaluate("document.getElementById('asHistorial').click()");await waitFor("document.querySelectorAll('#asMatriz thead th').length===5&&!document.getElementById('asCampos').disabled");
 assert.ok(await evaluate("document.getElementById('asMatriz').textContent.includes('Tarde')"));

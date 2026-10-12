@@ -1,7 +1,6 @@
 // frontend/js/modules/asistencias.js
 import {
   listarReuniones,
-  crearReunion,
   obtenerReunion,
   actuarReunion,
   obtenerMatriz,
@@ -50,12 +49,7 @@ vista.innerHTML = `
     </div>
 
     <section id="asVistaReunion">
-      <div id="asCrearPanel" class="as-filtros" hidden>
-        <label>Nombre del pase de hoy
-          <input id="asNombrePase" type="text" maxlength="60" required placeholder="Ej. Mañana o Tarde" autocomplete="off">
-        </label>
-        <button id="asCrear" class="boton-principal" type="button">Crear pase de hoy</button>
-      </div>
+      <div id="asCrearPanel" class="as-filtros" hidden><a class="boton-principal" href="#calendario">Organizar actividades en Calendario</a></div>
       <nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
       <h2 id="asFechaTitulo"></h2>
       <input id="asReunion" type="hidden">
@@ -175,7 +169,6 @@ export function reiniciarAsistencias() {
   panel = null;
   grupo = '';
   $('asReunion').value = '';
-  $('asNombrePase').value = '';
   sucio = false;
   guardando = false;
   estados.clear(); matriz = []; celda = null; filtroUnidad = '';
@@ -588,53 +581,18 @@ async function ejecutar(accion, datos = {}) {
   }
 }
 
-export async function abrirAsistencias(cuenta) {
+export async function abrirAsistencias(cuenta, idActividad = null) {
   reiniciarAsistencias();
   perfil = cuenta;
-  modo = 'reunion';
+  modo = idActividad ? 'editar' : 'reunion';
 
   $('asVistaReunion').hidden = false;
   $('asVistaHistorial').hidden = true;
   $('asCrearPanel').hidden = !admin();
 
 
-  await cargarReuniones();
+  await cargarReuniones(idActividad);
 }
-
-$('asCrear').addEventListener('click', async () => {
-  if (
-    ocupado ||
-    !puedeSalirAsistencias() ||
-    !$('asNombrePase').reportValidity()
-  ) {
-    return;
-  }
-
-  const actual = revision;
-
-  guardando = true;
-  bloquear(true);
-
-  let id;
-
-  try {
-    id = await crearReunion(hoy(), $('asNombrePase').value.trim());
-  } catch (error) {
-    if (actual === revision) mensaje(error.message);
-  } finally {
-    if (actual === revision) {
-      guardando = false;
-      bloquear(false);
-    }
-  }
-
-  if (actual === revision && id) {
-    $('asNombrePase').value = '';
-    sucio = false;
-    grupo = '';
-    await cargarReuniones(id);
-  }
-});
 
 $('asGuardar').addEventListener('click', () => {
   const integrantes = panel.integrantes
@@ -659,13 +617,14 @@ $('asCerrar').addEventListener('click', () => {
 
 $('asAnular').addEventListener('click', () => {
   const motivo = prompt(
-    'Motivo de anulación (por ejemplo: fecha de prueba). Esta reunión dejará de contar para todos:'
+    'Esta actividad dejará de contar para asistencia. Si es el último cobro del domingo organizado desde Calendario, sus pagos quedarán como saldo a favor. Escribe el motivo de anulación:'
   );
 
   if (motivo !== null) void ejecutar('anular', { motivo });
 });
 
 $('asRestaurar').addEventListener('click', () => {
+  if (!confirm('Restaurar esta actividad también reactiva su cobro, si lo tenía, y aplica el saldo disponible. ¿Continuar?')) return;
   void ejecutar('restaurar');
 });
 

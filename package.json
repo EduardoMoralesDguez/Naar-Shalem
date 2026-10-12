@@ -2,8 +2,8 @@
   "name": "naar-shalem",
   "private": true,
   "scripts": {
-    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs",
-    "test:ui": "node tests/asistencias-ui.mjs && node tests/cuotas-ui.mjs",
+    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs && node tests/calendario-sql.mjs",
+    "test:ui": "node tests/asistencias-ui.mjs && node tests/cuotas-ui.mjs && node tests/calendario-ui.mjs",
     "build": "node scripts/build-sw.mjs"
   },
   "devDependencies": {
