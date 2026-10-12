@@ -1,4 +1,7 @@
 // frontend/js/app.js
+import { SUPABASE_URL } from './config.js';
+import { abrirCuotas, reiniciarCuotas, puedeSalirCuotas, pendientesCuotas } from './modules/cuotas.js';
+import { localCuotas, recordarCuenta, olvidarCuenta, cuentaRecordada } from './lib/cuotas-local.js';
 import { obtenerSupabase } from './lib/supabase.js';
 
 import {
@@ -53,6 +56,7 @@ const vistas = [
   'vistaPerfil',
   'editor',
   'vistaAsistencias',
+  'vistaCuotas',
 ];
 
 let perfil = null;
@@ -87,6 +91,7 @@ function limpiar() {
   rutaActual = '';
 
   reiniciarAsistencias();
+  reiniciarCuotas();
   reiniciarEditor();
   limpiarUsuarios();
   ocultarVistas();
@@ -131,7 +136,8 @@ async function renderRuta(forzar = false) {
     (
       cambiandoEstado ||
       !puedeSalir() ||
-      !puedeSalirAsistencias()
+      !puedeSalirAsistencias() ||
+      !puedeSalirCuotas()
     )
   ) {
     history.replaceState(null, '', `#${rutaActual || 'inicio'}`);
@@ -146,17 +152,19 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|asistencias|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|cuotas|asistencias|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
 
+  if (!navigator.onLine && ruta !== 'cuotas') ruta = 'cuotas';
   history.replaceState(null, '', `#${ruta}`);
   rutaActual = ruta;
 
   const actual = ++vistaRevision;
 
   reiniciarAsistencias();
+  reiniciarCuotas();
   reiniciarEditor();
   ocultarVistas();
   aviso('');
@@ -164,18 +172,21 @@ async function renderRuta(forzar = false) {
   $('subtituloPagina').textContent = '';
 
   const enlaceModulo = document.querySelector(
-    '.ruta a[href="#integrantes"], .ruta a[href="#asistencias"]'
+    '.ruta a:nth-of-type(2)'
   );
 
   enlaceModulo.href =
-    ruta === 'asistencias' ? '#asistencias' : '#integrantes';
+    ruta === 'cuotas' ? '#cuotas' : ruta === 'asistencias' ? '#asistencias' : '#integrantes';
 
   enlaceModulo.textContent =
-    ruta === 'asistencias' ? 'Asistencias' : 'Integrantes';
+    ruta === 'cuotas' ? 'Cuotas' : ruta === 'asistencias' ? 'Asistencias' : 'Integrantes';
 
   try {
     if (ruta === 'inicio') {
       $('inicio').hidden = false;
+    } else if (ruta === 'cuotas') {
+      $('vistaCuotas').hidden = false;
+      await abrirCuotas(perfil, sesion.user.id);
     } else if (ruta === 'asistencias') {
       $('vistaAsistencias').hidden = false;
       await abrirAsistencias(perfil);
@@ -247,7 +258,7 @@ async function renderRuta(forzar = false) {
         // El dashboard incluye cuotas y conserva sus permisos.
         // Al abrir el perfil consulta nuevamente los registros guardados.
         if ((admin() || id === perfil.id_usuario) && !usuario.es_directiva && usuario.rol !== 'directiva') {
-          void cargarProgreso(id, vigente, ['conquistador', 'capitan'].includes(usuario.rol));
+          void cargarProgreso(id, vigente, ['conquistador', 'capitan', 'subcapitan'].includes(usuario.rol));
         }
 
         void cargarEspecialidades(id, vigente);
@@ -291,12 +302,19 @@ async function aplicarSesion(nueva, forzar = false) {
   estado('Comprobando acceso…');
 
   try {
-    const propio = await obtenerMiPerfil();
-    const lista = await obtenerUsuarios();
+    const cache = !navigator.onLine ? await localCuotas(sesion.user.id) : null;
+    if (cache && !cache.perfil) throw new Error('Prepara cuotas con conexión antes de usar este dispositivo sin internet.');
+    const propio = cache ? cache.perfil : await obtenerMiPerfil();
+    const lista = cache ? [propio] : await obtenerUsuarios();
 
     if (actual !== authRevision) return;
 
     perfil = propio;
+    if (navigator.onLine) {
+      await localCuotas(sesion.user.id, d => { d.perfil = propio; });
+      if (actual !== authRevision) return;
+      recordarCuenta(sesion.user.id);
+    }
     usuarios = lista;
     cuenta();
 
@@ -360,11 +378,15 @@ $('botonSalir').addEventListener('click', async () => {
     cerrando ||
     cambiandoEstado ||
     !puedeSalir() ||
-    !puedeSalirAsistencias()
+    !puedeSalirAsistencias() ||
+    !puedeSalirCuotas()
   ) {
     return;
   }
 
+  const pendientes = await pendientesCuotas(sesion?.user.id);
+  if (pendientes && !confirm(`Hay ${pendientes} movimientos sin sincronizar. Quedarán guardados para esta cuenta; tendrás que volver a iniciar sesión para enviarlos. ¿Cerrar sesión?`)) return;
+  olvidarCuenta();
   cerrando = true;
   clearTimeout(temporizador);
   limpiar();
@@ -372,7 +394,14 @@ $('botonSalir').addEventListener('click', async () => {
   $('botonSalir').disabled = true;
 
   try {
-    await cerrarSesion();
+    if (navigator.onLine) await cerrarSesion();
+    else {
+      // Elimina la sesión local de Auth incluso cuando no hay servidor disponible.
+      obtenerSupabase().auth.stopAutoRefresh();
+      localStorage.removeItem(`sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`);
+      location.reload();
+      return;
+    }
     history.replaceState(null, '', '#inicio');
     await aplicarSesion(null, true);
   } catch {
@@ -456,6 +485,7 @@ try {
       // Renovar el token no borra un formulario en edición.
       if (
         evento === 'TOKEN_REFRESHED' &&
+        !sesion?.access_token?.startsWith('offline-') &&
         perfil &&
         sesion?.user.id === nueva?.user.id
       ) {
@@ -464,10 +494,27 @@ try {
         return;
       }
 
-      void aplicarSesion(nueva);
+      if (!navigator.onLine) {
+        const id = cuentaRecordada();
+        if (!id) { void aplicarSesion(null, true); return; }
+        void aplicarSesion({ user: { id }, access_token: 'offline-' + id });
+      } else void aplicarSesion(nueva);
     }, 0);
   });
 } catch (error) {
   limpiar();
   estado(error.message);
 }
+// Recuperación offline no depende de renovar el token contra la red.
+if (!navigator.onLine && cuentaRecordada()) {
+  const id = cuentaRecordada();
+  void aplicarSesion({ user: { id }, access_token: 'offline-' + id });
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(new URL('../sw.js', import.meta.url)).catch(console.error);
+}
+window.addEventListener('online', async () => {
+  if (!sesion?.access_token?.startsWith('offline-')) return;
+  const { data } = await obtenerSupabase().auth.getSession();
+  await aplicarSesion(data.session, true);
+});

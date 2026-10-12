@@ -58,10 +58,11 @@ export async function obtenerHistorialAsistencias(id){return f.meeting.estado===
 const mocks={'/js/services/asistencias.js':attendance,'/js/lib/supabase.js':lib,'/js/services/auth.js':auth,'/js/services/catalogo.js':catalogo,'/js/services/integrantes-admin.js':admin};
 const server=http.createServer((req,res)=>{
  let url=new URL(req.url,'http://localhost').pathname;
+ if(url==='/sw.js'){res.statusCode=404;return res.end();}
  if(mocks[url]){res.setHeader('Content-Type','text/javascript');return res.end(mocks[url]);}
  const p=path.join(root,url==='/'?'index.html':url);
  if(!p.startsWith(root)||!fs.existsSync(p)){res.statusCode=404;return res.end('missing');}
- let data=fs.readFileSync(p);if(p.endsWith('.html'))data=data.toString().replace(/<script src="https:[^>]+><\/script>/,'<script>'+setup+'</script>');
+ let data=fs.readFileSync(p);if(p.endsWith('.html'))data=data.toString().replace(/<script src="[^"]*supabase[^>]+><\/script>/,'<script>'+setup+'</script>');
  res.setHeader('Content-Type',p.endsWith('.html')?'text/html':p.endsWith('.css')?'text/css':p.endsWith('.js')?'text/javascript':'image/png');res.end(data);
 });
 await new Promise(r=>server.listen(8096,'127.0.0.1',r));

@@ -1,0 +1,11 @@
+{
+  "name": "Naar-Shalem",
+  "short_name": "Naar-Shalem",
+  "start_url": "./index.html#cuotas",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5fc",
+  "theme_color": "#302a9e",
+  "lang": "es-MX",
+  "icons": [{ "src": "img/LogoNS.png", "type": "image/png", "sizes": "any", "purpose": "any" }]
+}

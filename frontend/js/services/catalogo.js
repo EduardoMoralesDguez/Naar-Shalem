@@ -81,21 +81,12 @@ export async function obtenerProgreso(idUsuario, cobraCuotas = true) {
         .eq('ciclos.es_activo', true)
         .order('id_asistencia')
     ),
-    cobraCuotas ? consultarTodasLasFilas(() =>
-      supabase
-        .from('cuotas')
-        .select(`
-          id_cuota,
-          monto_pagado,
-          ciclos!inner(es_activo)
-        `)
-        .eq('id_usuario', idUsuario)
-        .eq('ciclos.es_activo', true)
-        .order('id_cuota')
-    ) : Promise.resolve([]),
+    cobraCuotas ? supabase.rpc('cuotas_resumen', { p_usuario: idUsuario }).then(({ data, error }) => { if (error) throw error; return data; }) : Promise.resolve(null),
   ]);
 
-  return calcularProgreso(asistencias, cuotas);
+  const progreso = calcularProgreso(asistencias, []);
+  if (cuotas) progreso.cuotas = cuotas;
+  return progreso;
 }
 
 export async function obtenerEspecialidades(idUsuario) {

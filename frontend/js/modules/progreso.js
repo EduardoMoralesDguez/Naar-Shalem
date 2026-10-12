@@ -19,7 +19,7 @@ const totalPagado = document.getElementById('totalPagado');
 const formatoMoneda = new Intl.NumberFormat(FORMATO_MONEDA.locale, {
   style: 'currency',
   currency: FORMATO_MONEDA.currency,
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 export function reiniciarProgreso() {
