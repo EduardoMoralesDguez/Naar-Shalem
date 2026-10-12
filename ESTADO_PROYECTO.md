@@ -1,7 +1,7 @@
 <!-- ESTADO_PROYECTO.md -->
 # Naar-Shalem
 
-Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicación estática en Vercel. La aplicación se desarrolla como PWA; no dar por implementados offline, instalación o service worker sin verificarlos.
+Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicación estática en Vercel. Incluye manifest y service worker para el módulo de cuotas sin conexión. El resto del portal requiere conexión; no asumir soporte offline para otros módulos.
 
 ## Arquitectura y permisos
 
@@ -30,19 +30,27 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 - Los directivos no muestran unidad/clase en tarjetas y perfiles. Solo conquistadores y capitanes muestran cuotas; los consejeros conservan únicamente asistencia.
 - Las cuotas históricas se conservan. Esta iteración no elimina registros financieros ni amplía sus permisos.
 
+## Cuotas semanales
+
+- Nuevo módulo Inicio → Cuotas. $10 por domingo preparado por directiva, independiente de los pases de asistencia.
+- Capitán y subcapitán registran cuotas completas de su unidad. Conquistadores solo consultan lo propio. Directiva cobra en cualquier unidad y administra abonos, anticipos, saldo, correcciones y anulaciones.
+- Subcapitán es un rol explícito, seleccionable en el editor, con los mismos permisos de asistencia que capitán. Consejeros/directiva no generan cuotas.
+- Libro privado de ingresos y aplicaciones en centavos. Un ingreso de $50 puede aplicarse a cinco cuotas, sin duplicar dinero.
+- Escrituras exclusivamente por RPC transaccional, autorizada y auditada; UUID de operación para reintentos y versión por integrante/ciclo para evitar sobrescrituras de dos capturistas.
+- IndexedDB mantiene la lista preparada y la cola por proyecto/cuenta. Service worker cachea únicamente archivos estáticos; SDK Supabase 2.49.8 servido localmente para no depender del CDN sin internet.
+- Sincronización al abrir Cuotas con conexión, al recuperar red o pulsando el botón. No se garantiza ejecución con app cerrada. Conflictos se revisan explícitamente; nunca se sobreescriben automáticamente.
+- Dashboard usa cuotas completamente cubiertas y domingos transcurridos. Total recibido incluye saldo a favor y excluye anulaciones.
+
 ## Instalación de esta iteración
 
-1. Confirmar que ya están aplicadas las migraciones 001–008.
-2. Ejecutar `database/migrations/009_pases_por_reunion.sql` en SQL Editor de Supabase.
-3. Publicar el frontend de esta rama y recargar la aplicación.
+1. Confirmar migraciones 001–009 aplicadas.
+2. Ejecutar `database/migrations/010_cuotas.sql` en SQL Editor de Supabase como postgres.
+3. Integrar/publicar el frontend completo y recargar. El despliegue o git pull no ejecutan SQL.
+4. Crear domingos de cobro y asignar el rol Subcapitán donde corresponda desde el editor.
 
-La migración 009 vincula las asistencias existentes a su reunión, conserva sus identificadores y asigna el nombre General a los pases anteriores. Se puede ejecutar nuevamente, incluso después de crear varios pases. Conserva la compatibilidad de creación del frontend anterior mediante el pase General. La creación sigue limitada a hoy y el capitán mantiene el permiso F→J únicamente en su unidad y el mismo día.
+La migración importa las cuotas antiguas una sola vez y mantiene sus fechas originales; no borra registros ni crea cuentas Auth. No volver a ejecutar schema.sql sobre producción. Instrucciones de uso, anticipos, preparación sin conexión y resolución de conflictos en [docs/CUOTAS.md](docs/CUOTAS.md).
 
-La migración se valida localmente; no se ejecuta automáticamente en Supabase al subir esta rama.
-
-La migración 007 dejó fechas antiguas como borradores para revisión. Cerrar las reuniones reales y anular las fechas de prueba; no borrar registros individuales para igualar contadores.
-
-El despliegue de Vercel o un `git pull` no ejecutan SQL. Verificar `privado.migraciones` desde SQL Editor. No volver a ejecutar `schema.sql` sobre producción.
+Las migraciones 007–009 de asistencia permanecen vigentes. Revisar borradores históricos antes de cerrarlos; no borrar registros individuales para igualar contadores.
 
 ## Pruebas
 
@@ -50,12 +58,14 @@ Requiere Node.js moderno (probado con 24):
 
 ```bash
 npm ci
+npm run build
 npm test
 npm run test:ui
 ```
 
 - `npm test`: PostgreSQL local en PGlite, esquema y migraciones reales, roles, privacidad, cierres completos, correcciones, versiones y límites del capitán, varios pases por día, aislamiento entre pases y exención de directiva sin borrar datos.
 - `npm run test:ui`: requiere Chromium. Por defecto usa `/usr/bin/chromium`; se puede indicar `CHROMIUM_PATH`. Prueba la interfaz real con servicios simulados, incluyendo móvil, porcentajes y perfiles por rol. Las capturas se guardan en una carpeta temporal.
+- Cuotas añade pruebas de importación repetible, ingresos/aplicaciones, anticipos, roles, conflictos, recarga con servidor desconectado y reintento tras respuesta perdida.
 - Ninguna prueba utiliza la base de producción.
 
 ## Trabajo con Git

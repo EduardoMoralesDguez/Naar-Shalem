@@ -6,6 +6,7 @@ const roles = {
   directiva: 'Directiva',
   consejero: 'Consejero',
   capitan: 'Capitán',
+  subcapitan: 'Subcapitán',
   conquistador: 'Conquistador',
 };
 

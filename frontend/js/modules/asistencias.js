@@ -349,7 +349,7 @@ function pintarPanel() {
     $('asLista').append(li);
   }
 
-  if (perfil.rol === 'capitan') {
+  if (['capitan', 'subcapitan'].includes(perfil.rol)) {
     $('asAvisoReunion').textContent +=
       ' Puedes marcar justificado únicamente el día de la reunión (hora de Ciudad de México).';
   }

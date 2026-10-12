@@ -4,12 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#302a9e">
   <title>Naar-Shalem | Portal del club</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/directorio.css">
   <link rel="stylesheet" href="css/perfiles.css">
   <link rel="stylesheet" href="css/portal.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="vendor/supabase-2.49.8.js"></script>
 </head>
 <body>
   <section id="panelLogin" class="login" aria-labelledby="tituloLogin" hidden>
@@ -369,6 +371,7 @@
                     <option value="conquistador">Conquistador</option>
                     <option value="consejero">Consejero</option>
                     <option value="capitan">Capitán</option>
+                    <option value="subcapitan">Subcapitán</option>
                     <option value="directiva">Directiva</option>
                   </select>
                 </label>
