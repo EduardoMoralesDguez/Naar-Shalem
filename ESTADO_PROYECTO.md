@@ -16,11 +16,11 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 
 ## Asistencias: pases por reunión
 
-- Las actividades y sus pases se crean desde Calendario, para hoy o fechas futuras. Asistencias abre el pase de hoy/último día disponible o el pase concreto enlazado desde Calendario; los botones permiten elegir entre pases del día.
+- Las reuniones regulares y sus pases se crean desde Calendario, en cualquier fecha del ciclo activo. Los otros tipos son avisos sin asistencia. Asistencias abre el pase de hoy/último día disponible o el pase concreto enlazado desde Calendario; los botones permiten elegir entre pases del día.
 - Cada asistencia se identifica por reunión e integrante, no por fecha. Corregir o anular un pase no afecta a otro del mismo día.
 - Pase en tabla con botones A/J/F; todas las unidades y “Sin unidad” deben revisarse antes de cerrar. Los no marcados quedan con falta.
 - Historial: matriz de integrantes por fecha y nombre del pase, A verde/J amarilla/F roja y porcentaje `(A + J) / registros`. “—” significa no convocado y no cuenta como falta.
-- Solo reuniones cerradas cuentan en la matriz y el dashboard.
+- Solo reuniones cerradas cuentan en la matriz y el dashboard. Directiva puede cerrar antes de la fecha después de revisar todas las unidades. Las eliminadas no cuentan.
 - Directiva filtra por unidad y edita celdas con control de versión. Los borradores y reuniones anteriores se administran desde Historial.
 - Capitán: solo convierte F en J para su unidad durante el mismo día, sin aprobación. No puede cambiar una A existente. Se valida en SQL con `America/Mexico_City`.
 - Consejero: consulta de su unidad. Conquistador: consulta propia.
@@ -30,34 +30,39 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 - Los directivos no muestran unidad/clase en tarjetas y perfiles. Solo conquistadores y capitanes muestran cuotas; los consejeros conservan únicamente asistencia.
 - Las cuotas históricas se conservan. Esta iteración no elimina registros financieros ni amplía sus permisos.
 
-## Cuotas semanales
+## Cuotas por actividad
 
-- Inicio → Cuotas registra pagos. Los domingos de $10 se preparan desde Calendario activando cobro; varias actividades del día comparten una sola cuota.
+- Inicio → Cuotas registra pagos. Cada reunión regular con cobro tiene una cuota independiente de $10, cualquier día; varias reuniones en una fecha pueden tener varios cobros.
 - Capitán y subcapitán registran cuotas completas de su unidad. Conquistadores solo consultan lo propio. Directiva cobra en cualquier unidad y administra abonos, anticipos, saldo, correcciones y anulaciones.
 - Subcapitán es un rol explícito, seleccionable en el editor, con los mismos permisos de asistencia que capitán. Consejeros/directiva no generan cuotas.
 - Libro privado de ingresos y aplicaciones en centavos. Un ingreso de $50 puede aplicarse a cinco cuotas, sin duplicar dinero.
 - Escrituras exclusivamente por RPC transaccional, autorizada y auditada; UUID de operación para reintentos y versión por integrante/ciclo para evitar sobrescrituras de dos capturistas.
 - IndexedDB mantiene la lista preparada y la cola por proyecto/cuenta. Service worker cachea únicamente archivos estáticos; SDK Supabase 2.49.8 servido localmente para no depender del CDN sin internet.
 - Sincronización al abrir Cuotas con conexión, al recuperar red o pulsando el botón. No se garantiza ejecución con app cerrada. Conflictos se revisan explícitamente; nunca se sobreescriben automáticamente.
-- Dashboard usa cuotas completamente cubiertas y domingos transcurridos. Total recibido incluye saldo a favor y excluye anulaciones.
+- Dashboard usa cuotas completamente cubiertas y actividades con cobro cuya fecha haya llegado. Total recibido incluye saldo a favor y excluye anulaciones.
 
 ## Calendario
 
-- Inicio → Calendario: mes, agenda, creación, edición y cancelación para directiva; consulta básica para miembros autenticados.
-- Cada actividad tiene nombre, fecha/hora de Ciudad de México y un pase propio. Se permiten fechas de hoy/futuras del ciclo activo y nombres diferentes para mañana/tarde.
-- Cobro opcional solo en domingo; se comparte el período de $10. Al cancelar el último cobro gestionado por calendario se liberan aplicaciones y queda saldo a favor, sin borrar dinero. Cancelar no afecta cobros independientes anteriores.
-- Cambiar fecha exige borrador de hoy/futuro sin asistencia capturada/unidades revisadas. Reintentos de creación reutilizan el UUID; ediciones usan versión.
-- Se conservan convocatorias con integrantes/unidades de su creación. No se incorporan automáticamente altas posteriores a actividades ya preparadas.
-- El calendario requiere conexión. El modo offline continúa limitado a cuotas y exige actualizar la lista después de preparar actividades.
+- Semanas de domingo a sábado; horario de Ciudad de México.
+- Reunión regular: pase para todo el club excepto directiva, cuota opcional de $10 por actividad cualquier día.
+- Prácticas: aviso sin asistencia ni cuota.
+- Reunión parcial: aviso para una unidad o clase elegida; solo lo ven esos destinatarios y directiva. Sin asistencia ni cuota.
+- Evento: aviso para todo el club durante un rango inclusivo, visible también entre meses. Sin asistencia ni cuota.
+- Directiva crea, edita, cancela y elimina. Eliminar retira la actividad del calendario/historial, preservando internamente la bitácora y el dinero recibido como saldo a favor. No se restaura una actividad eliminada.
+- Tipo/fecha solo cambian si no hay pase capturado ni unidades revisadas. Nombre/hora se pueden corregir. Versiones y UUID evitan sobrescrituras y duplicados.
+- Las convocatorias reflejan integrantes/unidades al crear la reunión; las altas posteriores no se agregan automáticamente.
+- Los cobros compartidos anteriores a 012 se preservan sin generar deudas adicionales. Todos los nuevos cobros son independientes por actividad.
+- El calendario requiere conexión. La cola offline de Cuotas admite pagos completos de varias actividades para una persona; se sincronizan en orden y un conflicto bloquea los siguientes de esa persona.
 
 ## Instalación de esta iteración
 
-1. Confirmar migraciones 001–010 aplicadas.
-2. Ejecutar `database/migrations/011_calendario.sql` en SQL Editor de Supabase como postgres.
-3. Integrar/publicar el frontend completo. Abrir con conexión para descargar la nueva PWA, cerrar todas sus pestañas y volver a abrir. No borrar pagos pendientes del navegador.
-4. Organizar actividades desde Inicio → Calendario.
+1. Confirmar migraciones 001–011 aplicadas.
+2. Ejecutar `database/migrations/012_tipos_actividades.sql` como postgres en Supabase SQL Editor.
+3. Opcional, solo para borrar pruebas: ejecutar `database/admin/limpiar_actividad.sql` después de 012. Borra reuniones, asistencias y todos los datos financieros, en todos los ciclos; conserva integrantes, cuentas, expedientes e insignias. No se ejecuta automáticamente.
+4. Integrar/publicar el frontend y sw.js. Abrir con conexión para descargar la PWA, cerrar todas sus ventanas y volver a abrir.
+5. Actualizar Cuotas. Si se limpió la base, los pendientes anteriores quedan rechazados por generación y deben descartarse como pruebas mediante Resolver registro.
 
-La migración es repetible y conserva datos existentes; no vuelve a generar datos borrados ni crea cuentas Auth. No ejecutar schema.sql en producción. El despliegue o git pull no ejecuta SQL. Guías: [Calendario](docs/CALENDARIO.md) y [Cuotas](docs/CUOTAS.md).
+La migración es repetible y conserva los datos; no genera semillas ni cuentas Auth. No ejecutar schema.sql en producción. El despliegue o git pull no ejecuta SQL. Guías: [Calendario](docs/CALENDARIO.md) y [Cuotas](docs/CUOTAS.md).
 
 ## Pruebas
 

@@ -2,21 +2,22 @@ import { obtenerCuotas, enviarCuota, verificarCuenta } from '../services/cuotas.
 import { localCuotas, guardarOperacion, recordarCuenta } from '../lib/cuotas-local.js';
 const $ = id => document.getElementById(id);
 const dinero = c => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(c / 100);
+const etiquetaPeriodo = p => p ? `${p.fecha} · ${p.hora?.slice(0, 5) || '09:00'} · ${p.nombre || 'Cobro anterior'}` : 'Actividad anterior';
 const hoy = () => { const parts = new Intl.DateTimeFormat('en', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); return ['year', 'month', 'day'].map(t => parts.find(p => p.type === t).value).join('-'); };
 const estilo = document.createElement('link'); estilo.rel = 'stylesheet'; estilo.href = new URL('../../css/cuotas.css', import.meta.url).href; document.head.append(estilo);
 const entrada = document.createElement('a'); entrada.href = '#cuotas'; entrada.className = 'modulo';
-entrada.innerHTML = '<span class="modulo-icono" aria-hidden="true">$</span><span class="sobre-titulo">TESORERÍA</span><h2>Cuotas</h2><p>Cobros de los domingos, abonos y saldo a favor.</p><strong>Entrar al módulo →</strong>';
+entrada.innerHTML = '<span class="modulo-icono" aria-hidden="true">$</span><span class="sobre-titulo">TESORERÍA</span><h2>Cuotas</h2><p>Cobros por actividad, abonos y saldo a favor.</p><strong>Entrar al módulo →</strong>';
 document.querySelector('#inicio .menu-grid').append(entrada);
 const vista = document.createElement('section'); vista.id = 'vistaCuotas'; vista.className = 'vista'; vista.hidden = true;
 vista.innerHTML = `
  <span class="sobre-titulo">TESORERÍA DEL CLUB</span><h1>Cuotas</h1>
- <p>$10 por domingo de club. Los pases de asistencia no generan cobros adicionales.</p>
+ <p>$10 por reunión regular con cobro activado. Puede haber varios cobros el mismo día.</p>
  <p id="cuEstado" class="aviso" role="status"></p>
- <div class="acciones"><button id="cuPreparar" class="boton-principal">Preparar / actualizar para el domingo</button><button id="cuSync" class="boton-volver">Sincronizar pendientes</button></div>
+ <div class="acciones"><button id="cuPreparar" class="boton-principal">Preparar / actualizar sin conexión</button><button id="cuSync" class="boton-volver">Sincronizar pendientes</button></div>
  <p id="cuPreparacion" class="texto-suave"></p>
  <section id="cuPendientes" class="cu-panel" hidden><h2>Guardado en este dispositivo</h2><p>Estos movimientos todavía no están confirmados en Supabase. Se enviarán con la cuenta que los capturó.</p><div id="cuCola"></div></section>
- <section id="cuCalendario" class="cu-panel" hidden><h2>Domingos de cobro</h2><p>Las fechas de cobro se preparan al crear actividades en el calendario.</p><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
- <section class="cu-panel"><div class="cu-form"><label>Domingo<select id="cuPeriodo"></select></label><label id="cuUnidadCampo">Unidad<select id="cuUnidad"></select></label></div>
+ <section id="cuCalendario" class="cu-panel" hidden><h2>Actividades con cobro</h2><p>Las fechas de cobro se preparan al crear actividades en el calendario.</p><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
+ <section class="cu-panel"><div class="cu-form"><label>Actividad<select id="cuPeriodo"></select></label><label id="cuUnidadCampo">Unidad<select id="cuUnidad"></select></label></div>
  <div class="cu-scroll"><table class="cu-tabla"><caption>Registro de cuotas</caption><thead><tr><th>Integrante</th><th>Aplicado / cuota</th><th>Saldo a favor</th><th>Registro</th></tr></thead><tbody id="cuLista"></tbody></table></div>
  <p id="cuVacio"></p><button id="cuGuardar" class="boton-principal" hidden>Guardar pagos marcados</button></section>
  <section class="cu-panel"><h2>Historial de ingresos</h2><label>Integrante<select id="cuHistUsuario"></select></label><div id="cuResumen"></div><div class="cu-scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Importe</th><th>Aplicación</th><th>Registró / estado</th><th>Acciones</th></tr></thead><tbody id="cuHistorial"></tbody></table></div></section>
@@ -24,7 +25,7 @@ vista.innerHTML = `
  <dialog id="cuDialogo" class="cu-dialogo"><form id="cuFormulario"><h2 id="cuTitulo"></h2><p id="cuAyuda"></p>
  <label id="cuMontoCampo">Importe recibido ($)<input id="cuMonto" type="number" min="0.01" max="100000" step="0.01" required></label>
  <label id="cuFechaCampo">Fecha de recepción<input id="cuFechaPago" type="date" required></label>
- <fieldset id="cuAplicar"><legend>Aplicar a estos domingos (del más antiguo al más reciente)</legend><div id="cuOpciones"></div><p>Lo que no se aplique queda como saldo a favor para próximos domingos.</p></fieldset>
+ <fieldset id="cuAplicar"><legend>Aplicar a estas actividades (del más antiguo al más reciente)</legend><div id="cuOpciones"></div><p>Lo que no se aplique queda como saldo a favor para próximas actividades.</p></fieldset>
  <label>Nota / motivo<input id="cuNota" maxlength="500"></label>
  <p id="cuError" role="alert"></p><div class="acciones"><button class="boton-principal">Guardar en el dispositivo</button><button id="cuCancelar" type="button" class="boton-volver">Cancelar</button></div></form></dialog>`;
 $('aplicacion').append(vista);
@@ -62,8 +63,8 @@ function pintar() {
   $('cuPreparar').disabled = ocupado || !navigator.onLine;
   $('cuPreparacion').textContent = `Lista guardada: ${new Date(local.actualizado).toLocaleString('es-MX')}. Abre y prepara este módulo con internet antes de ir al club. Los registros pendientes se conservan al cerrar la app.`;
   const actuales = p.periodos.filter(x => !x.legado && x.fecha <= hoy());
-  const visibles = admin() || !cobra() ? p.periodos : actuales.slice(0, 1);
-  opciones($('cuPeriodo'), visibles, r => r.id, r => r.fecha + (r.legado ? ' · anterior' : ''));
+  const visibles = admin() || !cobra() ? p.periodos : actuales.filter(p => p.fecha === actuales[0]?.fecha);
+  opciones($('cuPeriodo'), visibles, r => r.id, etiquetaPeriodo);
   opciones($('cuUnidad'), [{ id: '', nombre: 'Todas las unidades' }, ...[...new Map(p.integrantes.map(u => [u.id_unidad || 'sin-unidad', { id: u.id_unidad || 'sin-unidad', nombre: u.unidad }])).values()]], r => r.id, r => r.nombre);
   seleccionPeriodo = $('cuPeriodo').value; seleccionUnidad = $('cuUnidad').value;
   opciones($('cuHistUsuario'), p.integrantes, r => r.id_usuario, r => r.nombre);
@@ -72,8 +73,9 @@ function pintar() {
   const periodo = p.periodos.find(x => x.id === $('cuPeriodo').value);
   for (const u of usuarios) {
     const cargo = p.cargos.find(c => c.id_usuario === u.id_usuario && c.periodo === periodo?.id);
-    const pendiente = local.cola.some(o => o.datos.id_usuario === u.id_usuario);
-    const fila = document.createElement('tr'); fila.append(nodo('th', u.nombre), nodo('td', cargo ? `${dinero(cargo.pagado)} / ${dinero(cargo.importe)}` : 'Sin cargo este domingo'), nodo('td', dinero(u.saldo)));
+    const pendientes = local.cola.filter(o => o.datos.id_usuario === u.id_usuario);
+    const pendiente = pendientes.some(o => o.revisar || o.error || o.accion !== 'pago' || o.datos.importe !== 1000 || o.datos.periodos?.length !== 1 || o.datos.periodos.includes(periodo?.id));
+    const fila = document.createElement('tr'); fila.append(nodo('th', u.nombre), nodo('td', cargo ? `${dinero(cargo.pagado)} / ${dinero(cargo.importe)}` : 'Sin cargo en esta actividad'), nodo('td', dinero(u.saldo)));
     const acciones = document.createElement('td'); acciones.className = 'cu-acciones';
     if (pendiente) acciones.append(nodo('span', 'Pendiente de sincronizar / revisar'));
     else if (cobra()) {
@@ -82,11 +84,11 @@ function pintar() {
         check.addEventListener('change', () => { check.checked ? marcados.add(u.id_usuario) : marcados.delete(u.id_usuario); $('cuGuardar').disabled = !marcados.size; });
         label.append(check, document.createTextNode(' Recibí $10')); acciones.append(label);
       } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
-      if (admin()) { const b = boton('Abono / anticipo', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); if (u.saldo > 0) acciones.append(boton('Aplicar saldo', () => abrir('saldo', u))); }
+      if (admin() && !pendientes.length) { const b = boton('Abono / anticipo', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); if (u.saldo > 0) acciones.append(boton('Aplicar saldo', () => abrir('saldo', u))); }
     } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
     fila.append(acciones); $('cuLista').append(fila);
   }
-  $('cuVacio').textContent = !p.integrantes.length ? 'No tienes cuotas asignadas ni permiso de cobro en este módulo.' : !periodo ? 'La directiva debe preparar los domingos de cobro.' : '';
+  $('cuVacio').textContent = !p.integrantes.length ? 'No tienes cuotas asignadas ni permiso de cobro en este módulo.' : !periodo ? 'La directiva debe preparar las actividades con cobro.' : '';
   $('cuPendientes').hidden = !local.cola.length; $('cuCola').replaceChildren();
   for (const o of local.cola) {
     const u = p.integrantes.find(x => x.id_usuario === o.datos.id_usuario);
@@ -95,7 +97,13 @@ function pintar() {
       div.append(boton('Resolver registro', async () => {
         if (ocupado || !navigator.onLine) return mensaje('Conecta el dispositivo para revisar este registro.');
         if (!confirm('Revisa el historial actualizado antes de descartarlo. Si el dinero NO está registrado, vuelve a capturarlo después. ¿Quitar este intento pendiente?')) return;
-        await localCuotas(cuenta, d => { d.cola = d.cola.filter(x => x.id !== o.id); }); await cargar();
+        await localCuotas(cuenta, d => {
+          const posicion = d.cola.findIndex(x => x.id === o.id);
+          for (const posterior of d.cola.slice(posicion + 1)) if (posterior.datos.id_usuario === o.datos.id_usuario) {
+            posterior.revisar = true; posterior.error = 'Se descartó un pago anterior. Revisa el historial y vuelve a capturar este movimiento si falta.';
+          }
+          d.cola = d.cola.filter(x => x.id !== o.id);
+        }); await cargar();
       }));
     }
     $('cuCola').append(div);
@@ -109,10 +117,10 @@ function pintarHistorial() {
   const id = $('cuHistUsuario').value; $('cuHistorial').replaceChildren();
   const ingresos = p.ingresos.filter(i => i.id_usuario === id);
   const cargos = p.cargos.filter(c => c.id_usuario === id && p.periodos.find(x => x.id === c.periodo)?.fecha <= hoy());
-  $('cuResumen').textContent = `Recibido: ${dinero(ingresos.filter(i => !i.anulado).reduce((s, i) => s + i.importe, 0))} · Pendiente de domingos vencidos: ${dinero(cargos.reduce((s, c) => s + c.importe - c.pagado, 0))}`;
+  $('cuResumen').textContent = `Recibido: ${dinero(ingresos.filter(i => !i.anulado).reduce((s, i) => s + i.importe, 0))} · Pendiente de cuotas vencidas: ${dinero(cargos.reduce((s, c) => s + c.importe - c.pagado, 0))}`;
   for (const i of ingresos) {
     const tr = document.createElement('tr');
-    const aplicadas = p.aplicaciones.filter(a => a.ingreso === i.id).map(a => `${p.periodos.find(x => x.id === a.periodo)?.fecha}: ${dinero(a.importe)}`);
+    const aplicadas = p.aplicaciones.filter(a => a.ingreso === i.id).map(a => `${etiquetaPeriodo(p.periodos.find(x => x.id === a.periodo))}: ${dinero(a.importe)}`);
     tr.append(nodo('td', i.fecha), nodo('td', dinero(i.importe)), nodo('td', aplicadas.join(' · ') || (i.anulado ? 'Anulado' : 'Saldo a favor')), nodo('td', `${i.registrado_por}${i.anulado ? ' · Anulado' : ''}`));
     const td = document.createElement('td');
     if (admin() && !i.anulado && !local.cola.some(o => o.datos.id_usuario === id)) {
@@ -136,7 +144,7 @@ function abrir(accion, u, ingreso) {
     const c = local.panel.cargos.find(c => c.periodo === p.id && c.id_usuario === u.id_usuario);
     if (!c || c.pagado >= c.importe) continue;
     const label = document.createElement('label'), check = document.createElement('input'); check.type = 'checkbox'; check.value = p.id; check.checked = p.id === $('cuPeriodo').value;
-    label.append(check, document.createTextNode(` ${p.fecha} · pendiente ${dinero(c.importe - c.pagado)}`)); $('cuOpciones').append(label);
+    label.append(check, document.createTextNode(` ${etiquetaPeriodo(p)} · pendiente ${dinero(c.importe - c.pagado)}`)); $('cuOpciones').append(label);
   }
   $('cuDialogo').showModal();
 }
@@ -162,15 +170,21 @@ async function sincronizar() {
   try {
     await verificarCuenta(id);
     const d = await localCuotas(id);
+    const bloqueados = new Set();
     for (const o of d.cola) {
       if (rev !== revision) return;
-      if (o.revisar) continue;
+      if (o.revisar) { bloqueados.add(o.datos.id_usuario); continue; }
+      if (bloqueados.has(o.datos.id_usuario)) {
+        await localCuotas(id, d => { const item = d.cola.find(x => x.id === o.id); if (item) { item.revisar = true; item.error = 'Un pago anterior de este integrante necesita revisión. Comprueba ambos movimientos antes de recapturar.'; } });
+        continue;
+      }
       try {
         await enviarCuota(o);
         await localCuotas(id, d => { d.cola = d.cola.filter(x => x.id !== o.id); });
       } catch (e) {
         const revisar = ['40001', '42501', '22023', '23505', '22P02'].includes(e.code);
         await localCuotas(id, d => { const item = d.cola.find(x => x.id === o.id); if (item) { item.error = e.message || 'Sin confirmación del servidor. Se reintentará con el mismo identificador.'; item.revisar = revisar; } });
+        bloqueados.add(o.datos.id_usuario);
         if (!revisar) break;
       }
     }
@@ -182,7 +196,7 @@ async function sincronizar() {
 }
 async function guardar(accion, datos) {
   if (!cuenta || !local?.panel) throw new Error('Prepara la lista primero.');
-  local = await guardarOperacion(cuenta, { id: crypto.randomUUID(), accion, datos: { id_ciclo: local.panel.id_ciclo, ...datos }, guardado: new Date().toISOString() });
+  local = await guardarOperacion(cuenta, { id: crypto.randomUUID(), accion, datos: { id_ciclo: local.panel.id_ciclo, epoca: local.panel.epoca, ...datos }, guardado: new Date().toISOString() });
   mensaje('Guardado en este dispositivo. Pendiente de sincronizar.');
 }
 $('cuFormulario').addEventListener('submit', async e => {

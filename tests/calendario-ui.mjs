@@ -59,9 +59,11 @@ const mocks={'/js/services/asistencias.js':attendance,'/js/lib/supabase.js':lib,
 
 const calendarMock=`
 const f=window.fixture;f.actividades=[];
-export async function listarActividades(desde,hasta){return f.actividades.filter(a=>a.fecha>=desde&&a.fecha<=hasta).map(a=>({...a,cobro_compartido:a.cobra_cuota&&f.actividades.some(b=>b.id!==a.id&&b.fecha===a.fecha&&b.cobra_cuota&&b.estado!=='anulada')}));}
-export async function guardarActividad(a){if(f.users[f.actor].rol!=='directiva')throw new Error('No autorizado');const prev=f.actividades.find(x=>x.id===a.id);if(prev){Object.assign(prev,a,{version:prev.version+1});Object.assign(f.meetings.find(m=>m.id===a.id),a);}else{const row={...a,version:1,estado:'borrador'};f.actividades.push(row);const m=structuredClone(f.meeting);Object.assign(m,row);f.meetings.push(m);}return a.id;}
-export async function cancelarActividad(a,motivo){f.actividades.find(x=>x.id===a.id).estado='anulada';f.meetings.find(x=>x.id===a.id).estado='anulada';}
+export async function listarActividades(desde,hasta){return f.actividades.filter(a=>!a.eliminado&&a.fecha<=hasta&&(a.fecha_fin||a.fecha)>=desde).map(a=>({...a,cobro_compartido:false}));}
+export async function guardarActividad(a){if(f.users[f.actor].rol!=='directiva')throw new Error('No autorizado');const prev=f.actividades.find(x=>x.id===a.id);if(prev){Object.assign(prev,a,{version:prev.version+1});const m=f.meetings.find(m=>m.id===a.id);if(m)Object.assign(m,a);}else{const row={...a,version:1,estado:'borrador'};f.actividades.push(row);if(a.tipo==='regular'){const m=structuredClone(f.meeting);Object.assign(m,row);f.meetings.push(m);}}return a.id;}
+export async function cancelarActividad(a,motivo){f.actividades.find(x=>x.id===a.id).estado='anulada';const m=f.meetings.find(x=>x.id===a.id);if(m)m.estado='anulada';}
+export async function eliminarActividad(a){f.actividades.find(x=>x.id===a.id).eliminado=true;}
+
 `;
 mocks['/js/services/calendario.js']=calendarMock;
 
@@ -90,16 +92,26 @@ await send('Page.navigate',{url:'http://127.0.0.1:8098/'});await waitFor('window
 await evaluate('fixture.emit(0)');await waitFor("!document.getElementById('inicio').hidden");
 await evaluate("location.hash='calendario'");await waitFor("!document.getElementById('vistaCalendario').hidden&&!document.getElementById('calNueva').disabled");
 assert.ok(await evaluate("document.querySelectorAll('#calDias button').length>=28"));
+assert.deepEqual(await evaluate("[...document.querySelectorAll('.cal-semana span')].map(e=>e.textContent)"),['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']);
+assert.equal(await evaluate("[...document.getElementById('calDias').children].findIndex(e=>e.tagName==='BUTTON')"),await evaluate("new Date(fixture.meeting.fecha.slice(0,7)+'-01T12:00:00').getDay()"));
 await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Camporee — mañana';const d=new Date(fixture.meeting.fecha+'T12:00:00');d.setDate(d.getDate()+7-d.getDay());fixture.fechaDomingo=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');document.getElementById('calDia').value=fixture.fechaDomingo;document.getElementById('calDia').dispatchEvent(new Event('change'));document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
 await waitFor("fixture.actividades.length===1&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
 assert.ok(await evaluate("document.getElementById('calAgenda').textContent.includes('Camporee — mañana')"));
 await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Camporee — tarde';document.getElementById('calHora').value='16:00';document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
 await waitFor("fixture.actividades.length===2&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
-assert.ok(await evaluate("document.getElementById('calAgenda').textContent.includes('cobro compartido')"));await shot('calendario-desktop');
+assert.ok(await evaluate("document.getElementById('calAgenda').textContent.includes('$10 por esta reunión')"));await shot('calendario-desktop');
 // El enlace abre exactamente el pase futuro seleccionado.
 await evaluate("document.querySelector('#calAgenda a[href^=\"#asistencias/\"]').click()");
 await waitFor("!document.getElementById('vistaAsistencias').hidden&&document.getElementById('asReunion').value===fixture.actividades[0].id&&!document.getElementById('asCampos').disabled");
 assert.ok(await evaluate("document.getElementById('asFechaTitulo').textContent.includes(fixture.fechaDomingo)"));
+// El pase futuro puede cerrarse después de revisar todas sus unidades.
+for(let i=0;i<3;i++){
+ await evaluate(`document.querySelectorAll('#asGrupos button')[${i}].click();document.getElementById('asGuardar').click()`);
+ await waitFor(`!document.getElementById('asCampos').disabled&&fixture.meetings.find(m=>m.id===fixture.actividades[0].id).grupos[${i}].revisada`);
+}
+assert.equal(await evaluate("document.getElementById('asCerrar').disabled"),false);
+await evaluate("document.getElementById('asCerrar').click()");
+await waitFor("fixture.meetings.find(m=>m.id===fixture.actividades[0].id).estado==='cerrada'&&!document.getElementById('asCampos').disabled");
 await evaluate("location.hash='calendario'");await waitFor("!document.getElementById('vistaCalendario').hidden&&!document.getElementById('calNueva').disabled");
 // La agenda vuelve a hoy: navega al mes/fecha programado a través del formulario para editar.
 await evaluate("document.getElementById('calTodo').click()");
@@ -109,9 +121,37 @@ await evaluate("[...document.querySelectorAll('#calAgenda button')].find(b=>b.te
 await waitFor("fixture.actividades[0].hora==='10:00'&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
 await evaluate("[...document.querySelectorAll('#calAgenda button')].find(b=>b.textContent==='Cancelar actividad').click()");
 await waitFor("fixture.actividades[0].estado==='anulada'&&!document.getElementById('calNueva').disabled");
+// Eliminar está disponible incluso para la actividad cancelada.
+await evaluate("[...document.querySelectorAll('#calAgenda button')].find(b=>b.textContent==='Eliminar').click()");
+await waitFor("fixture.actividades[0].eliminado&&!document.getElementById('calNueva').disabled");
+assert.ok(!await evaluate("document.getElementById('calAgenda').textContent.includes('Camporee — mañana')"));
+// Avisos: campos propios, sin enlaces de asistencia ni cuota.
+for(const tipo of ['practica','parcial','evento']) {
+ await evaluate(`document.getElementById('calNueva').click();document.getElementById('calNombre').value='Aviso ${tipo}';document.getElementById('calTipo').value='${tipo}';document.getElementById('calTipo').dispatchEvent(new Event('change'))`);
+ assert.equal(await evaluate("document.getElementById('calCobro').disabled"),true);
+ if(tipo==='parcial') {
+  assert.equal(await evaluate("document.getElementById('calDestino').value"),'u');
+  await evaluate("document.getElementById('calDestinoTipo').value='clase';document.getElementById('calDestinoTipo').dispatchEvent(new Event('change'))");
+  assert.equal(await evaluate("document.getElementById('calDestino').value"),'c');
+ }
+ if(tipo==='evento') await evaluate("const fin=new Date(document.getElementById('calDia').value+'T12:00:00');fin.setMonth(fin.getMonth()+1,3);fixture.finEvento=fin.getFullYear()+'-'+String(fin.getMonth()+1).padStart(2,'0')+'-03';document.getElementById('calFin').value=fixture.finEvento");
+ await evaluate("document.getElementById('calForm').requestSubmit()");
+ await waitFor(`fixture.actividades.some(a=>a.nombre==='Aviso ${tipo}')&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled`);
+ assert.equal(await evaluate(`fixture.actividades.find(a=>a.nombre==='Aviso ${tipo}').cobra_cuota`),false);
+ assert.equal(await evaluate(`[...document.querySelectorAll('#calAgenda article')].find(e=>e.textContent.includes('Aviso ${tipo}')).querySelectorAll('a').length`),0);
+}
+await evaluate("document.getElementById('calSiguiente').click()");
+await waitFor("document.getElementById('calAgenda').textContent.includes('Aviso evento')&&!document.getElementById('calNueva').disabled");
+assert.ok(await evaluate("document.querySelector('#calDias button').textContent.includes('actividad')"));
+// Cobro habilitado en lunes (y no solo domingo).
+await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Reunión lunes';const lunesPrueba=new Date(document.getElementById('calDia').value+'T12:00:00');lunesPrueba.setDate(lunesPrueba.getDate()+(8-lunesPrueba.getDay())%7);document.getElementById('calDia').value=lunesPrueba.getFullYear()+'-'+String(lunesPrueba.getMonth()+1).padStart(2,'0')+'-'+String(lunesPrueba.getDate()).padStart(2,'0');document.getElementById('calDia').dispatchEvent(new Event('change'))");
+assert.equal(await evaluate("document.getElementById('calCobro').disabled"),false);
+await evaluate("document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
+await waitFor("fixture.actividades.some(a=>a.nombre==='Reunión lunes'&&a.cobra_cuota)&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
+await shot('calendario-tipos-desktop');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await shot('calendario-mobile');
 assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'));
 await evaluate('fixture.emit(1)');await waitFor("!document.getElementById('vistaCalendario').hidden&&document.getElementById('calNueva').hidden");
 assert.equal(await evaluate("document.querySelectorAll('#calAgenda button').length"),0);
-console.log('Calendario UI OK: mes, crear/editar/cancelar, enlace al pase concreto, permisos y móvil. Capturas: '+output);
+console.log('Calendario UI OK: domingo–sábado, tipos, rangos, destinos, cobro entre semana, cierre futuro, eliminar, permisos y móvil. Capturas: '+output);
 } catch(e) {console.error(await evaluate('document.body.innerText'));throw e;} finally { ws.close();chrome.kill();server.close(); }
