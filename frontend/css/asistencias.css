@@ -151,3 +151,14 @@ button.as-marca { cursor:pointer; }
 
 .as-matriz thead th { white-space:pre-line; min-width:110px; }
 #asPasesHoy button[aria-pressed="true"] { background:var(--club-azul); color:white; }
+
+#asCampos > .acciones { border-bottom:1px solid var(--color-borde); padding-bottom:1rem; margin-bottom:1.4rem; }
+#asDia[aria-pressed=true], #asHistorial[aria-pressed=true] { background:var(--club-azul); color:white; border-color:var(--club-azul); }
+#asUnidadTitulo { font-size:1.15rem; margin:1.5rem 0 .75rem; }
+#asFechaTitulo { font-size:clamp(1.05rem,2vw,1.3rem); }
+.as-tabla thead th { background:#f1f3fa; font-size:.85rem; }
+.as-tabla tbody tr:last-child > * { border-bottom:0; }
+.as-matriz tbody th { background:#fafbfe; }
+.as-tabla tbody tr:hover td { background:#fafbfe; }
+.as-tabla caption { font-size:.9rem; }
+.as-pie { padding-top:1rem; border-top:1px solid var(--color-borde); }

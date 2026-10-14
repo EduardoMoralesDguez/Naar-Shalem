@@ -140,9 +140,7 @@ export async function abrirEditor(id, callback) {
 
     mostrarFoto($('fotoPreview'), foto);
 
-    $('adminEstado').textContent = usuario
-      ? 'Actualiza su información conservando el historial.'
-      : `Nuevo integrante · Ciclo ${opciones.ciclos[0].anio}`;
+    $('adminEstado').textContent = '';
 
     $('adminCampos').disabled = false;
     $('adminGuardar').disabled = false;

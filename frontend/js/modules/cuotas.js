@@ -11,16 +11,14 @@ document.querySelector('#inicio .menu-grid').append(entrada);
 const vista = document.createElement('section'); vista.id = 'vistaCuotas'; vista.className = 'vista'; vista.hidden = true;
 vista.innerHTML = `
  <span class="sobre-titulo">TESORERÍA DEL CLUB</span><h1>Cuotas</h1>
- <p>$10 por reunión regular con cobro activado. Puede haber varios cobros el mismo día.</p>
- <p id="cuEstado" class="aviso" role="status"></p>
+ <div class="aviso cu-estado"><p id="cuEstado" role="status"></p><span id="cuPreparacion"></span></div>
  <div class="acciones"><button id="cuPreparar" class="boton-principal">Preparar / actualizar sin conexión</button><button id="cuSync" class="boton-volver">Sincronizar pendientes</button></div>
- <p id="cuPreparacion" class="texto-suave"></p>
  <section id="cuPendientes" class="cu-panel" hidden><h2>Guardado en este dispositivo</h2><p>Estos movimientos todavía no están confirmados en Supabase. Se enviarán con la cuenta que los capturó.</p><div id="cuCola"></div></section>
- <section id="cuCalendario" class="cu-panel" hidden><h2>Actividades con cobro</h2><p>Las fechas de cobro se preparan al crear actividades en el calendario.</p><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
+ <section id="cuCalendario" class="cu-panel" hidden><h2>Actividades</h2><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
  <section class="cu-panel"><div class="cu-form"><label>Actividad<select id="cuPeriodo"></select></label><label id="cuUnidadCampo">Unidad<select id="cuUnidad"></select></label></div>
  <div class="cu-scroll"><table class="cu-tabla"><caption>Registro de cuotas</caption><thead><tr><th>Integrante</th><th>Aplicado / cuota</th><th>Saldo a favor</th><th>Registro</th></tr></thead><tbody id="cuLista"></tbody></table></div>
  <p id="cuVacio"></p><button id="cuGuardar" class="boton-principal" hidden>Guardar pagos marcados</button></section>
- <section class="cu-panel"><h2>Historial de ingresos</h2><label>Integrante<select id="cuHistUsuario"></select></label><div id="cuResumen"></div><div class="cu-scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Importe</th><th>Aplicación</th><th>Registró / estado</th><th>Acciones</th></tr></thead><tbody id="cuHistorial"></tbody></table></div></section>
+ <section class="cu-panel"><h2>Historial de ingresos</h2><label>Integrante<select id="cuHistUsuario"></select></label><div class="cu-scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Importe</th><th>Aplicación</th><th>Registró / estado</th><th>Acciones</th></tr></thead><tbody id="cuHistorial"></tbody></table></div></section>
  <details id="cuAuditoria" class="cu-panel" hidden><summary>Bitácora de cambios</summary><div id="cuBitacora"></div></details>
  <dialog id="cuDialogo" class="cu-dialogo"><form id="cuFormulario"><h2 id="cuTitulo"></h2><p id="cuAyuda"></p>
  <label id="cuMontoCampo">Importe recibido ($)<input id="cuMonto" type="number" min="0.01" max="100000" step="0.01" required></label>
@@ -51,7 +49,7 @@ export function puedeSalirCuotas() { return !ocupado && !guardando && ((!marcado
 export function reiniciarCuotas() {
   revision++; cuenta = null; perfil = null; local = null; marcados.clear(); editando = null; ocupado = false; guardando = false;
   $('cuDialogo').close(); $('cuFormulario').reset();
-  for (const id of ['cuLista', 'cuHistorial', 'cuCola', 'cuBitacora', 'cuResumen', 'cuPeriodo', 'cuUnidad', 'cuHistUsuario', 'cuPreparacion', 'cuEstado', 'cuOpciones', 'cuTitulo', 'cuAyuda', 'cuError', 'cuVacio']) $(id).replaceChildren();
+  for (const id of ['cuLista', 'cuHistorial', 'cuCola', 'cuBitacora', 'cuPeriodo', 'cuUnidad', 'cuHistUsuario', 'cuPreparacion', 'cuEstado', 'cuOpciones', 'cuTitulo', 'cuAyuda', 'cuError', 'cuVacio']) $(id).replaceChildren();
   for (const id of ['cuCalendario', 'cuGuardar', 'cuAuditoria', 'cuPendientes']) $(id).hidden = true;
 }
 export async function pendientesCuotas(id) { return id ? (await localCuotas(id)).cola.length : 0; }
@@ -61,7 +59,7 @@ function pintar() {
   $('cuGuardar').hidden = !cobra(); $('cuGuardar').disabled = ocupado || !marcados.size;
   $('cuSync').disabled = ocupado || !navigator.onLine;
   $('cuPreparar').disabled = ocupado || !navigator.onLine;
-  $('cuPreparacion').textContent = `Lista guardada: ${new Date(local.actualizado).toLocaleString('es-MX')}. Abre y prepara este módulo con internet antes de ir al club. Los registros pendientes se conservan al cerrar la app.`;
+  $('cuPreparacion').textContent = `Actualizado · ${new Date(local.actualizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Mexico_City' })}`;
   const actuales = p.periodos.filter(x => !x.legado && x.fecha <= hoy());
   const visibles = admin() || !cobra() ? p.periodos : actuales.filter(p => p.fecha === actuales[0]?.fecha);
   opciones($('cuPeriodo'), visibles, r => r.id, etiquetaPeriodo);
@@ -116,11 +114,9 @@ function pintarHistorial() {
   const p = local?.panel; if (!p) return;
   const id = $('cuHistUsuario').value; $('cuHistorial').replaceChildren();
   const ingresos = p.ingresos.filter(i => i.id_usuario === id);
-  const cargos = p.cargos.filter(c => c.id_usuario === id && p.periodos.find(x => x.id === c.periodo)?.fecha <= hoy());
-  $('cuResumen').textContent = `Recibido: ${dinero(ingresos.filter(i => !i.anulado).reduce((s, i) => s + i.importe, 0))} · Pendiente de cuotas vencidas: ${dinero(cargos.reduce((s, c) => s + c.importe - c.pagado, 0))}`;
   for (const i of ingresos) {
     const tr = document.createElement('tr');
-    const aplicadas = p.aplicaciones.filter(a => a.ingreso === i.id).map(a => `${etiquetaPeriodo(p.periodos.find(x => x.id === a.periodo))}: ${dinero(a.importe)}`);
+    const aplicadas = p.aplicaciones.filter(a => a.ingreso === i.id).map(a => etiquetaPeriodo(p.periodos.find(x => x.id === a.periodo)));
     tr.append(nodo('td', i.fecha), nodo('td', dinero(i.importe)), nodo('td', aplicadas.join(' · ') || (i.anulado ? 'Anulado' : 'Saldo a favor')), nodo('td', `${i.registrado_por}${i.anulado ? ' · Anulado' : ''}`));
     const td = document.createElement('td');
     if (admin() && !i.anulado && !local.cola.some(o => o.datos.id_usuario === id)) {
@@ -228,7 +224,7 @@ $('cuPreparar').onclick = async () => {
     if (!('serviceWorker' in navigator)) throw new Error('Este navegador no permite preparar la app sin conexión.');
     await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error('Aún no termina de descargar la app. Reintenta con conexión.')), 15000))]);
     if (navigator.storage?.persist) await navigator.storage.persist();
-    mensaje('App y lista preparadas para usar sin conexión. Los pagos se guardan en este navegador; no borres sus datos antes de sincronizar.');
+    mensaje('App y lista preparadas para usar sin conexión.');
   } catch (e) { mensaje(e.message); }
 };
 $('cuSync').onclick = () => void sincronizar();
