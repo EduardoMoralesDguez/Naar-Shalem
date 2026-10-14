@@ -4,7 +4,7 @@ Desde la migración 012, cada reunión regular puede tener su propio cobro de $1
 
 ## Activar
 
-1. Aplicar `database/migrations/010_cuotas.sql` en Supabase SQL Editor como postgres, después de 001–009, y después aplicar 011 y 012 para Calendario. No ejecutar otra vez schema.sql.
+1. Aplicar `database/migrations/010_cuotas.sql` en Supabase SQL Editor como postgres, después de 001–009, y después aplicar 011 y 012 para Calendario, y 013_cierre_cuotas.sql para cierre por unidad. No ejecutar otra vez schema.sql.
 2. Integrar y desplegar el frontend en Vercel. Publicar la carpeta frontend completa, incluidos vendor, sw.js y manifest.webmanifest.
 3. Entrar en Inicio → Calendario con directiva y crear reuniones regulares con cobro opcional. Cada reunión con cobro cobra $10; dos de la misma fecha son dos cuotas.
 4. En Integrantes → Editar, asignar el rol Subcapitán y su unidad a quien corresponda. No se crean cuentas ni se reasignan perfiles automáticamente.
@@ -21,9 +21,9 @@ La migración es repetible y no borra las tablas anteriores. Importa una sola ve
 
 ## Abonos, anticipos y correcciones
 
-Directiva pulsa Abono / anticipo, indica el dinero recibido y selecciona las fechas que cubrirá. Se aplica de la fecha más antigua a la más reciente. Por ejemplo, un ingreso de $50 cubre cinco cuotas de $10 si se seleccionan esas cinco actividades. El remanente queda a favor del integrante; no se registra como otro ingreso.
+Directiva pulsa Abono / anticipo, indica el dinero recibido y selecciona las fechas que cubrirá. Se aplica de la fecha más antigua a la más reciente. Un ingreso de $50 puede cubrir cinco cuotas de $10; las futuras se cubren conforme se cierre su cobro. El remanente queda a favor del integrante; no se registra como otro ingreso.
 
-Si todavía no están creados las actividades futuras con cobro, el saldo se aplica al crearlos. Para aplicar un saldo a actividades que ya existen, usar Aplicar saldo. La aplicación jamás supera el cargo ni el ingreso disponible. Las altas posteriores a una actividad preparada no generan automáticamente cargos retroactivos.
+Los anticipos quedan a favor hasta cerrar el cobro de cada unidad. Crear una actividad no consume el saldo. En actividades futuras, el ingreso permanece a favor aunque se seleccione su fecha. Directiva puede aplicar saldo adicional a cobros ya cerrados. La aplicación jamás supera el cargo ni el ingreso disponible. Las altas posteriores a una actividad preparada no generan automáticamente cargos retroactivos.
 
 Corregir cambia el importe y recalcula sus aplicaciones originales. Anular deja el ingreso en el historial, libera sus aplicaciones y exige motivo. La bitácora conserva cuenta, fecha, acción, motivo y datos anteriores; no se borran ingresos. Si una corrección deja saldo libre, directiva puede aplicarlo a otras cuotas.
 
@@ -32,9 +32,9 @@ El dashboard cuenta como pagada una cuota completamente cubierta, no un abono pa
 ## Preparar el teléfono sin conexión
 
 1. Desde la URL HTTPS de Vercel, iniciar sesión y abrir Cuotas con internet.
-2. Pulsar Preparar / actualizar sin conexión y esperar la confirmación. La directiva debe haber agregado las fechas antes de que los teléfonos descarguen la lista.
+2. Pulsar Actualizar y esperar la confirmación. La directiva debe haber agregado las fechas antes de que los teléfonos descarguen la lista.
 3. Sin conexión, abrir la misma app/navegador y guardar los pagos. La pantalla indica Pendiente de sincronizar. El portal offline se limita a cuotas; expedientes y asistencia no se cachean.
-4. Al volver a tener internet, abrir Cuotas con la misma cuenta. Se intenta sincronizar y también existe el botón Sincronizar pendientes. Esperar Todos los movimientos están sincronizados.
+4. Al volver a tener internet, abrir Cuotas con la misma cuenta. Se intenta sincronizar y también existe el botón Actualizar. Esperar Todos los movimientos están sincronizados.
 
 No se promete envío con la app cerrada. El guardado pertenece a ese dispositivo, navegador y cuenta: borrar sus datos, usar navegación privada o cambiar de dispositivo antes de sincronizar puede perder la copia local. La app solicita almacenamiento persistente cuando el navegador lo permite. Cerrar sesión conserva la cola separada por cuenta y muestra un aviso si falta sincronizar; para enviarla hay que iniciar sesión con su autor.
 
@@ -48,7 +48,7 @@ Revisar el historial actualizado antes de usar Resolver registro. Si ya aparece 
 
 Se admiten varios pagos completos pendientes para el mismo integrante si pertenecen a actividades distintas. Se guardan y envían en orden, con versiones consecutivas; no se repite el mismo cargo. Si uno entra en conflicto, se bloquean también los posteriores de ese integrante para revisión. Los abonos, anticipos y correcciones requieren resolver/sincronizar sus pendientes anteriores. Otros integrantes pueden seguir registrándose.
 
-La limpieza opcional cambia la generación de datos. Los pagos offline anteriores al reinicio se rechazan; actualizar la lista y descartar los pendientes de esas pruebas mediante Resolver registro. La migración por sí sola no invalida los pendientes anteriores ni borra dinero.
+La limpieza opcional cambia la generación de datos. Los pagos offline anteriores al reinicio se rechazan; actualizar la lista y descartar los pendientes de esas pruebas mediante Resolver registro. La migración 013 conserva ingresos y aumenta las versiones: los pendientes capturados antes de actualizar pueden necesitar revisión.
 
 ## Desarrollo y validación
 
@@ -58,3 +58,13 @@ La limpieza opcional cambia la generación de datos. Los pagos offline anteriore
 - El service worker sirve una versión consistente del HTML y scripts. Después de publicar una actualización, cerrar las pestañas del portal y volver a abrir; una versión nueva espera a que termine de usarse la anterior.
 - Solo se cachean recursos estáticos permitidos. La respuesta de Supabase no se guarda en Cache Storage: el módulo guarda en IndexedDB únicamente el perfil básico y los datos de cuotas autorizados, separados por proyecto/cuenta. Al sincronizar se revalidan sesión, rol y unidad en SQL.
 - No se ejecutan migraciones ni pruebas contra producción automáticamente.
+
+## Cierre por unidad (013)
+
+- Cobro, Historial y Bitácora son pestañas independientes. Historial ofrece matriz por unidad y directorio por integrante. Solo directiva ve Bitácora; capitán/subcapitán ven únicamente su unidad.
+- Guardar primero el efectivo recibido; luego seleccionar una unidad y pulsar Cerrar cobro de unidad. Capitán/subcapitán cierran su unidad; directiva puede cerrar cualquiera, incluido Sin unidad.
+- Cerrar requiere conexión, ningún pago marcado sin guardar y ninguna operación local pendiente. Se revisan las versiones de todos los integrantes y se aplica el saldo disponible únicamente a lo que falta. El cierre se guarda con identificador estable antes de enviarse para poder reintentar si se pierde la respuesta.
+- Los pagos siguen capturándose sin internet. Actualizar envía pendientes y descarga la lista; al recuperar conexión también se intenta automáticamente. Un conflicto conserva la operación para revisión.
+- Después del cierre, capitanes no agregan pagos a ese cobro. Directiva puede registrar abonos o corregir ingresos desde Historial. Un pago offline de otro teléfono que llegue después del cierre se detiene para revisión; nunca se descarta automáticamente.
+- Al instalar 013: los cargos anteriores a hoy se consideran cerrados. En los de hoy/futuros se liberan aplicaciones de ingresos anteriores a la fecha o no destinados explícitamente a ese cobro en su operación original. El dinero permanece como saldo a favor; no se borran ingresos. Revisar los cobros de hoy después de actualizar. Reejecutar 013 no repite esta conversión.
+- Cancelar y restaurar una actividad conserva sus ingresos como saldo y reabre el cobro para volver a revisarlo.

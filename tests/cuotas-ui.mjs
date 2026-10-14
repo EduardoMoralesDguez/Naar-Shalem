@@ -64,10 +64,11 @@ const f=window.fixture;
 function leer(){let d=JSON.parse(localStorage.getItem('test-cuotas')||'null');if(d)return d;
 const partes=new Intl.DateTimeFormat('en',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const hoy=['year','month','day'].map(t=>partes.find(p=>p.type===t).value).join('-');
 d={id_ciclo:'ciclo',hoy,periodos:[{id:'domingo',fecha:hoy,legado:false}],integrantes:f.users.filter(u=>['conquistador','capitan'].includes(u.rol)).map(u=>({id_usuario:u.id_usuario,nombre:u.nombres+' '+u.apellido,id_unidad:u.unidad||null,unidad:u.unidad||'Sin unidad',version:1,saldo:0})),cargos:[],ingresos:[],aplicaciones:[],operaciones:[]};
-d.cargos=d.integrantes.map(u=>({id_usuario:u.id_usuario,periodo:'domingo',importe:1000,pagado:0}));localStorage.setItem('test-cuotas',JSON.stringify(d));return d;}
+d.cargos=d.integrantes.map(u=>({id_usuario:u.id_usuario,periodo:'domingo',id_unidad:u.id_unidad,cerrado:false,importe:1000,pagado:0}));localStorage.setItem('test-cuotas',JSON.stringify(d));return d;}
 export async function obtenerCuotas(){if(!navigator.onLine)throw new Error('Offline');const d=leer(),a=f.users[f.actor];if(a.rol!=='directiva'){d.integrantes=d.integrantes.filter(u=>['capitan','subcapitan'].includes(a.rol)?u.unidad===a.unidad:u.id_usuario===a.id_usuario);const ids=d.integrantes.map(u=>u.id_usuario);d.cargos=d.cargos.filter(u=>ids.includes(u.id_usuario));d.ingresos=d.ingresos.filter(u=>ids.includes(u.id_usuario));d.aplicaciones=d.aplicaciones.filter(u=>ids.includes(u.id_usuario));}return d;}
 export async function verificarCuenta(id){if(!navigator.onLine)throw new Error('Offline');if(id!=='auth-'+f.actor)throw new Error('Otra cuenta');}
 export async function enviarCuota(o){if(!navigator.onLine)throw new Error('Offline');const d=leer();if(d.operaciones.includes(o.id))return {};
+if(o.accion==='cerrar'){for(const c of d.cargos.filter(c=>c.periodo===o.datos.periodo&&(c.id_unidad||'sin-unidad')===o.datos.unidad)){const u=d.integrantes.find(u=>u.id_usuario===c.id_usuario);if(o.datos.versiones[u.id_usuario]!==u.version)throw {code:'40001',message:'El cobro cambió'};const aplicado=Math.min(u.saldo,c.importe-c.pagado);u.saldo-=aplicado;c.pagado+=aplicado;c.cerrado=true;u.version++;}d.operaciones.push(o.id);localStorage.setItem('test-cuotas',JSON.stringify(d));return {};}
 const u=d.integrantes.find(u=>u.id_usuario===o.datos.id_usuario);
 if(o.datos.version!==u.version)throw {code:'40001',message:'El registro cambió en otro dispositivo. Revisa antes de guardar.'};
 u.version++;d.operaciones.push(o.id);d.ingresos.push({id:o.id,id_usuario:u.id_usuario,importe:o.datos.importe,fecha:o.datos.fecha,registrado_por:'Cuenta de prueba'});
@@ -104,8 +105,21 @@ await send('Emulation.setDeviceMetricsOverride',{width:1440,height:950,deviceSca
 await send('Page.navigate',{url:'http://127.0.0.1:8097/'});
 await waitFor("window.fixture&&fixture.listener");await evaluate('fixture.emit(0)');await waitFor("!document.getElementById('inicio').hidden");
 await evaluate("location.hash='cuotas'");await waitFor("document.querySelectorAll('#cuLista tr').length>0&&!document.getElementById('cuSync').disabled");
-await evaluate("document.getElementById('cuPreparar').click()");await waitFor("document.getElementById('cuEstado').textContent.includes('App y lista preparadas')");
+await evaluate("document.getElementById('cuSync').click()");await waitFor("document.getElementById('cuEstado').textContent.includes('Disponible sin conexión')");
 await shot('cuotas-desktop');
+// Historial separado: tabla de unidad, directorio e ingreso individual.
+await evaluate("document.getElementById('cuTabHistorial').click()");
+assert.ok(await evaluate("document.getElementById('cuVistaCobro').hidden&&!document.getElementById('cuVistaHistorial').hidden"));
+assert.ok(await evaluate("document.querySelectorAll('#cuMatriz tbody tr').length>0"));
+await shot('cuotas-historial-unidad');
+await evaluate("document.getElementById('cuPorIntegrante').click()");
+assert.ok(await evaluate("document.querySelectorAll('#cuIntegrantes button').length>0"));
+await evaluate("document.querySelector('#cuIntegrantes button').click()");
+assert.ok(await evaluate("!document.getElementById('cuHistDetalle').hidden&&document.getElementById('cuHistDirectorio').hidden"));
+await evaluate("document.getElementById('cuHistVolver').click();document.getElementById('cuTabBitacora').click()");
+assert.ok(await evaluate("!document.getElementById('cuAuditoria').hidden&&document.getElementById('cuVistaHistorial').hidden"));
+await evaluate("document.getElementById('cuTabCobro').click()");
+
 await evaluate("localStorage.setItem('test-offline','true');window.dispatchEvent(new Event('offline'))");
 servidorDesconectado=true;
 await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
@@ -147,6 +161,11 @@ assert.equal(await evaluate("document.querySelectorAll('#cuLista input[type=chec
 await evaluate("fixture.users[2].rol='subcapitan';fixture.emit(2)");
 await waitFor("!document.getElementById('cuGuardar').hidden&&document.getElementById('cuCalendario').hidden");
 assert.ok(await evaluate("[...document.querySelectorAll('#cuLista th')].every(t=>t.textContent.includes('Daniel'))"));
+assert.equal(await evaluate("document.getElementById('cuTabBitacora').hidden"),true);
+await evaluate("document.getElementById('cuTabHistorial').click();document.getElementById('cuPorIntegrante').click()");
+assert.ok(await evaluate("document.getElementById('cuHistUnidadCampo').hidden&&[...document.querySelectorAll('#cuIntegrantes strong')].every(e=>e.textContent.includes('Daniel'))"));
+await evaluate("document.getElementById('cuTabCobro').click()");
+
 await evaluate('fixture.emit(0)');await waitFor("!document.getElementById('cuCalendario').hidden&&!document.getElementById('cuSync').disabled");
 await evaluate("[...document.querySelectorAll('#cuLista button')].find(b=>b.textContent==='Abono / anticipo').click()");
 await waitFor("document.getElementById('cuDialogo').open");await shot('cuotas-anticipo');
@@ -193,5 +212,13 @@ for(const [index,periodo] of ['conflicto-a','conflicto-b'].entries()) {
 await evaluate(`{const datos=JSON.parse(localStorage.getItem('test-cuotas'));datos.integrantes.find(u=>u.id_usuario===fixture.users[2].id_usuario).version++;localStorage.setItem('test-cuotas',JSON.stringify(datos));localStorage.removeItem('test-offline');window.dispatchEvent(new Event('online'));}`);
 await waitFor("document.getElementById('cuCola').textContent.includes('Un pago anterior')&&!document.getElementById('cuSync').disabled");
 assert.deepEqual(await evaluate("JSON.parse(localStorage.getItem('test-cuotas')).cargos.filter(c=>c.periodo.startsWith('conflicto-')).map(c=>c.pagado)"),[0,0]);
+await evaluate('fixture.emit(0)');await waitFor("!document.getElementById('cuCalendario').hidden&&!document.getElementById('cuSync').disabled");
+await evaluate("document.getElementById('cuPeriodo').value='domingo';document.getElementById('cuUnidad').selectedIndex=1;document.getElementById('cuUnidad').dispatchEvent(new Event('change'))");
+assert.equal(await evaluate("document.getElementById('cuCerrar').disabled"),true);
+await evaluate("document.querySelector('#cuCola button').click()");await waitFor("document.getElementById('cuCola').children.length===0");
+await waitFor("!document.getElementById('cuCerrar').hidden&&!document.getElementById('cuCerrar').disabled");
+await evaluate("document.getElementById('cuCerrar').click()");await waitFor("document.getElementById('cuCierreEstado').textContent==='Cobro de unidad cerrado'");
+assert.equal(await evaluate("document.getElementById('cuCerrar').hidden"),true);
+await shot('cuotas-cierre');
 console.log('Cuotas UI OK: preparación, recarga sin red, sincronización, respuesta perdida, conflicto, aislamiento entre cuentas, móvil y varios cobros offline con conflictos encadenados. Capturas: '+output);
 } catch (e) { console.error(await evaluate('document.body.innerText')); await shot('error'); console.error(output); throw e; } finally { ws.close();chrome.kill();server.close(); }
