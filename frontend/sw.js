@@ -1,5 +1,5 @@
 // Generado por scripts/build-sw.mjs. Solo archivos estáticos; nunca respuestas de Supabase.
-const CACHE='naar-static-0677cc5b6712527f';
+const CACHE='naar-static-c9bfdf11526e5503';
 const ASSETS=["css/asistencias.css","css/auth.css","css/calendario.css","css/cuotas.css","css/directorio.css","css/integrantes_admin.css","css/perfiles.css","css/portal.css","css/style.css","js/app.js","js/config.js","js/lib/consultas.js","js/lib/cuotas-local.js","js/lib/supabase.js","js/modules/asistencias.js","js/modules/calendario.js","js/modules/cuotas.js","js/modules/especialidades.js","js/modules/integrantes-admin.js","js/modules/progreso.js","js/modules/usuarios.js","js/services/asistencias.js","js/services/auth.js","js/services/calendario.js","js/services/catalogo.js","js/services/cuotas.js","js/services/fotos.js","js/services/integrantes-admin.js","vendor/supabase-2.49.8.js","index.html","img/LogoNS.png","manifest.webmanifest"];
 const urls=ASSETS.map(p=>new URL(p,self.registration.scope).href);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(urls))));

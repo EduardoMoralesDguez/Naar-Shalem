@@ -35,3 +35,20 @@
 .cu-tabla td { font-variant-numeric:tabular-nums; }
 #cuAuditoria summary { cursor:pointer; color:var(--club-azul); font-weight:600; }
 @media(max-width:550px) { #cuCalendario:not([hidden]) { flex-wrap:wrap; } }
+
+.cu-herramientas { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:1rem 0 1.5rem; }
+#cuConexion { color:var(--color-suave); font-size:.85rem; }
+.cu-tabs { display:flex; flex-wrap:wrap; gap:.5rem; margin:1rem 0; }
+.cu-tabs [aria-pressed=true] { background:var(--club-azul); border-color:var(--club-azul); color:white; }
+#vistaCuotas [hidden] { display:none!important; }
+.cu-matriz thead th { min-width:150px; max-width:220px; white-space:normal; font-size:.8rem; }
+.cu-matriz tbody th { min-width:170px; position:sticky; left:0; background:white; }
+.cu-matriz td { text-align:center; }
+.cu-matriz [data-estado=pagado] { color:#185d30; }
+.cu-integrantes { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:1rem; margin:1.5rem 0; }
+.cu-integrante { display:flex; align-items:center; text-align:left; gap:.8rem; padding:1.1rem; border:1px solid var(--color-borde); border-radius:14px; background:white; color:var(--color-texto); cursor:pointer; font:inherit; }
+.cu-integrante:hover { background:#f6f7fc; border-color:#a9aed5; }
+.cu-integrante strong,.cu-integrante small { display:block; overflow-wrap:anywhere; }
+.cu-integrante small { color:var(--color-suave); margin-top:.3rem; }
+.cu-avatar { display:grid; place-items:center; flex:0 0 44px; height:44px; border-radius:50%; background:var(--club-azul); color:white; font-weight:700; }
+#cuHistDetalle h2 { margin:1.3rem 0; }

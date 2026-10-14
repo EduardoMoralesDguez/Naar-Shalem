@@ -92,3 +92,10 @@ npm run test:ui
 ## Trabajo con Git
 
 Trabajar sobre el último commit, preservar cambios del propietario, subir una rama y abrir PR. Informar qué se probó y qué migración debe ejecutar el propietario. No confundir cambios locales, push, merge y migraciones aplicadas.
+
+
+## Cuotas: cierre por unidad y navegación (013)
+
+Aplicar `database/migrations/013_cierre_cuotas.sql` después de 012 y desplegar el frontend. Conserva ingresos; revisar los cobros actuales y pendientes offline tras la actualización. Ver `docs/CUOTAS.md` para la conversión de anticipos existentes.
+
+Cobro, Historial (unidad/integrante) y Bitácora separados. Bitácora exclusiva de directiva. Capitán/subcapitán cobran y cierran su unidad; directiva cualquiera. Saldo anterior se aplica al cierre, no al crear reunión. Captura offline preservada; cierre con conexión y sin pendientes. Un solo botón Actualizar sincroniza y prepara el dispositivo. Test adicional: `tests/cuotas-cierre-sql.mjs`.
