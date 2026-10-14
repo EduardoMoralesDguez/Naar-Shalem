@@ -20,3 +20,18 @@
 #cuCola > div { padding:1rem 0; border-bottom:1px solid var(--color-borde); overflow-wrap:anywhere; }
 #cuPendientes { border-left:5px solid #e6b800; }
 #cuError { color:#a42020; }
+
+.cu-estado { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; margin:1rem 0; }
+.cu-estado p { margin:0; }
+#cuPreparacion { font-size:.8rem; color:#565b82; font-variant-numeric:tabular-nums; }
+#cuPreparacion:empty { display:none; }
+#cuCalendario:not([hidden]) { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.4rem; }
+#cuCalendario h2 { font-size:1.1rem; margin:0; }
+.cu-panel > h2 { font-size:1.2rem; margin:0 0 1.2rem; }
+.cu-tabla thead th { background:#f1f3fa; font-size:.85rem; }
+.cu-tabla tbody th { background:white; }
+.cu-tabla tbody tr:last-child > * { border-bottom:0; }
+.cu-tabla tbody tr:hover > * { background:#fafbfe; }
+.cu-tabla td { font-variant-numeric:tabular-nums; }
+#cuAuditoria summary { cursor:pointer; color:var(--club-azul); font-weight:600; }
+@media(max-width:550px) { #cuCalendario:not([hidden]) { flex-wrap:wrap; } }

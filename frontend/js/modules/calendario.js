@@ -17,7 +17,6 @@ document.querySelector('#inicio .menu-grid').prepend(entrada);
 const vista = document.createElement('section'); vista.id = 'vistaCalendario'; vista.className = 'vista'; vista.hidden = true;
 vista.innerHTML = `
  <span class="sobre-titulo">ORGANIZA EL CLUB</span><h1>Calendario</h1>
- <p>Las reuniones regulares tienen pase de asistencia y pueden cobrar $10 por actividad. Las prácticas, reuniones parciales y eventos son avisos.</p>
  <p id="calMensaje" class="aviso" role="status" hidden></p>
  <div class="cal-barra"><div class="acciones"><button id="calAnterior" class="boton-volver" aria-label="Mes anterior">←</button><button id="calHoy" class="boton-volver">Hoy</button><button id="calSiguiente" class="boton-volver" aria-label="Mes siguiente">→</button></div><h2 id="calMes"></h2><button id="calNueva" class="boton-principal" hidden>Nueva actividad</button></div>
  <div class="cal-panel"><div class="cal-semana" aria-hidden="true"><span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span></div><div id="calDias" class="cal-dias" aria-label="Días del mes"></div></div>
@@ -72,10 +71,14 @@ function pintar() {
     const tipo = a.tipo || 'regular';
     const card = document.createElement('article'); card.className = 'cal-actividad'; card.dataset.estado = a.estado;
     const datos = document.createElement('div');
-    const fechas = a.fecha_fin && a.fecha_fin !== a.fecha ? `${a.fecha} al ${a.fecha_fin}` : a.fecha;
-    datos.append(n('small', `${tipos[tipo]} · ${fechas} · ${a.hora} h`), n('h3', a.nombre));
-    const detalle = tipo === 'regular' ? (a.cobra_cuota ? '$10 por esta reunión' + (a.cobro_compartido ? ' · cobro anterior compartido' : '') : 'Asistencia sin cuota') : `Solo aviso · ${a.destinatario || 'Todo el club'}`;
-    datos.append(n('p', `${a.estado === 'anulada' ? 'Cancelada' : a.estado === 'cerrada' ? 'Pase cerrado' : 'Programada'} · ${detalle}`));
+    const cabecera = n('div', ''); cabecera.className = 'cal-actividad-titulo';
+    const hora = n('time', `${a.hora} h`); hora.dateTime = `${a.fecha}T${a.hora}`;
+    cabecera.append(n('h3', a.nombre), hora); datos.append(cabecera);
+    // La agenda mensual necesita fecha; en la selección diaria ya está en el encabezado.
+    if (!dia || (a.fecha_fin && a.fecha_fin !== a.fecha)) {
+      datos.append(n('small', a.fecha_fin && a.fecha_fin !== a.fecha ? `${a.fecha} — ${a.fecha_fin}` : a.fecha));
+    }
+    if (a.estado === 'anulada') datos.append(n('small', 'Cancelada'));
     const acciones = document.createElement('div'); acciones.className = 'acciones';
     if (a.estado !== 'anulada') {
       if (tipo === 'regular') {

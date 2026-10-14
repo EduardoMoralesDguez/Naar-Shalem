@@ -33,8 +33,7 @@ vista.innerHTML = `
   <h1>Asistencias</h1>
   <p id="asMensaje" class="aviso" role="status" hidden></p>
 
-  <fieldset id="asCampos" class="as-panel">
-    <legend>Reuniones e historial</legend>
+  <fieldset id="asCampos" class="as-panel" aria-label="Asistencias">
 
     <div class="acciones">
       <button id="asDia" type="button" class="boton-volver">
@@ -62,7 +61,6 @@ vista.innerHTML = `
       ></nav>
 
       <h2 id="asUnidadTitulo"></h2>
-      <p id="asResumen" class="texto-suave"></p>
 
       <div class="as-scroll" tabindex="0" role="region" aria-label="Pase de lista por unidad">
         <table class="as-tabla"><thead><tr><th scope="col">Integrante</th><th scope="col">A / J / F</th></tr></thead>
@@ -88,7 +86,6 @@ vista.innerHTML = `
 
     <section id="asVistaHistorial" hidden>
       <label id="asFiltroUnidadCampo" class="as-selector" hidden>Unidad<select id="asFiltroUnidad"></select></label>
-      <p>A: asistencia · J: justificado · F: falta · —: no convocado. Porcentaje: (A + J) / reuniones registradas.</p>
       <p id="asResumenHistorial" class="texto-suave" role="status"></p>
       <div class="as-scroll" tabindex="0" role="region" aria-label="Matriz de asistencias">
         <table id="asMatriz" class="as-tabla as-matriz"></table>
@@ -193,7 +190,6 @@ export function reiniciarAsistencias() {
 
   for (const id of [
     'asUnidadTitulo',
-    'asResumen',
     'asAvisoReunion',
     'asResumenHistorial',
   ]) {
@@ -211,13 +207,14 @@ function resumen(filas) {
 }
 
 function pintarPanel() {
+  $('asDia').setAttribute('aria-pressed', 'true');
+  $('asHistorial').setAttribute('aria-pressed', 'false');
   $('asGrupos').replaceChildren();
   $('asLista').replaceChildren();
   $('asAccionesAdmin').hidden = !admin() || !panel;
 
   if (!panel) {
     $('asUnidadTitulo').textContent = '';
-    $('asResumen').textContent = '';
     $('asFechaTitulo').textContent = '';
     $('asBloqueo').textContent = '';
     $('asAvisoReunion').textContent = admin() && modo === 'reunion' ? 'Todavía no hay una reunión de hoy.' : 'No hay reuniones disponibles.';
@@ -231,7 +228,7 @@ function pintarPanel() {
       '';
   }
 
-  $('asFechaTitulo').textContent = `${panel.fecha} · ${panel.nombre || 'General'} · ${panel.estado}`;
+  $('asFechaTitulo').textContent = `${panel.fecha} · ${panel.nombre || 'General'}`;
   const seleccion = panel.grupos.find(g => g.clave === grupo);
 
   // Solo la directiva navega entre unidades.
@@ -239,7 +236,7 @@ function pintarPanel() {
   if (admin()) {
     for (const g of panel.grupos) {
       const b = boton(
-        `${g.nombre} · ${g.revisada ? 'Revisada ✓' : 'Pendiente'}`,
+        `${g.nombre}${g.revisada ? ' ✓' : ''}`,
         () => {
           if (ocupado || !puedeSalirAsistencias()) return;
 
@@ -250,6 +247,7 @@ function pintarPanel() {
       );
 
       b.setAttribute('aria-pressed', String(g.clave === grupo));
+      b.setAttribute('aria-label', `${g.nombre}: ${g.revisada ? 'revisada' : 'pendiente'}`);
       $('asGrupos').append(b);
     }
   }
@@ -257,23 +255,11 @@ function pintarPanel() {
   $('asUnidadTitulo').textContent =
     seleccion?.nombre || 'Mi asistencia';
 
-  const revisadas = panel.grupos.filter(g => g.revisada).length;
-
-  $('asAvisoReunion').textContent =
-    panel.estado === 'anulada'
-      ? 'Reunión anulada: no cuenta en el historial ni en el dashboard.'
-      : panel.estado === 'cerrada'
-        ? 'Pase cerrado. Las correcciones se reflejan en el historial y el dashboard.'
-        : `${panel.importada ? 'Fecha importada: revisa si corresponde a una reunión real. ' : ''}Borrador: todavía no cuenta como reunión. ${
-            admin()
-              ? `${revisadas}/${panel.grupos.length} unidades revisadas. Al cerrar, quienes no estén marcados como presentes o justificados quedarán con falta.`
-              : 'Los estados serán definitivos cuando la directiva cierre el pase.'
-          }`;
+  $('asAvisoReunion').textContent = panel.estado === 'anulada' ? 'Reunión anulada' : '';
 
   const filas = panel.integrantes.filter(u => u.clave === grupo);
 
   estados = new Map(filas.map(u => [u.id_usuario, u.estado]));
-  $('asResumen').textContent = resumen(filas);
 
   for (const u of filas) {
     const li = document.createElement('tr');
@@ -305,6 +291,7 @@ function pintarPanel() {
           actualizarCierre();
         });
         b.dataset.estado = valor;
+        b.title = texto;
         b.setAttribute('aria-label', `${texto}: ${u.nombre}`);
         b.setAttribute('aria-pressed', String(u.estado === valor));
         opciones.append(b);
@@ -342,17 +329,10 @@ function pintarPanel() {
     $('asLista').append(li);
   }
 
-  if (['capitan', 'subcapitan'].includes(perfil.rol)) {
-    $('asAvisoReunion').textContent +=
-      ' Puedes marcar justificado únicamente el día de la reunión (hora de Ciudad de México).';
-  }
-
   $('asGuardar').hidden = panel.estado === 'anulada';
   $('asGuardar').disabled = !filas.length;
 
-  $('asGuardar').textContent = panel.estado === 'cerrada'
-    ? 'Guardar correcciones de la unidad'
-    : 'Revisar y guardar unidad';
+  $('asGuardar').textContent = 'Guardar';
 
   $('asCerrar').hidden = panel.estado !== 'borrador';
 
@@ -425,6 +405,8 @@ async function cargarReuniones(id = $('asReunion').value) {
 }
 
 function pintarMatriz() {
+  $('asDia').setAttribute('aria-pressed', 'false');
+  $('asHistorial').setAttribute('aria-pressed', 'true');
   const filas = matriz.filter(r => !filtroUnidad || r.unidad_clave === filtroUnidad);
   const fechas = [...new Map(filas.map(r => [r.reunion, { id: r.reunion, fecha: r.fecha, nombre: r.nombre_pase || 'General' }])).values()];
   const integrantes = [...new Map(filas.map(r => [r.id_usuario, r.nombre])).entries()]
@@ -450,6 +432,7 @@ function pintarMatriz() {
         const marca = admin() ? boton(etiquetas[r.estado][0], () => abrirCelda(r)) : document.createElement('span');
         marca.className = 'as-marca'; marca.dataset.estado = r.estado;
         marca.textContent = etiquetas[r.estado][0];
+        marca.title = etiquetas[r.estado];
         marca.setAttribute('aria-label', `${nombre}, ${fecha.fecha}, ${fecha.nombre}: ${etiquetas[r.estado]}${admin() ? '. Editar' : ''}`);
         td.append(marca);
       }
@@ -458,7 +441,7 @@ function pintarMatriz() {
     const porcentaje = document.createElement('td'); porcentaje.textContent = total ? `${Math.round(100 * cumplidas / total)}%` : '—'; row.append(porcentaje); body.append(row);
   }
   tabla.append(body);
-  $('asResumenHistorial').textContent = filas.length ? `${integrantes.length} integrantes · ${fechas.length} reuniones` : 'No hay reuniones cerradas para esta unidad.';
+  $('asResumenHistorial').textContent = filas.length ? '' : 'No hay reuniones cerradas para esta unidad.';
 }
 async function cargarHistorial() {
   const actual = ++revision; bloquear(true); mensaje('Cargando historial…');
@@ -573,10 +556,10 @@ async function ejecutar(accion, datos = {}) {
   if (revision === siguiente && panel) {
     mensaje(
       accion === 'justificar'
-        ? 'Justificación guardada directamente.'
+        ? 'Justificación guardada.'
         : accion === 'unidad' && panel.estado === 'borrador'
-          ? 'Unidad revisada. Completa los grupos pendientes y cierra el pase para registrarlo.'
-          : 'Cambios guardados. El historial y el dashboard usan las reuniones cerradas.'
+          ? 'Unidad guardada.'
+          : 'Cambios guardados.'
     );
   }
 }

@@ -196,7 +196,7 @@ function renderizar() {
   $('listaIntegrantes').replaceChildren(fragmento);
 
   $('estadoDirectorio').textContent = encontrados.length
-    ? `${encontrados.length} de ${filas.length} integrantes`
+    ? ''
     : 'No hay integrantes que coincidan con tu búsqueda.';
 
   const cantidad =

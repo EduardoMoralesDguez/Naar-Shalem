@@ -99,7 +99,7 @@ await waitFor("fixture.actividades.length===1&&!document.getElementById('calDial
 assert.ok(await evaluate("document.getElementById('calAgenda').textContent.includes('Camporee — mañana')"));
 await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Camporee — tarde';document.getElementById('calHora').value='16:00';document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
 await waitFor("fixture.actividades.length===2&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
-assert.ok(await evaluate("document.getElementById('calAgenda').textContent.includes('$10 por esta reunión')"));await shot('calendario-desktop');
+assert.ok(await evaluate("document.querySelector('#calAgenda .cal-actividad-titulo time').textContent.includes('09:00')"));await shot('calendario-desktop');
 // El enlace abre exactamente el pase futuro seleccionado.
 await evaluate("document.querySelector('#calAgenda a[href^=\"#asistencias/\"]').click()");
 await waitFor("!document.getElementById('vistaAsistencias').hidden&&document.getElementById('asReunion').value===fixture.actividades[0].id&&!document.getElementById('asCampos').disabled");

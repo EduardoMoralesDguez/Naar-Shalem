@@ -455,3 +455,21 @@ body:has(#panelLogin:not([hidden])) .portal-contenido {
   .marca img { width: 48px; }
   .portal-cabecera .boton-volver { padding: .55rem; }
 }
+/* Superficies y controles del portal: azul como acento, fondos neutros. */
+#aplicacion .vista > h1 { font-size:clamp(1.5rem,2.5vw,2rem); margin:.35rem 0 1.4rem; letter-spacing:-.025em; }
+#aplicacion .boton-principal { box-shadow:0 3px 8px #292c9814; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+#aplicacion .boton-volver { transition:background .15s,border-color .15s; }
+@media(hover:hover) {
+  #aplicacion .boton-volver:hover:not(:disabled) { background:#f4f5fb; border-color:#a9aed5; }
+}
+#adminEstado:empty, #estadoDirectorio:empty,
+#asAvisoReunion:empty, #asResumenHistorial:empty, #asBloqueo:empty,
+#cuVacio:empty { display:none; }
+#aplicacion .cal-panel, #aplicacion .cu-panel, #aplicacion .as-panel,
+#aplicacion .editor-formulario, #aplicacion .directorio-herramientas {
+  box-shadow:0 5px 20px #1e204805;
+}
+#aplicacion .editor-foto { background:#f0f1fa; }
+#aplicacion .editor-datos h2 { font-size:1.1rem; margin-bottom:1.5rem; }
+#aplicacion .editor-pie { background:#fafbfe; }
+#aplicacion .directorio-herramientas { margin-top:1.4rem; }

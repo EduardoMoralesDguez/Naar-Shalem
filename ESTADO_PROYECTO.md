@@ -54,7 +54,16 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 - Los cobros compartidos anteriores a 012 se preservan sin generar deudas adicionales. Todos los nuevos cobros son independientes por actividad.
 - El calendario requiere conexión. La cola offline de Cuotas admite pagos completos de varias actividades para una persona; se sincronizan en orden y un conflicto bloquea los siguientes de esa persona.
 
-## Instalación de esta iteración
+## Ajustes visuales
+
+- Interfaz con textos breves, sin explicaciones ni conteos redundantes en Calendario, Integrantes, Cuotas y Asistencias.
+- Hora junto al título de cada actividad. En agenda mensual se conserva la fecha; los eventos conservan su rango.
+- Última actualización de Cuotas dentro del aviso superior, con hora de Ciudad de México.
+- Asistencias: Guardar, unidades revisadas con ✓ y pestaña seleccionada. Se conservan los selectores de pases del día.
+- Estilos neutros con azul del club y acentos discretos. Los errores, estados vacíos y pagos pendientes siguen visibles.
+- Esta revisión visual no necesita SQL; desplegar frontend y sw.js actualizados.
+
+## Instalación del modelo de datos
 
 1. Confirmar migraciones 001–011 aplicadas.
 2. Ejecutar `database/migrations/012_tipos_actividades.sql` como postgres en Supabase SQL Editor.

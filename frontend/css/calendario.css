@@ -29,3 +29,15 @@
 #calCampos { border:0; padding:0; margin:0; min-width:0; }
 .cal-dialogo [hidden] { display:none; }
 .cal-eliminar { color:#a42020; }
+
+.cal-actividad-titulo { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem 1rem; }
+.cal-actividad-titulo h3 { font-size:1.05rem; font-weight:700; }
+.cal-actividad-titulo time { font-size:.82rem; color:#565b82; white-space:nowrap; font-variant-numeric:tabular-nums; padding:.3rem .55rem; border-radius:7px; background:#f3f4fa; }
+.cal-actividad .acciones { margin:0; gap:.5rem; }
+.cal-actividad .acciones button, .cal-actividad .acciones a { font-size:.85rem; padding:.65rem .85rem; }
+.cal-actividad:last-child { border-bottom:0; padding-bottom:.25rem; }
+.cal-actividad > div:first-child { flex:1 1 230px; }
+.cal-dia { background:#fafbfe; border-color:#e5e7f2; }
+.cal-dia[aria-pressed=true] { background:#eeeffa; }
+.cal-dia[aria-current=date] { border-bottom-color:var(--club-oro); }
+@media(hover:hover) { .cal-dia:hover { background:#eeeffa; } }
