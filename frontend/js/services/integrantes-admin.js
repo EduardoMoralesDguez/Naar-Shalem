@@ -9,13 +9,14 @@ export async function obtenerOpcionesIntegrante() {
   const [unidades, clases, ciclos] = await Promise.all([
     consultarTodasLasFilas(() =>
       db.from('unidades')
-        .select('id_unidad,nombre')
+        .select('id_unidad,nombre,ciclos!inner(es_activo)')
+        .eq('ciclos.es_activo', true).eq('es_activa', true)
         .order('nombre')
         .order('id_unidad')
     ),
     consultarTodasLasFilas(() =>
       db.from('clases')
-        .select('id_clase,nombre')
+        .select('id_clase,nombre').eq('es_activa', true)
         .order('nombre')
         .order('id_clase')
     ),

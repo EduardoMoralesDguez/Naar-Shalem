@@ -99,3 +99,11 @@ Trabajar sobre el último commit, preservar cambios del propietario, subir una r
 Aplicar `database/migrations/013_cierre_cuotas.sql` después de 012 y desplegar el frontend. Conserva ingresos; revisar los cobros actuales y pendientes offline tras la actualización. Ver `docs/CUOTAS.md` para la conversión de anticipos existentes.
 
 Cobro, Historial (unidad/integrante) y Bitácora separados. Bitácora exclusiva de directiva. Capitán/subcapitán cobran y cierran su unidad; directiva cualquiera. Saldo anterior se aplica al cierre, no al crear reunión. Captura offline preservada; cierre con conexión y sin pendientes. Un solo botón Actualizar sincroniza y prepara el dispositivo. Test adicional: `tests/cuotas-cierre-sql.mjs`.
+
+## Organización (014)
+
+Nuevo módulo en Inicio: Unidades, Clases, Asignaciones y Ciclos. Aplicar `014_organizacion.sql` después de 013. Roles y decisiones actuales se documentan en `docs/ORGANIZACION.md`: un capitán y un subcapitán, identidad propia editable por líderes, asignaciones solo directiva, inscripciones anuales privadas con proyección compatible en usuarios. El cambio de ciclo es explícito, conserva datos y archiva asignaciones; no activar otro año solo por instalar la migración.
+
+Limpieza solicitada de pruebas: `database/admin/limpiar_cuotas_asistencias.sql` borra pagos/saldos/asistencias de todos los ciclos, conserva calendario y reinicia pases/cobros. No ejecutada automáticamente. El antiguo `limpiar_actividad.sql` también borra calendario; son scripts distintos.
+
+Siguiente iteración según DOCX: cuadernillos y tareas por clase. Aún pendientes: especialidades completas/biblioteca, puntos/rankings/retos, turnos de programa/push, preinscripción/mapa, offline de asistencia y visor histórico integral. No confundir el archivo de asignaciones de Organización con el archivo histórico completo.
