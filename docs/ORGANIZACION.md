@@ -45,3 +45,9 @@ Ejecutarlo como postgres después de 013, con las apps cerradas. El script cambi
 ## Verificación
 
 `npm test`, `npm run test:ui` y `npm run build`. Las pruebas nuevas usan PostgreSQL local (PGlite) para migración repetible, archivo, cargos únicos, versiones, RLS y limpieza; Chromium para rutas, formularios, permisos y móvil. No modifican producción.
+
+## Perfiles de unidad (015)
+
+Aplicar `database/migrations/015_perfiles_unidades.sql` después de 014. Las unidades se presentan como tarjetas con foto/nombre; al abrirlas se muestran lema, porra, integrantes enlazados a sus perfiles y asistencia conjunta. Editar unidad y desactivar/reactivar están dentro del perfil, con los mismos permisos anteriores.
+
+La asistencia se calcula en el servidor: `(asistencias + justificados) / convocatorias de la unidad en reuniones regulares cerradas del ciclo`. Es un porcentaje ponderado por registros, no un promedio de porcentajes individuales. Usa la unidad guardada en cada pase, excluye directiva/exentos, borradores, anulaciones y actividades eliminadas. Sin registros muestra «—». Los usuarios reciben solo el resumen de unidad; no se amplían permisos para consultar asistencias individuales. Al corregir un pase, el resumen cambia al actualizar o volver a abrir Organización.

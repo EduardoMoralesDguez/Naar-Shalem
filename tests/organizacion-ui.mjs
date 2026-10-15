@@ -62,7 +62,7 @@ const mocks={'/js/services/asistencias.js':attendance,'/js/lib/supabase.js':lib,
 
 mocks['/js/services/organizacion.js']=`
 const f=window.fixture;
-function init(){return f.org ||= {id_ciclo:'ciclo',vigente:true,ciclos:[{id_ciclo:'ciclo',anio:2026,es_activo:true}],unidades:[{id_unidad:'u',nombre:'Jaspe',lema:'Firmes',porra:'Jaspe',es_activa:true,version:1}],clases:[{id_clase:'c',nombre:'Amigo',es_activa:true,version:1}],integrantes:f.users.map(u=>({id_usuario:u.id_usuario,nombre:u.nombres+' '+u.apellido,rol:u.rol,activo:true,version:1,id_unidad:u.rol==='directiva'?null:'u',id_clase:'c'}))};}
+function init(){return f.org ||= {id_ciclo:'ciclo',vigente:true,ciclos:[{id_ciclo:'ciclo',anio:2026,es_activo:true}],unidades:[{id_unidad:'u',nombre:'Jaspe',lema:'Firmes',porra:'Jaspe',asistencia:{total:3,asistencias:1,justificados:1,faltas:1,porcentaje:67},es_activa:true,version:1}],clases:[{id_clase:'c',nombre:'Amigo',es_activa:true,version:1}],integrantes:f.users.map(u=>({id_usuario:u.id_usuario,nombre:u.nombres+' '+u.apellido,rol:u.rol,activo:true,version:1,id_unidad:u.rol==='directiva'?null:'u',id_clase:'c'}))};}
 export async function obtenerOrganizacion(ciclo){const d=structuredClone(init()),a=f.users[f.actor];d.rol=a.rol;d.unidades.forEach(u=>u.editable=a.rol==='directiva'||['capitan','consejero','subcapitan'].includes(a.rol));return d;}
 export async function subirFotoUnidad(id,file){f.fotoSubida=file.name;return id+'/foto.webp';}
 export async function guardarOrganizacion(a,d){const p=init();f.ultimaOperacion={a,d};if(f.conflicto){f.conflicto=false;throw new Error('El registro cambió. Actualiza.');}
@@ -108,13 +108,21 @@ await waitFor("!document.getElementById('orgDialogo').open");
 assert.equal(await evaluate("fixture.ultimaOperacion.d.id"),'d0000000-0000-4000-8000-000000000003');
 assert.equal(await evaluate("fixture.ultimaOperacion.d.rol"),'subcapitan');
 await shot('organizacion-asignaciones');
+assert.equal(await evaluate("Boolean(document.querySelector('#orgUnidadLista ul'))"),false);
+await evaluate("document.querySelector('[data-tab=unidades]').click();document.querySelector('#orgUnidadLista button').click()");
+assert.equal(await evaluate("document.getElementById('orgPorcentajeUnidad').textContent"),'67%');
+assert.equal(await evaluate("document.querySelectorAll('#orgUnidadPerfil .org-miembro').length>0"),true);
+await shot('unidad-perfil-desktop');
+await evaluate("document.querySelector('#orgUnidadPerfil button').click()");
+assert.equal(await evaluate("document.getElementById('orgUnidadLista').hidden"),false);
+
 await evaluate("document.querySelector('[data-tab=clases]').click();document.getElementById('orgNuevaClase').click();document.querySelector('#orgCampos [name=nombre]').value='Explorador';document.getElementById('orgForm').requestSubmit()");await waitFor("document.querySelectorAll('#orgClaseLista article').length===2&&!document.getElementById('orgDialogo').open");
-await evaluate("document.querySelector('[data-tab=unidades]').click();document.querySelector('#orgUnidadLista button').click();document.querySelector('#orgCampos [name=lema]').value='Unidos';fixture.conflicto=true;document.getElementById('orgForm').requestSubmit()");await waitFor("document.getElementById('orgError').textContent.includes('Actualiza')");
+await evaluate("document.querySelector('[data-tab=unidades]').click();document.querySelector('#orgUnidadLista button').click();document.getElementById('orgEditarUnidad').click();document.querySelector('#orgCampos [name=lema]').value='Unidos';fixture.conflicto=true;document.getElementById('orgForm').requestSubmit()");await waitFor("document.getElementById('orgError').textContent.includes('Actualiza')");
 assert.equal(await evaluate("document.getElementById('orgDialogo').open"),true);
 await evaluate("document.getElementById('orgForm').requestSubmit()");await waitFor("!document.getElementById('orgDialogo').open");
 await evaluate("fixture.users[1].rol='capitan';fixture.emit(1)");await waitFor("document.getElementById('orgNuevaUnidad').hidden&&!document.getElementById('orgActualizar').disabled");
 assert.equal(await evaluate("document.querySelector('[data-tab=asignaciones]').hidden"),true);
-await evaluate("document.querySelector('#orgUnidadLista button').click()");assert.equal(await evaluate("Boolean(document.querySelector('#orgCampos [name=nombre]'))"),false);
+await evaluate("document.querySelector('#orgUnidadLista button').click();document.getElementById('orgEditarUnidad').click()");assert.equal(await evaluate("Boolean(document.querySelector('#orgCampos [name=nombre]'))"),false);
 await evaluate("document.querySelector('#orgCampos [name=porra]').value='Nuestra unidad';document.getElementById('orgForm').requestSubmit()");await waitFor("!document.getElementById('orgDialogo').open");assert.equal(await evaluate("fixture.ultimaOperacion.a"),'identidad');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await shot('organizacion-mobile');
 assert.equal(await evaluate("document.documentElement.scrollWidth<=window.innerWidth"),true);

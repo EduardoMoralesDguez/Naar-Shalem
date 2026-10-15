@@ -60,6 +60,7 @@ const operar=async(accion,datos,id=crypto.randomUUID())=>db.query('SELECT cuotas
 
 await db.exec(file('migrations/013_cierre_cuotas.sql'));
 const m14=file('migrations/014_organizacion.sql');await db.exec(m14);await db.exec(m14);
+const m15=file('migrations/015_perfiles_unidades.sql');await db.exec(m15);await db.exec(m15);
 const org=async(c=null)=>(await db.query('SELECT organizacion_panel($1) p',[c])).rows[0].p;
 const action=async(a,d)=>db.query('SELECT organizacion_guardar($1,$2)',[a,JSON.stringify({id_ciclo:ciclo,...d})]);
 await actor(0);await assert.rejects(org());
@@ -72,6 +73,19 @@ p=await org();const ana=()=>p.integrantes.find(u=>u.id_usuario===uid(3));
 await action('asignar',{id:uid(3),version:ana().version,rol:'subcapitan',unidad:un,clase:cl});
 p=await org();assert.equal(ana().id_unidad,un);
 await assert.rejects(action('asignar',{id:uid(3),version:1,rol:'conquistador',unidad:un,clase:cl}),e=>e.code==='40001');
+// Resumen ponderado por convocatoria y unidad histórica: A+J / total.
+assert.equal(p.unidades.find(u=>u.id_unidad===un).asistencia.porcentaje,null);
+await db.exec('RESET ROLE');
+const cerrada1=crypto.randomUUID(),cerrada2=crypto.randomUUID(),borrador=crypto.randomUUID(),eliminada=crypto.randomUUID(),anulada=crypto.randomUUID();
+for(const [n,id,estado,eliminado] of [[80,cerrada1,'cerrada',false],[81,cerrada2,'cerrada',false],[82,borrador,'borrador',false],[83,eliminada,'cerrada',true],[84,anulada,'anulada',false]]){
+ await db.query('INSERT INTO privado.reuniones(id,id_ciclo,fecha,numero,nombre,estado,eliminado) VALUES($1,$2,$3,$4,$5,$6,$7)',[id,ciclo,fechas.hoy,n,'Resumen '+n,estado,eliminado]);
+}
+for(const [reunion,usuario,estado,exento] of [[cerrada1,uid(3),'asistencia',false],[cerrada1,uid(2),'justificado',false],[cerrada2,uid(3),'falta',false],[cerrada1,uid(4),'falta',true],[borrador,uid(3),'falta',false],[eliminada,uid(3),'falta',false],[anulada,uid(3),'falta',false]]){
+ await db.query('INSERT INTO privado.convocados(reunion,id_usuario,id_unidad,unidad,estado,exento_asistencia) VALUES($1,$2,$3,$4,$5,$6)',[reunion,usuario,un,'Jade',estado,exento]);
+}
+await actor(4);p=await org();
+assert.deepEqual(p.unidades.find(u=>u.id_unidad===un).asistencia,{total:3,asistencias:1,justificados:1,faltas:1,porcentaje:67});
+assert.ok(!JSON.stringify(p.unidades.find(u=>u.id_unidad===un).asistencia).includes(uid(3)));
 await actor(3);p=await org();await action('identidad',{id:un,version:p.unidades.find(u=>u.id_unidad===un).version,lema:'Nuevo lema',porra:'Nueva porra',nombre:'No puede renombrar'});
 p=await org();assert.equal(p.unidades.find(u=>u.id_unidad===un).nombre,'Jade');
 await assert.rejects(action('unidad',{id:crypto.randomUUID(),nombre:'Intruso'}),e=>e.code==='42501');
@@ -96,13 +110,13 @@ await action('ciclo',{anio:p.ciclos.find(c=>c.es_activo).anio+1});
 p=await org();assert.notEqual(p.id_ciclo,cicloAntes);assert.equal(p.unidades.length,0);assert.ok(p.integrantes.every(u=>!u.id_unidad&&!u.id_clase));
 assert.equal(p.integrantes.find(u=>u.id_usuario===uid(2)).rol,'conquistador');
 assert.equal(p.integrantes.find(u=>u.id_usuario===uid(4)).rol,'directiva');
-const archivo=await org(cicloAntes);assert.equal(archivo.vigente,false);assert.equal(archivo.integrantes.find(u=>u.id_usuario===uid(3)).unidad,'Jade');
+const archivo=await org(cicloAntes);assert.equal(archivo.vigente,false);assert.equal(archivo.unidades.find(u=>u.id_unidad===un).asistencia.porcentaje,67);assert.equal(archivo.integrantes.find(u=>u.id_usuario===uid(3)).unidad,'Jade');
 assert.equal(archivo.integrantes.find(u=>u.id_usuario===uid(3)).clase,'Explorador');
 await assert.rejects(action('unidad',{id:un,nombre:'Tocar pasado',version:2}),e=>e.code==='40001');
 await actor(2);await assert.rejects(org(cicloAntes),e=>e.code==='42501');
 await db.exec('RESET ROLE');
 assert.ok((await db.query('SELECT count(*) n FROM privado.cuota_ingresos')).rows[0].n>=ingresosAntes);
-await db.exec(m14); // No reescribe el archivo ni copia unidades al año nuevo.
+await db.exec(m14);await db.exec(m15); // No reescribe el archivo ni copia unidades al año nuevo.
 assert.equal((await db.query('SELECT count(*) n FROM privado.inscripciones')).rows[0].n,8);
 const reunionesAntes=(await db.query('SELECT count(*) n FROM privado.reuniones')).rows[0].n;
 await db.exec(file('admin/limpiar_cuotas_asistencias.sql'));

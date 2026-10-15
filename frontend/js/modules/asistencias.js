@@ -48,7 +48,7 @@ vista.innerHTML = `
     </div>
 
     <section id="asVistaReunion">
-      <div id="asCrearPanel" class="as-filtros" hidden><a class="boton-principal" href="#calendario">Organizar actividades en Calendario</a></div>
+      <div id="asCrearPanel" class="as-calendario" hidden><h2>Actividades</h2><a class="boton-volver" href="#calendario">Abrir calendario</a></div>
       <nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
       <h2 id="asFechaTitulo"></h2>
       <input id="asReunion" type="hidden">
@@ -67,7 +67,6 @@ vista.innerHTML = `
           <tbody id="asLista"></tbody>
         </table>
       </div>
-      <p id="asBloqueo" class="texto-suave" role="status"></p>
       <div class="as-pie" id="asAccionesAdmin" hidden>
         <button id="asGuardar" type="button" class="boton-principal">
           Revisar y guardar unidad
@@ -216,7 +215,6 @@ function pintarPanel() {
   if (!panel) {
     $('asUnidadTitulo').textContent = '';
     $('asFechaTitulo').textContent = '';
-    $('asBloqueo').textContent = '';
     $('asAvisoReunion').textContent = admin() && modo === 'reunion' ? 'Todavía no hay una reunión de hoy.' : 'No hay reuniones disponibles.';
     return;
   }
@@ -346,7 +344,7 @@ function actualizarCierre() {
   const motivo = sucio ? 'Guarda los cambios de esta unidad antes de cerrar.'
     : panel.grupos.some(g => !g.revisada) ? 'Revisa y guarda todas las unidades, incluida Sin unidad.'
     : '';
-  $('asBloqueo').textContent = panel.estado === 'borrador' ? motivo : '';
+  $('asCerrar').title = panel.estado === 'borrador' ? motivo : '';
   $('asCerrar').disabled = Boolean(motivo) || panel.estado !== 'borrador';
 }
 
