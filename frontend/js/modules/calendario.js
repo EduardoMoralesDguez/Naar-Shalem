@@ -21,16 +21,15 @@ vista.innerHTML = `
  <div class="cal-barra"><div class="acciones"><button id="calAnterior" class="boton-volver" aria-label="Mes anterior">←</button><button id="calHoy" class="boton-volver">Hoy</button><button id="calSiguiente" class="boton-volver" aria-label="Mes siguiente">→</button></div><h2 id="calMes"></h2><button id="calNueva" class="boton-principal" hidden>Nueva actividad</button></div>
  <div class="cal-panel"><div class="cal-semana" aria-hidden="true"><span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span></div><div id="calDias" class="cal-dias" aria-label="Días del mes"></div></div>
  <section class="cal-panel"><div class="cal-barra"><h2 id="calFecha"></h2><button id="calTodo" class="boton-volver">Ver agenda del mes</button></div><div id="calAgenda" class="cal-agenda"></div></section>
- <dialog id="calDialogo" class="cal-dialogo"><form id="calForm"><h2 id="calTitulo"></h2><p>Horario de Ciudad de México.</p>
- <fieldset id="calCampos"><legend class="sr-only">Datos de la actividad</legend>
+ <dialog id="calDialogo" class="cal-dialogo"><form id="calForm"><h2 id="calTitulo"></h2>
+ <fieldset id="calCampos" aria-label="Datos de la actividad">
  <label>Tipo de actividad<select id="calTipo"><option value="regular">Reunión regular</option><option value="practica">Prácticas</option><option value="parcial">Reunión parcial</option><option value="evento">Evento</option></select></label>
- <p id="calTipoAyuda" class="texto-suave"></p>
  <label>Nombre de la actividad<input id="calNombre" required maxlength="60" placeholder="Club / Camporee — mañana"></label>
  <div class="cal-form-grid"><label>Fecha de inicio<input id="calDia" type="date" required></label><label>Hora de inicio<input id="calHora" type="time" required value="09:00"></label></div>
  <label id="calFinCampo" hidden>Fecha de término (incluida)<input id="calFin" type="date"></label>
  <div id="calDestinoCampos" class="cal-form-grid" hidden><label>Convocar por<select id="calDestinoTipo"><option value="unidad">Unidad</option><option value="clase">Clase</option></select></label><label>Destinatario<select id="calDestino"></select></label></div>
  <label id="calCobroCampo" class="cal-check"><input id="calCobro" type="checkbox"> Cobrar cuota de $10 por esta reunión</label>
- <p id="calCobroAyuda" class="texto-suave">Cada reunión genera su propio cobro, incluso si hay varias el mismo día. Al quitar un cobro, sus pagos quedan como saldo a favor.</p>
+
  </fieldset><p id="calError" role="alert"></p><div class="acciones"><button id="calGuardar" class="boton-principal">Guardar actividad</button><button id="calCerrar" class="boton-volver" type="button">Volver sin guardar</button></div></form></dialog>`;
 $('aplicacion').append(vista);
 let perfil = null, mes = fechaHoy().slice(0, 7), dia = fechaHoy(), lista = [], revision = 0, ocupado = false, editor = null;
@@ -109,15 +108,9 @@ function destinos(valor = '') {
 }
 function ajustarTipo() {
   const tipo = $('calTipo').value, regular = tipo === 'regular', parcial = tipo === 'parcial', evento = tipo === 'evento';
-  $('calTipoAyuda').textContent = {
-    regular: 'Asistencia para todo el club, excepto directiva. Puedes activar un cobro de $10.',
-    practica: 'Se mostrará en el calendario, sin asistencia ni cuotas.',
-    parcial: 'Aviso visible para la unidad o clase seleccionada y directiva. No registra asistencia ni cuotas.',
-    evento: 'Aviso para todo el club durante el rango de fechas indicado. No registra asistencia ni cuotas.',
-  }[tipo];
   $('calFinCampo').hidden = !evento; $('calFin').disabled = !evento; $('calFin').required = evento; $('calFin').min = $('calDia').value;
   $('calDestinoCampos').hidden = !parcial; $('calDestino').disabled = !parcial; $('calDestino').required = parcial; $('calDestinoTipo').disabled = !parcial;
-  $('calCobroCampo').hidden = !regular; $('calCobroAyuda').hidden = !regular; $('calCobro').disabled = !regular;
+  $('calCobroCampo').hidden = !regular; $('calCobro').disabled = !regular;
   if (!regular) $('calCobro').checked = false;
 }
 function abrirEditor(a = null) {

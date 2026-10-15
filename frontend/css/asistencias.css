@@ -162,3 +162,6 @@ button.as-marca { cursor:pointer; }
 .as-tabla tbody tr:hover td { background:#fafbfe; }
 .as-tabla caption { font-size:.9rem; }
 .as-pie { padding-top:1rem; border-top:1px solid var(--color-borde); }
+
+.as-calendario:not([hidden]) { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:1rem 1.2rem; margin:1.2rem 0; border:1px solid var(--color-borde); border-radius:14px; background:white; }
+.as-calendario h2 { margin:0; font-size:1rem; }
