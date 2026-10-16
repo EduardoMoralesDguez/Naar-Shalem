@@ -24,7 +24,7 @@ const auth=`export async function iniciarSesion(){window.fixture.emit(0)}
 export async function cerrarSesion(){window.fixture.actor=null;window.fixture.listener('SIGNED_OUT',null)}
 export async function obtenerMiPerfil(){return {...window.fixture.users[window.fixture.actor]}}`;
 const catalogo=`import {firmarFotos} from './fotos.js';
-export async function obtenerUsuarios(){const f=window.fixture;return firmarFotos(f.users.filter(u=>f.actor===0||u.es_activo).map(u=>({...u,es_directiva:u.rol==='directiva',rol:f.actor===0||u===f.users[f.actor]?u.rol:null})));}
+export async function obtenerUsuarios(){const f=window.fixture;return firmarFotos(f.users.filter(u=>f.actor===0||u.es_activo).map(u=>({...u,color_clase:f.org?.clases.find(c=>c.id_clase===f.org.integrantes.find(i=>i.id_usuario===u.id_usuario)?.id_clase)?.color_distintivo,es_directiva:u.rol==='directiva',rol:f.actor===0||u===f.users[f.actor]?u.rol:null})));}
 export async function obtenerProgreso(id,cobraCuotas){window.fixture.progress.push({id,cobraCuotas});return {asistencia:{porcentaje:50,asistencias:2,justificados:0,total_registros:4},cuotas:{porcentaje:50,semanas_pagadas:2,semanas_registradas:4,total_pagado:20}};}
 export async function obtenerEspecialidades(){return []}`;
 const admin=`export async function obtenerOpcionesIntegrante(){return {unidades:[{id_unidad:'u',nombre:'Jaspe'}],clases:[{id_clase:'c',nombre:'Amigo'}],ciclos:[{anio:2026}]}}
@@ -43,7 +43,7 @@ f.meeting={id:'meeting-1',nombre:'General',numero:1,fecha:today,hoy:today,estado
 f.meetings=[f.meeting];
 export async function listarReuniones(){return [{id:'future',fecha:'2099-01-01',nombre:'Futuro',numero:1,estado:'borrador'},...f.meetings.slice().reverse().map(m=>({id:m.id,fecha:m.fecha,nombre:m.nombre,numero:m.numero,estado:m.estado})),{id:'older',fecha:'2020-01-01',nombre:'General',numero:1,estado:'cerrada'}];}
 export async function crearReunion(fecha,nombre){const previo=f.meetings.find(m=>m.nombre.toLowerCase()===nombre.trim().toLowerCase());if(previo)return previo.id;const m=structuredClone(f.meeting);m.id='meeting-'+(f.meetings.length+1);m.nombre=nombre.trim();m.numero=f.meetings.length+1;m.estado='borrador';m.grupos.forEach(g=>g.revisada=false);m.integrantes.forEach(u=>u.estado='falta');f.meetings.push(m);return m.id;}
-export async function obtenerReunion(id=f.meeting.id){const actor=f.users[f.actor];const p=structuredClone(f.meetings.find(m=>m.id===id));p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>['capitan','consejero'].includes(actor.rol)?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
+export async function obtenerReunion(id=f.meeting.id){const actor=f.users[f.actor];const p=structuredClone(f.meetings.find(m=>m.id===id)||{...f.meeting,id,fecha:id==='future'?'2099-01-01':'2020-01-01',estado:id==='future'?'borrador':'cerrada'});p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>['capitan','consejero'].includes(actor.rol)?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
 export async function actuarReunion(p,accion,datos){const m=f.meetings.find(m=>m.id===p.id);if(f.conflict){f.conflict=false;throw {code:'40001'};}
  if(accion==='unidad'){for(const x of datos.integrantes)Object.assign(m.integrantes.find(u=>u.id_usuario===x.id_usuario),x);m.grupos.find(g=>g.clave===datos.clave).revisada=true;}
  if(accion==='celda')Object.assign(m.integrantes.find(u=>u.id_usuario===datos.id_usuario),{estado:datos.estado});
@@ -56,6 +56,11 @@ export async function actuarReunion(p,accion,datos){const m=f.meetings.find(m=>m
 export async function obtenerListaAsistencias(){const a=f.users[f.actor];return f.users.filter(u=>a.rol==='directiva'||u.id_usuario===a.id_usuario||(['capitan','consejero'].includes(a.rol)&&u.unidad===a.unidad));}
 export async function obtenerMatriz(){const registros=[];for(const m of f.meetings){if(m.estado!=='cerrada')continue;const p=await obtenerReunion(m.id);for(const u of p.integrantes)registros.push({reunion:p.id,fecha:p.fecha,version:p.version,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave==='sin-unidad'?'Sin unidad':u.clave,estado:u.estado,nombre_pase:p.nombre,numero:p.numero});}const p=await obtenerReunion();return [...p.integrantes.map(u=>({reunion:'older',fecha:'2020-01-01',version:1,id_usuario:u.id_usuario,nombre:u.nombre,unidad_clave:u.clave,unidad:u.clave==='sin-unidad'?'Sin unidad':u.clave,estado:'falta',nombre_pase:'General',numero:1})),...registros];}
 export async function obtenerHistorialAsistencias(id){return f.meeting.estado==='cerrada'?f.meeting.integrantes.filter(u=>u.id_usuario===id).map(u=>({...u,fecha:f.meeting.fecha})):[];}
+
+export async function obtenerContextoAsistencias(){return {epoca:'test-epoca',ciclo:'test-ciclo'};}
+export async function verificarAsistenciaCuenta(id){if(!navigator.onLine)throw new Error('Offline');if(id!=='auth-'+f.actor)throw new Error('Cuenta incorrecta');}
+export async function obtenerBitacoraAsistencias(){return [];}
+export async function enviarAsistencia(o){if(!navigator.onLine)throw new Error('Offline');f.ops ||= [];if(f.ops.includes(o.id))return;await actuarReunion({id:o.reunion,version:o.version},o.accion,o.datos);f.ops.push(o.id);if(f.respuestaPerdida){f.respuestaPerdida=false;throw new Error('Respuesta perdida');}}
 `;
 const mocks={'/js/services/asistencias.js':attendance,'/js/lib/supabase.js':lib,'/js/services/auth.js':auth,'/js/services/catalogo.js':catalogo,'/js/services/integrantes-admin.js':admin};
 
@@ -69,7 +74,7 @@ export async function guardarOrganizacion(a,d){const p=init();f.ultimaOperacion=
 if(a==='asignar'){Object.assign(p.integrantes.find(u=>u.id_usuario===d.id),{rol:d.rol,id_unidad:d.unidad,id_clase:d.clase});}
 else if(a==='ciclo'){p.id_ciclo='nuevo';p.ciclos.push({id_ciclo:'nuevo',anio:d.anio,es_activo:true});p.ciclos[0].es_activo=false;p.unidades=[];p.integrantes.forEach(u=>{u.id_unidad=null;u.id_clase=null;});}
 else if(a.startsWith('estado_')){const items=a==='estado_unidad'?p.unidades:p.clases;items.find(u=>(u.id_unidad||u.id_clase)===d.id).es_activa=d.activo;}
-else {const unidades=a==='unidad'||a==='identidad',items=unidades?p.unidades:p.clases,key=unidades?'id_unidad':'id_clase';let g=items.find(u=>u[key]===d.id);if(!g){g={[key]:d.id,es_activa:true,version:1};items.push(g);}Object.assign(g,d);}
+else {const unidades=a==='unidad'||a==='identidad',items=unidades?p.unidades:p.clases,key=unidades?'id_unidad':'id_clase';let g=items.find(u=>u[key]===d.id);if(!g){g={[key]:d.id,es_activa:true,version:1};items.push(g);}Object.assign(g,d);if(a==='clase')g.color_distintivo=d.color;}
 }
 `;
 
@@ -117,6 +122,20 @@ await evaluate("document.querySelector('#orgUnidadPerfil button').click()");
 assert.equal(await evaluate("document.getElementById('orgUnidadLista').hidden"),false);
 
 await evaluate("document.querySelector('[data-tab=clases]').click();document.getElementById('orgNuevaClase').click();document.querySelector('#orgCampos [name=nombre]').value='Explorador';document.getElementById('orgForm').requestSubmit()");await waitFor("document.querySelectorAll('#orgClaseLista article').length===2&&!document.getElementById('orgDialogo').open");
+await evaluate("document.querySelector('#orgClaseLista button').click()");
+assert.equal(await evaluate("document.getElementById('orgClaseNombre').textContent"),'Amigo');
+assert.equal(await evaluate("document.querySelectorAll('#orgClasePerfil .org-miembro').length"),4);
+assert.equal(await evaluate("document.getElementById('orgClasePerfil').textContent.includes('Asistencia')"),false);
+await evaluate("document.getElementById('orgEditarClase').click();document.querySelector('[name=color]').value='#13854a';document.querySelector('[name=color]').dispatchEvent(new Event('input',{bubbles:true}))");
+assert.equal(await evaluate("document.querySelector('[name=selector]').value"),'#13854a');
+await evaluate("document.getElementById('orgForm').requestSubmit()");await waitFor("!document.getElementById('orgDialogo').open");
+assert.equal(await evaluate("document.querySelector('#orgClasePerfil .org-miembro strong').style.color"),'rgb(19, 133, 74)');
+assert.equal(await evaluate("Boolean(document.querySelector('#inicio [data-color-integrante]'))"),false);
+await shot('clase-perfil-desktop');
+await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await shot('clase-perfil-mobile');
+assert.equal(await evaluate('document.documentElement.scrollWidth<=window.innerWidth'),true);
+await send('Emulation.setDeviceMetricsOverride',{width:1440,height:950,deviceScaleFactor:1,mobile:false});
+await evaluate("document.querySelector('#orgClasePerfil button').click()");
 await evaluate("document.querySelector('[data-tab=unidades]').click();document.querySelector('#orgUnidadLista button').click();document.getElementById('orgEditarUnidad').click();document.querySelector('#orgCampos [name=lema]').value='Unidos';fixture.conflicto=true;document.getElementById('orgForm').requestSubmit()");await waitFor("document.getElementById('orgError').textContent.includes('Actualiza')");
 assert.equal(await evaluate("document.getElementById('orgDialogo').open"),true);
 await evaluate("document.getElementById('orgForm').requestSubmit()");await waitFor("!document.getElementById('orgDialogo').open");

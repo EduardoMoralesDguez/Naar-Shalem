@@ -15,8 +15,10 @@ export async function obtenerUsuarios() {
 
   const presentacion = await consultarTodasLasFilas(() => obtenerSupabase()
     .rpc('presentacion_integrantes').order('id_usuario'));
+  const colores = await consultarTodasLasFilas(() => obtenerSupabase().rpc('colores_integrantes').order('id_usuario'));
+  const porColor = new Map(colores.map(c=>[c.id_usuario,c.color_clase]));
   const porId = new Map(presentacion.map(p => [p.id_usuario, p]));
-  return firmarFotos(filas.map(u => ({ ...u, ...porId.get(u.id_usuario) })));
+  return firmarFotos(filas.map(u => ({ ...u, ...porId.get(u.id_usuario), color_clase:porColor.get(u.id_usuario) })));
 }
 
 export function calcularProgreso(registrosAsistencia, registrosCuotas) {

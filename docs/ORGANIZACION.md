@@ -51,3 +51,9 @@ Ejecutarlo como postgres después de 013, con las apps cerradas. El script cambi
 Aplicar `database/migrations/015_perfiles_unidades.sql` después de 014. Las unidades se presentan como tarjetas con foto/nombre; al abrirlas se muestran lema, porra, integrantes enlazados a sus perfiles y asistencia conjunta. Editar unidad y desactivar/reactivar están dentro del perfil, con los mismos permisos anteriores.
 
 La asistencia se calcula en el servidor: `(asistencias + justificados) / convocatorias de la unidad en reuniones regulares cerradas del ciclo`. Es un porcentaje ponderado por registros, no un promedio de porcentajes individuales. Usa la unidad guardada en cada pase, excluye directiva/exentos, borradores, anulaciones y actividades eliminadas. Sin registros muestra «—». Los usuarios reciben solo el resumen de unidad; no se amplían permisos para consultar asistencias individuales. Al corregir un pase, el resumen cambia al actualizar o volver a abrir Organización.
+
+## Perfiles y colores de clase (016)
+
+Aplicar `016_asistencias_offline_colores.sql` después de 015. Clases presenta tarjetas que abren un perfil con sus integrantes; no incluye porra, competencia ni estadísticas de asistencia. Directiva edita nombre y color desde el perfil.
+
+El editor permite elegir un color o escribir `#RRGGBB`. Los colores anteriores por nombre se convierten a hexadecimal; los valores desconocidos usan el azul del club. Cada nombre de integrante usa el color de su clase actual en directorio, perfil individual, cuotas, asistencias y perfiles de unidad/clase. Los roles, controles A/J/F, bitácoras, saludo y cabecera de cuenta conservan sus colores. En la misma sesión se actualizan las etiquetas ya dibujadas; en otros dispositivos se obtiene el cambio al recargar con conexión. El dispositivo sin internet conserva los colores descargados.

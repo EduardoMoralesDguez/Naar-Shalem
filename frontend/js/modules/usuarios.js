@@ -1,3 +1,4 @@
+import {colorearNombre} from '../lib/colores.js';
 // frontend/js/modules/usuarios.js
 
 const $ = id => document.getElementById(id);
@@ -167,7 +168,7 @@ function renderizar() {
     informacion.className = 'integrante-info';
 
     const nombre = document.createElement('strong');
-    nombre.className = 'integrante-nombre';
+    nombre.className = 'integrante-nombre';colorearNombre(nombre,usuario.id_usuario);
     nombre.textContent = `${usuario.nombres} ${usuario.apellido}`;
 
     const detalle = document.createElement('span');
@@ -213,6 +214,7 @@ export function mostrarPerfil(usuario) {
   $('tarjetaNombre').textContent =
     `${usuario.nombres} ${usuario.apellido}`;
 
+  colorearNombre($('tarjetaNombre'),usuario.id_usuario);
   $('tarjetaRol').textContent = nombreRol(usuario.rol);
   $('tarjetaRol').parentElement.hidden = !usuario.rol;
   $('tarjetaUnidad').textContent = usuario.unidad || 'Sin asignar';

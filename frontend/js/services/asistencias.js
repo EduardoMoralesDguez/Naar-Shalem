@@ -6,7 +6,7 @@ async function rpc(nombre, parametros) {
   const { data, error } = await obtenerSupabase().rpc(
     nombre,
     parametros
-  );
+  ).abortSignal(AbortSignal.timeout(15000));
 
   if (error) throw error;
 
@@ -16,7 +16,7 @@ async function rpc(nombre, parametros) {
 export function listarReuniones() {
   return consultarTodasLasFilas(() =>
     obtenerSupabase()
-      .rpc('reuniones_listar_turnos')
+      .rpc('reuniones_listar_turnos').abortSignal(AbortSignal.timeout(15000))
       .order('fecha', { ascending: false })
       .order('numero', { ascending: false })
       .order('id')
@@ -38,6 +38,10 @@ export const actuarReunion = (panel, accion, datos = {}) =>
   });
 
 export function obtenerMatriz() {
-  return consultarTodasLasFilas(() => obtenerSupabase().rpc('historial_matriz_turnos')
+  return consultarTodasLasFilas(() => obtenerSupabase().rpc('historial_matriz_turnos').abortSignal(AbortSignal.timeout(15000))
     .order('fecha').order('numero').order('reunion').order('id_usuario'));
 }
+export const obtenerContextoAsistencias=()=>rpc('asistencias_contexto',{});
+export const obtenerBitacoraAsistencias=()=>consultarTodasLasFilas(()=>obtenerSupabase().rpc('asistencias_bitacora').abortSignal(AbortSignal.timeout(15000)).order('fecha',{ascending:false}).order('id'));
+export const enviarAsistencia=o=>rpc('asistencia_operar',{p_operacion:o.id,p_epoca:o.epoca,p_id:o.reunion,p_version:o.version,p_accion:o.accion,p_datos:o.datos});
+export async function verificarAsistenciaCuenta(id){const {data,error}=await obtenerSupabase().auth.getSession();if(error||data.session?.user.id!==id)throw new Error('Inicia sesión con la cuenta que guardó las asistencias.');await obtenerContextoAsistencias();}
