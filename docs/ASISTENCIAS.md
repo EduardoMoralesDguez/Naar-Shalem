@@ -28,3 +28,13 @@ Sincronizar todos los dispositivos antes de cambiar de ciclo. Los pendientes ant
 `npm test` incluye `tests/asistencias-offline-sql.mjs`: migración repetible, formato hex, idempotencia, conflictos, permisos, bitácora, límite diario y reinicio de datos.
 
 `npm run test:ui` incluye `tests/asistencias-offline-ui.mjs`: IndexedDB y service worker reales con transporte simulado, recarga con servidor desconectado, cola secuencial, respuesta perdida, conflicto e aislamiento de cuentas; capturas de escritorio y móvil.
+
+## Altas después de programar reuniones (017)
+
+Aplicar `017_altas_reuniones_pendientes.sql` después de 016. Al registrar un integrante, el servidor lo incorpora automáticamente a las reuniones regulares en borrador desde ese día (hora de Ciudad de México), dentro del ciclo activo. Si su unidad ya se había revisado, queda pendiente de revisión nuevamente y cambia la versión del pase para impedir que una captura offline anterior omita al nuevo integrante.
+
+La misma alta genera el cargo de $10 en actividades con cobro activo si su unidad aún no cerró ese cobro. Los cierres de asistencia y cuotas son independientes: no se reabre ninguno. Directiva queda exenta de ambos; consejeros tienen asistencia pero no cuota. Se incluyen los integrantes sin unidad y todos los pases del mismo día. Prácticas, eventos, reuniones parciales, anuladas, eliminadas e importadas quedan excluidas.
+
+La migración completa también los faltantes actuales en actividades abiertas de hoy en adelante, una sola vez. No modifica asistencias pasadas, marcas existentes, ingresos ni saldos, ni inventa una fecha de ingreso histórica. Para las nuevas altas se usa el día en que se registran; no se añaden cargos o faltas anteriores. Los cambios de unidad, reactivaciones y ediciones de perfiles existentes conservan su comportamiento anterior.
+
+Después de instalarla o registrar integrantes, usar Actualizar en Asistencias y Cuotas en cada dispositivo. Los pendientes que partían de una lista anterior pueden requerir revisión. No borrar los datos locales para actualizar.
