@@ -658,7 +658,7 @@ async function cargarBitacora(){
  bloquear(true);const rev=revision;
  try{const filas=await obtenerBitacoraAsistencias();if(rev!==revision)return;const d=await estadoAsistencias();const nombres=new Map(Object.values(d.paneles).flatMap(p=>p.integrantes.map(u=>[u.id_usuario,u.nombre])));
  for(const f of filas){const tr=document.createElement('tr');const cambios=f.datos?.integrantes?.map(u=>`${nombres.get(u.id_usuario)||'Integrante'}: ${etiquetas[u.estado]||u.estado}`).join(' · ')||[nombres.get(f.datos?.id_usuario),etiquetas[f.datos?.estado],f.datos?.motivo].filter(Boolean).join(' · ')||'—';
- for(const t of [new Date(f.fecha).toLocaleString('es-MX',{timeZone:'America/Mexico_City'}),f.autor,f.reunion,({unidad:'Pase de unidad',celda:'Corrección',cerrar:'Cierre',anular:'Anulación',restaurar:'Restauración',justificar:'Justificación'})[f.accion]||f.accion,cambios]){const td=document.createElement('td');td.textContent=t;tr.append(td);}$('asBitacoraLista').append(tr);}
+ for(const t of [new Date(f.fecha).toLocaleString('es-MX',{timeZone:'America/Mexico_City'}),f.autor,f.reunion,({incorporar:'Alta de integrante',unidad:'Pase de unidad',celda:'Corrección',cerrar:'Cierre',anular:'Anulación',restaurar:'Restauración',justificar:'Justificación'})[f.accion]||f.accion,cambios]){const td=document.createElement('td');td.textContent=t;tr.append(td);}$('asBitacoraLista').append(tr);}
  mensaje(filas.length?'':'Sin cambios registrados.');
  }catch(e){if(rev===revision)mensaje(e.message);}finally{if(rev===revision)bloquear(false);}
 }

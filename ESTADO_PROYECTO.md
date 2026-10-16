@@ -119,3 +119,7 @@ Unidades ahora son tarjetas que abren un perfil con foto, lema, porra, integrant
 Aplicar `016_asistencias_offline_colores.sql` después de 015. Asistencias separa barra de conexión, pestañas, calendario y captura; mantiene A/J/F. Guardado local por cuenta/proyecto, sincronización con UUID estable y control de versiones, conflictos conservados y bitácora solo directiva. Cierre/anulación/restauración con conexión y sin pendientes. No amplía permisos ni el límite diario de justificación. Ver `docs/ASISTENCIAS.md`.
 
 Clases tiene tarjetas y perfil con integrantes. Color hexadecimal editable por directiva; colorea solo nombres de miembros, excluyendo bitácoras y saludo/cabecera principal. La migración convierte los colores existentes y no borra registros. Scripts de limpieza opcionales actualizados para retirar también el registro de operaciones de asistencia.
+
+## Altas en actividades programadas (017)
+
+`017_altas_reuniones_pendientes.sql`, después de 016, incorpora nuevas altas a los pases regulares en borrador y a cobros de unidades sin cerrar desde el día del registro. Respeta exenciones, fechas anteriores y cierres independientes. Completa faltantes de actividades abiertas desde hoy para integrantes ya registrados; no borra ni aplica dinero. Bloqueos en orden 728401/728402/728403 y versiones de pase/cuenta protegen capturas desactualizadas. Prueba: `tests/altas-reuniones-sql.mjs`. Detalles en `docs/ASISTENCIAS.md`.
