@@ -13,6 +13,9 @@ END $$;
 UPDATE privado.cuota_epoca SET token=gen_random_uuid(),exigir=true;
 DELETE FROM privado.cuota_aplicaciones;
 DELETE FROM privado.cuota_operaciones;
+DO $$ BEGIN
+ IF to_regclass('privado.asistencia_operaciones') IS NOT NULL THEN DELETE FROM privado.asistencia_operaciones; END IF;
+END $$;
 DELETE FROM privado.cuota_ingresos;
 DELETE FROM public.cuotas;
 UPDATE privado.cuota_cargos SET cerrado=false;

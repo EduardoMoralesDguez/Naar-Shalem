@@ -4,7 +4,9 @@ import {
   obtenerReunion,
   actuarReunion,
   obtenerMatriz,
-} from '../services/asistencias.js';
+  iniciarAsistenciasLocal, prepararAsistencias, sincronizarAsistencias, estadoAsistencias, resolverAsistencia, obtenerBitacoraAsistencias,
+} from '../services/asistencias-offline.js';
+import {colorearNombre} from '../lib/colores.js';
 
 const estilo = document.createElement('link');
 estilo.rel = 'stylesheet';
@@ -33,7 +35,9 @@ vista.innerHTML = `
   <h1>Asistencias</h1>
   <p id="asMensaje" class="aviso" role="status" hidden></p>
 
-  <fieldset id="asCampos" class="as-panel" aria-label="Asistencias">
+  <div class="as-herramientas"><span id="asConexion"></span><span id="asActualizado"></span><button id="asRecargar" type="button" class="boton-volver">Actualizar</button></div>
+  <section id="asPendientes" class="as-panel" hidden><h2>Pendientes de sincronizar</h2><div id="asCola"></div></section>
+  <fieldset id="asCampos" class="as-contenido" aria-label="Asistencias">
 
     <div class="acciones">
       <button id="asDia" type="button" class="boton-volver">
@@ -42,14 +46,12 @@ vista.innerHTML = `
       <button id="asHistorial" type="button" class="boton-volver">
         Historial
       </button>
-      <button id="asRecargar" type="button" class="boton-volver">
-        Recargar
-      </button>
+      <button id="asBitacora" type="button" class="boton-volver" hidden>Bitácora</button>
     </div>
 
     <section id="asVistaReunion">
       <div id="asCrearPanel" class="as-calendario" hidden><h2>Actividades</h2><a class="boton-volver" href="#calendario">Abrir calendario</a></div>
-      <nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
+      <section class="as-panel as-registro"><nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
       <h2 id="asFechaTitulo"></h2>
       <input id="asReunion" type="hidden">
       <p id="asAvisoReunion" class="texto-suave"></p>
@@ -81,9 +83,10 @@ vista.innerHTML = `
           Restaurar borrador
         </button>
       </div>
+      </section>
     </section>
 
-    <section id="asVistaHistorial" hidden>
+    <section id="asVistaHistorial" class="as-panel" hidden>
       <label id="asFiltroUnidadCampo" class="as-selector" hidden>Unidad<select id="asFiltroUnidad"></select></label>
       <p id="asResumenHistorial" class="texto-suave" role="status"></p>
       <div class="as-scroll" tabindex="0" role="region" aria-label="Matriz de asistencias">
@@ -91,6 +94,7 @@ vista.innerHTML = `
       </div>
       <details id="asAdministrarFechas" hidden><summary>Administrar reuniones y borradores</summary><div id="asFechas" class="acciones"></div></details>
     </section>
+    <section id="asVistaBitacora" class="as-panel" hidden><h2>Bitácora de cambios</h2><div class="as-scroll"><table class="as-tabla"><thead><tr><th>Fecha</th><th>Registró</th><th>Reunión</th><th>Acción</th><th>Cambios</th></tr></thead><tbody id="asBitacoraLista"></tbody></table></div></section>
   </fieldset>
 `;
 
@@ -110,6 +114,7 @@ let grupo = '';
 let modo = 'reunion';
 let revision = 0;
 let ocupado = false;
+let pendientesLocales = 0;
 let guardando = false;
 let sucio = false;
 let estados = new Map();
@@ -126,7 +131,7 @@ function mensaje(texto) {
 
 function bloquear(valor) {
   ocupado = valor;
-  $('asCampos').disabled = valor;
+  $('asCampos').disabled = valor; $('asRecargar').disabled=valor;
 }
 
 function hoy() {
@@ -161,7 +166,7 @@ export function puedeSalirAsistencias() {
 
 export function reiniciarAsistencias() {
   revision += 1;
-  perfil = null;
+  perfil = null; pendientesLocales=0; iniciarAsistenciasLocal(null); $('asCola').replaceChildren();$('asBitacoraLista').replaceChildren();$('asPendientes').hidden=true;$('asConexion').textContent='';$('asActualizado').textContent='';
   panel = null;
   grupo = '';
   $('asReunion').value = '';
@@ -206,6 +211,7 @@ function resumen(filas) {
 }
 
 function pintarPanel() {
+  $('asBitacora').setAttribute('aria-pressed','false');
   $('asDia').setAttribute('aria-pressed', 'true');
   $('asHistorial').setAttribute('aria-pressed', 'false');
   $('asGrupos').replaceChildren();
@@ -264,7 +270,7 @@ function pintarPanel() {
 
     const datos = document.createElement('td');
     const nombre = document.createElement('strong');
-    nombre.textContent = u.nombre;
+    nombre.textContent = u.nombre; colorearNombre(nombre,u.id_usuario);
     datos.append(nombre);
 
     if (u.motivo) {
@@ -303,7 +309,7 @@ function pintarPanel() {
       acciones.append(estado);
 
       if (
-        panel.puede_justificar &&
+        panel.fecha === hoy() && panel.puede_justificar &&
         u.puede_justificar &&
         panel.estado !== 'anulada' &&
         u.estado === 'falta'
@@ -341,7 +347,7 @@ function pintarPanel() {
 }
 
 function actualizarCierre() {
-  const motivo = sucio ? 'Guarda los cambios de esta unidad antes de cerrar.'
+  const motivo = !navigator.onLine || pendientesLocales ? 'Actualiza y sincroniza antes de cerrar.' : sucio ? 'Guarda los cambios de esta unidad antes de cerrar.'
     : panel.grupos.some(g => !g.revisada) ? 'Revisa y guarda todas las unidades, incluida Sin unidad.'
     : '';
   $('asCerrar').title = panel.estado === 'borrador' ? motivo : '';
@@ -386,7 +392,7 @@ async function cargarReuniones(id = $('asReunion').value) {
     panel = resultado;
     sucio = false;
     pintarPanel();
-    mensaje('');
+    await mostrarEstadoLocal();
   } catch (error) {
     if (actual === revision) {
       panel = null;
@@ -403,6 +409,7 @@ async function cargarReuniones(id = $('asReunion').value) {
 }
 
 function pintarMatriz() {
+  $('asBitacora').setAttribute('aria-pressed','false');
   $('asDia').setAttribute('aria-pressed', 'false');
   $('asHistorial').setAttribute('aria-pressed', 'true');
   const filas = matriz.filter(r => !filtroUnidad || r.unidad_clave === filtroUnidad);
@@ -420,7 +427,7 @@ function pintarMatriz() {
   const body = document.createElement('tbody');
   for (const [id, nombre] of integrantes) {
     const row = document.createElement('tr'), th = document.createElement('th');
-    th.scope = 'row'; th.textContent = nombre; row.append(th);
+    th.scope = 'row'; th.textContent = nombre; colorearNombre(th,id);row.append(th);
     let total = 0, cumplidas = 0;
     for (const fecha of fechas) {
       const r = registros.get(`${id}/${fecha.id}`), td = document.createElement('td');
@@ -458,7 +465,7 @@ async function cargarHistorial() {
       modo = 'editar'; $('asVistaHistorial').hidden = true; $('asVistaReunion').hidden = false;
       void cargarReuniones(f.id);
     }));
-    pintarMatriz(); mensaje('');
+    pintarMatriz(); await mostrarEstadoLocal();
   } catch (error) { if (actual === revision) mensaje(error.message || 'No se pudo cargar el historial.'); }
   finally { if (actual === revision) bloquear(false); }
 }
@@ -500,9 +507,11 @@ async function cambiarModo(nuevo) {
   sucio = false;
   modo = nuevo;
 
-  $('asVistaReunion').hidden = modo === 'historial';
+  $('asVistaBitacora').hidden=modo!=='bitacora';
+  $('asVistaReunion').hidden = modo === 'historial'||modo==='bitacora';
   $('asVistaHistorial').hidden = modo !== 'historial';
 
+  if(modo==='bitacora'){await cargarBitacora();return;}
   if (modo !== 'historial') {
     await cargarReuniones();
   } else {
@@ -552,19 +561,15 @@ async function ejecutar(accion, datos = {}) {
   await cargarReuniones(id);
 
   if (revision === siguiente && panel) {
-    mensaje(
-      accion === 'justificar'
-        ? 'Justificación guardada.'
-        : accion === 'unidad' && panel.estado === 'borrador'
-          ? 'Unidad guardada.'
-          : 'Cambios guardados.'
-    );
+    await mostrarEstadoLocal();
   }
 }
 
-export async function abrirAsistencias(cuenta, idActividad = null) {
+export async function abrirAsistencias(cuenta, idActividad = null, authId=null) {
   reiniciarAsistencias();
-  perfil = cuenta;
+  perfil = cuenta; iniciarAsistenciasLocal(authId);$('asBitacora').hidden=!admin();$('asVistaBitacora').hidden=true;
+  let errorCarga=null;
+  if(navigator.onLine){try{bloquear(true);mensaje('Actualizando…');await sincronizarAsistencias();await prepararAsistencias();}catch(e){errorCarga=e;}finally{bloquear(false);}}
   modo = idActividad ? 'editar' : 'reunion';
 
   $('asVistaReunion').hidden = false;
@@ -572,7 +577,9 @@ export async function abrirAsistencias(cuenta, idActividad = null) {
   $('asCrearPanel').hidden = !admin();
 
 
+  if(errorCarga?.code==='42501'){mensaje(errorCarga.message);return;}
   await cargarReuniones(idActividad);
+  if(errorCarga)mensaje(errorCarga.message||'No se pudo actualizar. Se muestran los datos guardados.');
 }
 
 $('asGuardar').addEventListener('click', () => {
@@ -605,7 +612,7 @@ $('asAnular').addEventListener('click', () => {
 });
 
 $('asRestaurar').addEventListener('click', () => {
-  if (!confirm('Restaurar esta actividad también reactiva su cobro, si lo tenía, y aplica el saldo disponible. ¿Continuar?')) return;
+  if (!confirm('Restaurar esta actividad también reactiva su cobro, si lo tenía. ¿Continuar?')) return;
   void ejecutar('restaurar');
 });
 
@@ -618,7 +625,7 @@ $('asHistorial').addEventListener('click', () => {
 });
 
 $('asRecargar').addEventListener('click', () => {
-  void cambiarModo(modo);
+  void actualizarAsistencias();
 });
 
 window.addEventListener('beforeunload', evento => {
@@ -627,3 +634,34 @@ window.addEventListener('beforeunload', evento => {
     evento.returnValue = '';
   }
 });
+async function mostrarEstadoLocal(){
+ const rev=revision;const d=await estadoAsistencias();if(rev!==revision||!perfil)return;pendientesLocales=d.cola.length;$('asConexion').textContent=`${navigator.onLine?'Con conexión':'Sin conexión'} · ${d.cola.length?`${d.cola.length} pendientes`:'Sin pendientes'}`;
+ $('asActualizado').textContent=d.actualizado?`Actualizado · ${new Date(d.actualizado).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short',timeZone:'America/Mexico_City'})}`:'';
+ $('asPendientes').hidden=!d.cola.some(o=>o.error);$('asCola').replaceChildren();
+ for(const o of d.cola.filter(o=>o.error)){const fila=document.createElement('div');fila.className='as-pendiente';fila.textContent=`${d.paneles[o.reunion]?.nombre||'Reunión'} · ${o.accion} · ${o.error||'Guardado en este dispositivo'}`;
+ if(o.revisar)fila.append(boton('Resolver registro',async()=>{if(!navigator.onLine||ocupado)return;if(!confirm('Revisa el pase actualizado antes de quitar este intento. Si falta el cambio, vuelve a registrarlo. ¿Quitar pendiente?'))return;await resolverAsistencia(o.id);await actualizarAsistencias();}));$('asCola').append(fila);}
+ mensaje(d.cola.length?'Cambios guardados en este dispositivo. Pendientes de sincronizar.':navigator.onLine?'Todos los cambios están sincronizados.':'Sin conexión. Puedes guardar en este dispositivo.');
+ if(panel){actualizarCierre();$('asAnular').disabled=$('asRestaurar').disabled=Boolean(d.cola.length)||!navigator.onLine;}
+}
+async function actualizarAsistencias(){
+ if(ocupado||!puedeSalirAsistencias())return;
+ sucio=false;bloquear(true);
+ try{if(navigator.onLine){await sincronizarAsistencias();await prepararAsistencias();if(navigator.storage?.persist)await navigator.storage.persist();}
+ bloquear(false);await cambiarModo(modo);}
+ catch(e){mensaje(e.message||'No se pudo actualizar. Tus pendientes siguen guardados.');}
+ finally{bloquear(false);}
+}
+async function cargarBitacora(){
+ $('asDia').setAttribute('aria-pressed','false');$('asHistorial').setAttribute('aria-pressed','false');$('asBitacora').setAttribute('aria-pressed','true');$('asBitacoraLista').replaceChildren();
+ if(!admin())return;
+ if(!navigator.onLine){mensaje('Conecta para consultar la bitácora.');return;}
+ bloquear(true);const rev=revision;
+ try{const filas=await obtenerBitacoraAsistencias();if(rev!==revision)return;const d=await estadoAsistencias();const nombres=new Map(Object.values(d.paneles).flatMap(p=>p.integrantes.map(u=>[u.id_usuario,u.nombre])));
+ for(const f of filas){const tr=document.createElement('tr');const cambios=f.datos?.integrantes?.map(u=>`${nombres.get(u.id_usuario)||'Integrante'}: ${etiquetas[u.estado]||u.estado}`).join(' · ')||[nombres.get(f.datos?.id_usuario),etiquetas[f.datos?.estado],f.datos?.motivo].filter(Boolean).join(' · ')||'—';
+ for(const t of [new Date(f.fecha).toLocaleString('es-MX',{timeZone:'America/Mexico_City'}),f.autor,f.reunion,({unidad:'Pase de unidad',celda:'Corrección',cerrar:'Cierre',anular:'Anulación',restaurar:'Restauración',justificar:'Justificación'})[f.accion]||f.accion,cambios]){const td=document.createElement('td');td.textContent=t;tr.append(td);}$('asBitacoraLista').append(tr);}
+ mensaje(filas.length?'':'Sin cambios registrados.');
+ }catch(e){if(rev===revision)mensaje(e.message);}finally{if(rev===revision)bloquear(false);}
+}
+$('asBitacora').onclick=()=>{if(admin())void cambiarModo('bitacora');};
+window.addEventListener('online',()=>{if(!vista.hidden&&!sucio&&!guardando)void actualizarAsistencias();});
+window.addEventListener('offline',()=>{if(!vista.hidden)void mostrarEstadoLocal();});

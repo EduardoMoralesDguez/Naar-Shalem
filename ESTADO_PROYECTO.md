@@ -106,10 +106,16 @@ Nuevo módulo en Inicio: Unidades, Clases, Asignaciones y Ciclos. Aplicar `014_o
 
 Limpieza solicitada de pruebas: `database/admin/limpiar_cuotas_asistencias.sql` borra pagos/saldos/asistencias de todos los ciclos, conserva calendario y reinicia pases/cobros. No ejecutada automáticamente. El antiguo `limpiar_actividad.sql` también borra calendario; son scripts distintos.
 
-Siguiente iteración según DOCX: cuadernillos y tareas por clase. Aún pendientes: especialidades completas/biblioteca, puntos/rankings/retos, turnos de programa/push, preinscripción/mapa, offline de asistencia y visor histórico integral. No confundir el archivo de asignaciones de Organización con el archivo histórico completo.
+Siguiente iteración según DOCX: cuadernillos y tareas por clase. Aún pendientes: especialidades completas/biblioteca, puntos/rankings/retos, turnos de programa/push, preinscripción/mapa, visor histórico integral. No confundir el archivo de asignaciones de Organización con el archivo histórico completo.
 
 ## Ajuste visual y perfiles de unidad (015)
 
 Calendario sin textos explicativos del formulario, menú Integrantes sin descripciones redundantes y acceso al calendario en Asistencias igual al de Cuotas. Se quitó el aviso visible previo al cierre sin cambiar validaciones.
 
 Unidades ahora son tarjetas que abren un perfil con foto, lema, porra, integrantes y porcentaje agregado de asistencia. Edición dentro del perfil con permisos de unidad existentes. Requiere `015_perfiles_unidades.sql` después de 014; solo actualiza la RPC de organización, no borra datos. Porcentaje A+J sobre convocatorias históricas de reuniones cerradas del ciclo, excluyendo directiva y reuniones borrador/anuladas/eliminadas. Resumen agregado sin exponer estados individuales.
+
+## Asistencias offline y clases (016)
+
+Aplicar `016_asistencias_offline_colores.sql` después de 015. Asistencias separa barra de conexión, pestañas, calendario y captura; mantiene A/J/F. Guardado local por cuenta/proyecto, sincronización con UUID estable y control de versiones, conflictos conservados y bitácora solo directiva. Cierre/anulación/restauración con conexión y sin pendientes. No amplía permisos ni el límite diario de justificación. Ver `docs/ASISTENCIAS.md`.
+
+Clases tiene tarjetas y perfil con integrantes. Color hexadecimal editable por directiva; colorea solo nombres de miembros, excluyendo bitácoras y saludo/cabecera principal. La migración convierte los colores existentes y no borra registros. Scripts de limpieza opcionales actualizados para retirar también el registro de operaciones de asistencia.

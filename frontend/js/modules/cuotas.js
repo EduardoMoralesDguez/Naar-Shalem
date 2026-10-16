@@ -1,3 +1,4 @@
+import {colorearNombre} from '../lib/colores.js';
 import { obtenerCuotas, enviarCuota, verificarCuenta } from '../services/cuotas.js';
 import { localCuotas, guardarOperacion, recordarCuenta } from '../lib/cuotas-local.js';
 const $ = id => document.getElementById(id);
@@ -85,7 +86,7 @@ function pintar() {
     const cargo = p.cargos.find(c => c.id_usuario === u.id_usuario && c.periodo === periodo?.id);
     const pendientes = local.cola.filter(o => o.datos.id_usuario === u.id_usuario);
     const pendiente = pendientes.some(o => o.revisar || o.error || o.accion !== 'pago' || o.datos.importe !== 1000 || o.datos.periodos?.length !== 1 || o.datos.periodos.includes(periodo?.id));
-    const fila = document.createElement('tr'); fila.append(nodo('th', u.nombre), nodo('td', cargo ? `${dinero(cargo.pagado)} / ${dinero(cargo.importe)}` : 'Sin cargo en esta actividad'), nodo('td', dinero(u.saldo)));
+    const fila = document.createElement('tr'); fila.append(colorearNombre(nodo('th', u.nombre),u.id_usuario), nodo('td', cargo ? `${dinero(cargo.pagado)} / ${dinero(cargo.importe)}` : 'Sin cargo en esta actividad'), nodo('td', dinero(u.saldo)));
     const acciones = document.createElement('td'); acciones.className = 'cu-acciones';
     if (pendiente) acciones.append(nodo('span', 'Pendiente de sincronizar / revisar'));
     else if (cobra()) {
@@ -167,7 +168,7 @@ function pintarVistaHistorial() {
   head.append(cabecera); $('cuMatriz').append(head);
   const body = document.createElement('tbody');
   for (const u of usuarios) {
-    const fila = document.createElement('tr'), nombre = nodo('th', u.nombre); nombre.scope = 'row'; fila.append(nombre); let total = 0;
+    const fila = document.createElement('tr'), nombre = nodo('th', u.nombre); nombre.scope = 'row';colorearNombre(nombre,u.id_usuario); fila.append(nombre); let total = 0;
     for (const periodo of periodos) {
       const cargo = p.cargos.find(c => c.periodo === periodo.id && c.id_usuario === u.id_usuario);
       const td = nodo('td', cargo ? dinero(cargo.pagado) : '—');
@@ -184,11 +185,11 @@ function pintarVistaHistorial() {
   for (const u of encontrados) {
     const b = boton('', () => { historialUsuario = u.id_usuario; pintarVistaHistorial(); $('cuHistNombre').focus(); }); b.className = 'cu-integrante';
     const avatar = nodo('span', u.nombre.split(/\s+/).slice(0, 2).map(n => n[0]).join('')); avatar.className = 'cu-avatar'; avatar.setAttribute('aria-hidden', 'true');
-    const texto = nodo('span', ''); texto.append(nodo('strong', u.nombre), nodo('small', u.unidad)); b.append(avatar, texto); $('cuIntegrantes').append(b);
+    const texto = nodo('span', ''); texto.append(colorearNombre(nodo('strong', u.nombre),u.id_usuario), nodo('small', u.unidad)); b.append(avatar, texto); $('cuIntegrantes').append(b);
   }
   if (!encontrados.length) $('cuIntegrantes').append(nodo('p', 'No hay integrantes que coincidan.'));
   $('cuHistNombre').textContent = p.integrantes.find(u => u.id_usuario === historialUsuario)?.nombre || '';
-  $('cuHistNombre').tabIndex = -1;
+  $('cuHistNombre').tabIndex = -1;colorearNombre($('cuHistNombre'),historialUsuario);
   pintarHistorial();
 }
 function pintarHistorial() {

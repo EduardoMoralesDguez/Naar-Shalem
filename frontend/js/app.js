@@ -1,3 +1,5 @@
+import {pendientesAsistencias} from './services/asistencias-offline.js';
+import {configurarColores} from './lib/colores.js';
 import { abrirOrganizacion, reiniciarOrganizacion, puedeSalirOrganizacion } from './modules/organizacion.js';
 // frontend/js/app.js
 import { abrirCalendario, reiniciarCalendario, puedeSalirCalendario } from './modules/calendario.js';
@@ -118,6 +120,8 @@ function estado(texto, reintentar = false) {
 }
 
 function cuenta() {
+  configurarColores(usuarios);
+  if(navigator.onLine&&sesion?.user.id) void localCuotas(sesion.user.id,d=>{d.colores=usuarios.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase}));});
   const usuario = usuarios.find(
     integrante => integrante.id_usuario === perfil.id_usuario
   ) || perfil;
@@ -163,7 +167,7 @@ async function renderRuta(forzar = false) {
     ruta = 'inicio';
   }
 
-  if (!navigator.onLine && ruta !== 'cuotas') ruta = 'cuotas';
+  if (!navigator.onLine && ruta !== 'cuotas' && !ruta.startsWith('asistencias') && ruta !== 'inicio') ruta = 'inicio';
   history.replaceState(null, '', `#${ruta}`);
   rutaActual = ruta;
 
@@ -195,7 +199,7 @@ async function renderRuta(forzar = false) {
     } else if (ruta === 'organizacion') {
       $('vistaOrganizacion').hidden = false;
       await abrirOrganizacion(perfil, async () => { const rev = authRevision; const lista = await obtenerUsuarios(); if (rev !== authRevision) return; usuarios = lista; cuenta(); }, async () => {
-        if (await pendientesCuotas(sesion.user.id)) throw new Error('Sincroniza o resuelve tus cuotas pendientes antes de iniciar otro ciclo.');
+        if ((await pendientesCuotas(sesion.user.id))+(await pendientesAsistencias(sesion.user.id))) throw new Error('Sincroniza o resuelve tus cuotas y asistencias pendientes antes de iniciar otro ciclo.');
       });
     } else if (ruta === 'cuotas') {
       $('vistaCuotas').hidden = false;
@@ -205,7 +209,7 @@ async function renderRuta(forzar = false) {
       await abrirCalendario(perfil);
     } else if (ruta.startsWith('asistencias')) {
       $('vistaAsistencias').hidden = false;
-      await abrirAsistencias(perfil, ruta.split('/')[1]);
+      await abrirAsistencias(perfil, ruta.split('/')[1],sesion.user.id);
     } else if (ruta === 'integrantes') {
       $('menuIntegrantes').hidden = false;
     } else if (ruta === 'registrar' || ruta.startsWith('editar/')) {
@@ -319,20 +323,20 @@ async function aplicarSesion(nueva, forzar = false) {
 
   try {
     const cache = !navigator.onLine ? await localCuotas(sesion.user.id) : null;
-    if (cache && !cache.perfil) throw new Error('Prepara cuotas con conexión antes de usar este dispositivo sin internet.');
+    if (cache && !cache.perfil) throw new Error('Abre la app con conexión antes de usar este dispositivo sin internet.');
     const propio = cache ? cache.perfil : await obtenerMiPerfil();
-    const lista = cache ? [propio] : await obtenerUsuarios();
-
+    const lista = cache ? [{...propio,color_clase:cache.colores?.find(u=>u.id_usuario===propio.id_usuario)?.color_clase}] : await obtenerUsuarios();
     if (actual !== authRevision) return;
 
     perfil = propio;
     if (navigator.onLine) {
-      await localCuotas(sesion.user.id, d => { d.perfil = propio; });
+      await localCuotas(sesion.user.id, d => { d.perfil = propio; d.colores=lista.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase})); });
       if (actual !== authRevision) return;
       recordarCuenta(sesion.user.id);
     }
     usuarios = lista;
     cuenta();
+    if(cache?.colores) configurarColores(cache.colores);
 
     $('panelEstadoAcceso').hidden = true;
     $('panelLogin').hidden = true;
@@ -400,7 +404,7 @@ $('botonSalir').addEventListener('click', async () => {
     return;
   }
 
-  const pendientes = await pendientesCuotas(sesion?.user.id);
+  const pendientes = (await pendientesCuotas(sesion?.user.id))+(await pendientesAsistencias(sesion?.user.id));
   if (pendientes && !confirm(`Hay ${pendientes} movimientos sin sincronizar. Quedarán guardados para esta cuenta; tendrás que volver a iniciar sesión para enviarlos. ¿Cerrar sesión?`)) return;
   olvidarCuenta();
   cerrando = true;
