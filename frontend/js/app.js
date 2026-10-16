@@ -1,3 +1,4 @@
+import {abrirCompetencia,reiniciarCompetencia,puedeSalirCompetencia} from './modules/competencia.js';
 import {pendientesAsistencias} from './services/asistencias-offline.js';
 import {configurarColores} from './lib/colores.js';
 import { abrirOrganizacion, reiniciarOrganizacion, puedeSalirOrganizacion } from './modules/organizacion.js';
@@ -63,6 +64,7 @@ const vistas = [
   'vistaCuotas',
   'vistaCalendario',
   'vistaOrganizacion',
+  'vistaCompetencia',
 ];
 
 let perfil = null;
@@ -100,6 +102,7 @@ function limpiar() {
   reiniciarCuotas();
   reiniciarCalendario();
   reiniciarOrganizacion();
+  reiniciarCompetencia();
   reiniciarEditor();
   limpiarUsuarios();
   ocultarVistas();
@@ -147,7 +150,7 @@ async function renderRuta(forzar = false) {
       cambiandoEstado ||
       !puedeSalir() ||
       !puedeSalirAsistencias() ||
-      !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion()
+      !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion() || !puedeSalirCompetencia()
     )
   ) {
     history.replaceState(null, '', `#${rutaActual || 'inicio'}`);
@@ -162,12 +165,12 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|competencia(?:\/(?:resultados|criterios|cortes|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
 
-  if (!navigator.onLine && ruta !== 'cuotas' && !ruta.startsWith('asistencias') && ruta !== 'inicio') ruta = 'inicio';
+  if (!navigator.onLine && ruta !== 'cuotas' && !ruta.startsWith('competencia') && !ruta.startsWith('asistencias') && ruta !== 'inicio') ruta = 'inicio';
   history.replaceState(null, '', `#${ruta}`);
   rutaActual = ruta;
 
@@ -177,6 +180,7 @@ async function renderRuta(forzar = false) {
   reiniciarCuotas();
   reiniciarCalendario();
   reiniciarOrganizacion();
+  reiniciarCompetencia();
   reiniciarEditor();
   ocultarVistas();
   aviso('');
@@ -188,14 +192,17 @@ async function renderRuta(forzar = false) {
   );
 
   enlaceModulo.href =
-    ruta === 'organizacion' ? '#organizacion' : ruta === 'calendario' ? '#calendario' : ruta === 'cuotas' ? '#cuotas' : ruta.startsWith('asistencias') ? '#asistencias' : '#integrantes';
+    ruta.startsWith('competencia') ? '#competencia' : ruta === 'organizacion' ? '#organizacion' : ruta === 'calendario' ? '#calendario' : ruta === 'cuotas' ? '#cuotas' : ruta.startsWith('asistencias') ? '#asistencias' : '#integrantes';
 
   enlaceModulo.textContent =
-    ruta === 'organizacion' ? 'Organización' : ruta === 'calendario' ? 'Calendario' : ruta === 'cuotas' ? 'Cuotas' : ruta.startsWith('asistencias') ? 'Asistencias' : 'Integrantes';
+    ruta.startsWith('competencia') ? 'Competencia' : ruta === 'organizacion' ? 'Organización' : ruta === 'calendario' ? 'Calendario' : ruta === 'cuotas' ? 'Cuotas' : ruta.startsWith('asistencias') ? 'Asistencias' : 'Integrantes';
 
   try {
     if (ruta === 'inicio') {
       $('inicio').hidden = false;
+    } else if (ruta.startsWith('competencia')) {
+      $('vistaCompetencia').hidden = false;
+      await abrirCompetencia(perfil,ruta.split('/')[1]);
     } else if (ruta === 'organizacion') {
       $('vistaOrganizacion').hidden = false;
       await abrirOrganizacion(perfil, async () => { const rev = authRevision; const lista = await obtenerUsuarios(); if (rev !== authRevision) return; usuarios = lista; cuenta(); }, async () => {
@@ -399,7 +406,7 @@ $('botonSalir').addEventListener('click', async () => {
     cambiandoEstado ||
     !puedeSalir() ||
     !puedeSalirAsistencias() ||
-    !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion()
+    !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion() || !puedeSalirCompetencia()
   ) {
     return;
   }

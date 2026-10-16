@@ -25,7 +25,7 @@ El nuevo año comienza sin unidades creadas ni unidad/clase asignada a los miemb
 
 Sincronizar los pagos de **todos los dispositivos** antes de iniciar ciclo. La app bloquea el cambio si la cuenta actual tiene pendientes locales; no puede detectar pendientes de teléfonos desconectados. El servidor rechaza operaciones de un ciclo anterior, conservándolas para revisión en el dispositivo.
 
-El archivo nuevo muestra las asignaciones conocidas desde esta migración; no inventa inscripciones de años anteriores. Los registros históricos de asistencias y cuotas permanecen en la base. Su visor unificado por años, cierre de competencia y ganadores corresponde a la iteración de Historial, no a este módulo.
+El archivo nuevo muestra las asignaciones conocidas desde esta migración; no inventa inscripciones de años anteriores. Los registros históricos de asistencias y cuotas permanecen en la base. El visor unificado por años corresponde a la iteración de Historial. Los cortes y ganadores del ciclo activo se gestionan en Competencia (018).
 
 ## Prueba sugerida
 

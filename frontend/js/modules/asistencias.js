@@ -13,19 +13,6 @@ estilo.rel = 'stylesheet';
 estilo.href = new URL('../../css/asistencias.css', import.meta.url).href;
 document.head.append(estilo);
 
-const entrada = document.createElement('a');
-entrada.href = '#asistencias';
-entrada.className = 'modulo';
-entrada.innerHTML = `
-  <span class="modulo-icono" aria-hidden="true">✓</span>
-  <span class="sobre-titulo">VIDA DEL CLUB</span>
-  <h2>Asistencias</h2>
-  <p>Pases de lista por unidad e historial de reuniones.</p>
-  <strong>Entrar al módulo →</strong>
-`;
-
-document.querySelector('#inicio .menu-grid').append(entrada);
-
 const vista = document.createElement('section');
 vista.id = 'vistaAsistencias';
 vista.className = 'vista';
@@ -33,6 +20,7 @@ vista.hidden = true;
 vista.innerHTML = `
   <span class="sobre-titulo">VIDA DEL CLUB</span>
   <h1>Asistencias</h1>
+  <nav class="cp-nav" aria-label="Competencia"><a id="asPuntajeLink" href="#competencia">Puntaje</a><a href="#asistencias" aria-current="page">Asistencias</a><a href="#competencia/resultados">Resultados</a></nav>
   <p id="asMensaje" class="aviso" role="status" hidden></p>
 
   <div class="as-herramientas"><span id="asConexion"></span><span id="asActualizado"></span><button id="asRecargar" type="button" class="boton-volver">Actualizar</button></div>
@@ -567,7 +555,7 @@ async function ejecutar(accion, datos = {}) {
 
 export async function abrirAsistencias(cuenta, idActividad = null, authId=null) {
   reiniciarAsistencias();
-  perfil = cuenta; iniciarAsistenciasLocal(authId);$('asBitacora').hidden=!admin();$('asVistaBitacora').hidden=true;
+  perfil = cuenta; $('asPuntajeLink').hidden=!admin(); iniciarAsistenciasLocal(authId);$('asBitacora').hidden=!admin();$('asVistaBitacora').hidden=true;
   let errorCarga=null;
   if(navigator.onLine){try{bloquear(true);mensaje('Actualizando…');await sincronizarAsistencias();await prepararAsistencias();}catch(e){errorCarga=e;}finally{bloquear(false);}}
   modo = idActividad ? 'editar' : 'reunion';

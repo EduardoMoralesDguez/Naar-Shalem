@@ -106,7 +106,7 @@ Nuevo módulo en Inicio: Unidades, Clases, Asignaciones y Ciclos. Aplicar `014_o
 
 Limpieza solicitada de pruebas: `database/admin/limpiar_cuotas_asistencias.sql` borra pagos/saldos/asistencias de todos los ciclos, conserva calendario y reinicia pases/cobros. No ejecutada automáticamente. El antiguo `limpiar_actividad.sql` también borra calendario; son scripts distintos.
 
-Siguiente iteración según DOCX: cuadernillos y tareas por clase. Aún pendientes: especialidades completas/biblioteca, puntos/rankings/retos, turnos de programa/push, preinscripción/mapa, visor histórico integral. No confundir el archivo de asignaciones de Organización con el archivo histórico completo.
+Siguiente iteración según DOCX: cuadernillos y tareas por clase. Aún pendientes: especialidades completas/biblioteca, retos temporales, turnos de programa/push, preinscripción/mapa, visor histórico integral. No confundir el archivo de asignaciones de Organización con el archivo histórico completo.
 
 ## Ajuste visual y perfiles de unidad (015)
 
@@ -123,3 +123,7 @@ Clases tiene tarjetas y perfil con integrantes. Color hexadecimal editable por d
 ## Altas en actividades programadas (017)
 
 `017_altas_reuniones_pendientes.sql`, después de 016, incorpora nuevas altas a los pases regulares en borrador y a cobros de unidades sin cerrar desde el día del registro. Respeta exenciones, fechas anteriores y cierres independientes. Completa faltantes de actividades abiertas desde hoy para integrantes ya registrados; no borra ni aplica dinero. Bloqueos en orden 728401/728402/728403 y versiones de pase/cuenta protegen capturas desactualizadas. Prueba: `tests/altas-reuniones-sql.mjs`. Detalles en `docs/ASISTENCIAS.md`.
+
+## Competencia (018)
+
+Aplicar `018_competencia.sql` después de 017. Nuevo acceso Competencia: Puntaje por reunión, Asistencias (ruta y modo offline conservados), Resultados, Criterios, Cortes y Bitácora. Captura/configuración/cortes exclusivos de directiva con validación en servidor. Criterios iniciales de 5 puntos; valores fijados por reunión, manuales y automáticos desde asistencia/cuotas; extras individuales/grupales con motivo. Unidades suman puntajes sin normalización. Top 15 aleatorio sin puntos individuales para otros roles; directiva ve clasificación completa y acumulado anual. Cortes mensuales/personalizados congelan resultados sin borrar el año. Puntaje requiere conexión; detalles y pruebas en `docs/COMPETENCIA.md`. Retos temporales y reapertura de cortes permanecen pendientes.
