@@ -6,7 +6,7 @@ import {
   obtenerMatriz,
   iniciarAsistenciasLocal, prepararAsistencias, sincronizarAsistencias, estadoAsistencias, resolverAsistencia, obtenerBitacoraAsistencias,
 } from '../services/asistencias-offline.js';
-import {colorearNombre} from '../lib/colores.js';
+import {colorearNombre,ordenarIntegrantes} from '../lib/colores.js';
 
 const estilo = document.createElement('link');
 estilo.rel = 'stylesheet';
@@ -20,7 +20,7 @@ vista.hidden = true;
 vista.innerHTML = `
   <span class="sobre-titulo">VIDA DEL CLUB</span>
   <h1>Asistencias</h1>
-  <nav class="cp-nav" aria-label="Competencia"><a id="asPuntajeLink" href="#competencia">Puntaje</a><a href="#asistencias" aria-current="page">Asistencias</a><a href="#competencia/resultados">Resultados</a></nav>
+  <nav class="cp-nav" aria-label="Competencia"><a href="#competencia">Competencia</a><a id="asPuntajeLink" href="#competencia/puntaje">Puntos</a><a href="#asistencias" aria-current="page">Asistencias</a><a href="#competencia/resultados">Resultados</a></nav>
   <p id="asMensaje" class="aviso" role="status" hidden></p>
 
   <div class="as-herramientas"><span id="asConexion"></span><span id="asActualizado"></span><button id="asRecargar" type="button" class="boton-volver">Actualizar</button></div>
@@ -226,7 +226,7 @@ function pintarPanel() {
   // Solo la directiva navega entre unidades.
   // Capitanes y consejeros ven directamente su unidad.
   if (admin()) {
-    for (const g of panel.grupos) {
+    for (const g of [...panel.grupos].sort((a,b)=>Number(a.clave==='sin-unidad')-Number(b.clave==='sin-unidad'))) {
       const b = boton(
         `${g.nombre}${g.revisada ? ' ✓' : ''}`,
         () => {
@@ -249,7 +249,7 @@ function pintarPanel() {
 
   $('asAvisoReunion').textContent = panel.estado === 'anulada' ? 'Reunión anulada' : '';
 
-  const filas = panel.integrantes.filter(u => u.clave === grupo);
+  const filas = panel.integrantes.filter(u => u.clave === grupo).sort(ordenarIntegrantes);
 
   estados = new Map(filas.map(u => [u.id_usuario, u.estado]));
 
@@ -403,7 +403,7 @@ function pintarMatriz() {
   const filas = matriz.filter(r => !filtroUnidad || r.unidad_clave === filtroUnidad);
   const fechas = [...new Map(filas.map(r => [r.reunion, { id: r.reunion, fecha: r.fecha, nombre: r.nombre_pase || 'General' }])).values()];
   const integrantes = [...new Map(filas.map(r => [r.id_usuario, r.nombre])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+    .sort((a, b) => ordenarIntegrantes({id_usuario:a[0],nombre:a[1]},{id_usuario:b[0],nombre:b[1]}));
   const registros = new Map(filas.map(r => [`${r.id_usuario}/${r.reunion}`, r]));
   const tabla = $('asMatriz'); tabla.replaceChildren();
   const caption = document.createElement('caption'); caption.textContent = 'Historial de reuniones cerradas'; tabla.append(caption);

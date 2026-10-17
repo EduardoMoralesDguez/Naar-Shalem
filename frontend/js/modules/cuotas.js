@@ -1,4 +1,4 @@
-import {colorearNombre} from '../lib/colores.js';
+import {colorearNombre,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 import { obtenerCuotas, enviarCuota, verificarCuenta } from '../services/cuotas.js';
 import { localCuotas, guardarOperacion, recordarCuenta } from '../lib/cuotas-local.js';
 const $ = id => document.getElementById(id);
@@ -11,7 +11,7 @@ entrada.innerHTML = '<span class="modulo-icono" aria-hidden="true">$</span><span
 document.querySelector('#inicio .menu-grid').append(entrada);
 const vista = document.createElement('section'); vista.id = 'vistaCuotas'; vista.className = 'vista'; vista.hidden = true;
 vista.innerHTML = `
- <span class="sobre-titulo">TESORERÍA DEL CLUB</span><h1>Cuotas</h1>
+ <span class="sobre-titulo">TESORERÍA DEL CLUB</span><h1>Cuotas</h1><a class="boton-volver" href="#competencia">Competencia</a>
  <div class="aviso cu-estado"><p id="cuEstado" role="status"></p><span id="cuPreparacion"></span></div>
  <div class="cu-herramientas"><span id="cuConexion" role="status"></span><button id="cuSync" class="boton-volver">Actualizar</button></div>
  <nav class="cu-tabs" aria-label="Secciones de cuotas"><button id="cuTabCobro" class="boton-volver" aria-pressed="true">Cobro</button><button id="cuTabHistorial" class="boton-volver" aria-pressed="false">Historial</button><button id="cuTabBitacora" class="boton-volver" aria-pressed="false" hidden>Bitácora</button></nav>
@@ -82,7 +82,7 @@ function pintar() {
   $('cuLista').replaceChildren();
   const usuarios = p.integrantes.filter(u => !$('cuUnidad').value || (u.id_unidad || 'sin-unidad') === $('cuUnidad').value);
   const periodo = p.periodos.find(x => x.id === $('cuPeriodo').value);
-  for (const u of usuarios) {
+  for (const u of [...usuarios].sort(ordenarIntegrantes)) {
     const cargo = p.cargos.find(c => c.id_usuario === u.id_usuario && c.periodo === periodo?.id);
     const pendientes = local.cola.filter(o => o.datos.id_usuario === u.id_usuario);
     const pendiente = pendientes.some(o => o.revisar || o.error || o.accion !== 'pago' || o.datos.importe !== 1000 || o.datos.periodos?.length !== 1 || o.datos.periodos.includes(periodo?.id));
@@ -167,7 +167,7 @@ function pintarVistaHistorial() {
   for (const titulo of ['Integrante', ...periodos.map(etiquetaPeriodo), 'Total aplicado']) { const th = nodo('th', titulo); th.scope = 'col'; cabecera.append(th); }
   head.append(cabecera); $('cuMatriz').append(head);
   const body = document.createElement('tbody');
-  for (const u of usuarios) {
+  for (const u of [...usuarios].sort(ordenarIntegrantes)) {
     const fila = document.createElement('tr'), nombre = nodo('th', u.nombre); nombre.scope = 'row';colorearNombre(nombre,u.id_usuario); fila.append(nombre); let total = 0;
     for (const periodo of periodos) {
       const cargo = p.cargos.find(c => c.periodo === periodo.id && c.id_usuario === u.id_usuario);
@@ -182,9 +182,9 @@ function pintarVistaHistorial() {
   const buscar = $('cuBuscar').value.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const encontrados = usuarios.filter(u => u.nombre.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(buscar));
   $('cuIntegrantes').replaceChildren();
-  for (const u of encontrados) {
+  for (const u of [...encontrados].sort(ordenarIntegrantes)) {
     const b = boton('', () => { historialUsuario = u.id_usuario; pintarVistaHistorial(); $('cuHistNombre').focus(); }); b.className = 'cu-integrante';
-    const avatar = nodo('span', u.nombre.split(/\s+/).slice(0, 2).map(n => n[0]).join('')); avatar.className = 'cu-avatar'; avatar.setAttribute('aria-hidden', 'true');
+    const avatar = nodo('span', u.nombre.split(/\s+/).slice(0, 2).map(n => n[0]).join('')); avatar.className = 'cu-avatar';colorearAvatar(avatar,u.id_usuario,u); avatar.setAttribute('aria-hidden', 'true');
     const texto = nodo('span', ''); texto.append(colorearNombre(nodo('strong', u.nombre),u.id_usuario), nodo('small', u.unidad)); b.append(avatar, texto); $('cuIntegrantes').append(b);
   }
   if (!encontrados.length) $('cuIntegrantes').append(nodo('p', 'No hay integrantes que coincidan.'));

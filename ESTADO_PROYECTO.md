@@ -127,3 +127,11 @@ Clases tiene tarjetas y perfil con integrantes. Color hexadecimal editable por d
 ## Competencia (018)
 
 Aplicar `018_competencia.sql` después de 017. Nuevo acceso Competencia: Puntaje por reunión, Asistencias (ruta y modo offline conservados), Resultados, Criterios, Cortes y Bitácora. Captura/configuración/cortes exclusivos de directiva con validación en servidor. Criterios iniciales de 5 puntos; valores fijados por reunión, manuales y automáticos desde asistencia/cuotas; extras individuales/grupales con motivo. Unidades suman puntajes sin normalización. Top 15 aleatorio sin puntos individuales para otros roles; directiva ve clasificación completa y acumulado anual. Cortes mensuales/personalizados congelan resultados sin borrar el año. Puntaje requiere conexión; detalles y pruebas en `docs/COMPETENCIA.md`. Retos temporales y reapertura de cortes permanecen pendientes.
+
+## Competencia: presencia, consejeros y publicaciones (019)
+
+Aplicar `019_competencia_resultados.sql` después de 018 y desplegar frontend. Cinco tarjetas de acceso; matriz por unidad y Sin unidad, extras separados; Admin agrupa criterios, cortes, estadísticas y bitácora. Pase pendiente permite calificación provisional; falta/justificado deshabilitan criterios presenciales, conservando cuota y extras. Consejeros sin cuadernillo y con tablas/estadísticas privadas, aportando a su unidad. Pertenencias de las convocatorias no se mueven al reasignar miembros.
+
+Periodos programados se finalizan manualmente, incluso antes del fin previsto, congelando hasta hoy y excluyendo días futuros. Publicación autenticada por 72 horas con unidades, Top 15 aleatorio y líderes empatados por criterio (sin cuotas, extras ni consejeros). Perfil muestra último puntaje solo al titular/directiva. Acumulado anual intacto. Cortes 018 conservan totales sin inventar desgloses. Ver `docs/COMPETENCIA.md` para reglas de cierre y migración.
+
+Nombres blancos en cabeceras personales, iniciales por color de clase (negro para directiva/sin unidad), listados por orden de clase. Prueba añadida: `tests/competencia-resultados-sql.mjs`; UI Competencia ampliada. Producción no modificada automáticamente.

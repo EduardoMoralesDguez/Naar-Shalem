@@ -1,4 +1,4 @@
-import {colorearNombre} from '../lib/colores.js';
+import {colorearNombre,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 // frontend/js/modules/usuarios.js
 
 const $ = id => document.getElementById(id);
@@ -32,6 +32,7 @@ export function mostrarFoto(contenedor, usuario) {
   ).toUpperCase() || 'NS';
 
   contenedor.textContent = iniciales;
+  colorearAvatar(contenedor,usuario.id_usuario,usuario);
 
   if (!usuario.url_foto) return;
 
@@ -87,7 +88,7 @@ export function limpiarUsuarios() {
 }
 
 export function mostrarUsuarios(usuarios, admin) {
-  filas = usuarios;
+  filas = [...usuarios].sort(ordenarIntegrantes);
 
   $('campoFiltroRol').hidden = !admin;
   $('campoFiltroEstado').hidden = !admin;
@@ -214,7 +215,8 @@ export function mostrarPerfil(usuario) {
   $('tarjetaNombre').textContent =
     `${usuario.nombres} ${usuario.apellido}`;
 
-  colorearNombre($('tarjetaNombre'),usuario.id_usuario);
+  delete $('tarjetaNombre').dataset.colorIntegrante;
+  $('tarjetaNombre').style.color='#ffffff';
   $('tarjetaRol').textContent = nombreRol(usuario.rol);
   $('tarjetaRol').parentElement.hidden = !usuario.rol;
   $('tarjetaUnidad').textContent = usuario.unidad || 'Sin asignar';
