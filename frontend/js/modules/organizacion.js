@@ -1,4 +1,4 @@
-import {colorearNombre,colorHex} from '../lib/colores.js';
+import {colorearNombre,colorHex,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 import { obtenerOrganizacion,guardarOrganizacion,subirFotoUnidad } from '../services/organizacion.js';
 const $=id=>document.getElementById(id);
 const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('../../css/organizacion.css',import.meta.url).href;document.head.append(css);
@@ -80,14 +80,14 @@ function pintarPerfilUnidad(){
  const porra=crear('section');porra.className='org-panel org-porra';porra.append(crear('h3','Porra'),crear('p',grupo.porra||'Sin porra'));columnas.append(porra);perfilUnidad.append(columnas);
  const integrantes=crear('section');integrantes.className='org-panel';integrantes.append(crear('h3','Integrantes'));
  const lista=crear('div');lista.className='org-miembros-perfil';
- for(const u of panel.integrantes.filter(u=>u.id_unidad===grupo.id_unidad&&u.activo&&u.rol!=='directiva')){
- const a=crear('a');a.href=`#perfil/${u.id_usuario}`;a.className='org-miembro';const avatar=crear('span',u.nombre.split(/\s+/).slice(0,2).map(n=>n[0]).join(''));avatar.className='org-miembro-avatar';avatar.setAttribute('aria-hidden','true');const texto=crear('span');texto.append(colorearNombre(crear('strong',u.nombre),u.id_usuario),crear('small',etiquetaRol(u.rol)));a.append(avatar,texto);lista.append(a);
+ for(const u of panel.integrantes.filter(u=>u.id_unidad===grupo.id_unidad&&u.activo&&u.rol!=='directiva').sort(ordenarIntegrantes)){
+ const a=crear('a');a.href=`#perfil/${u.id_usuario}`;a.className='org-miembro';const avatar=crear('span',u.nombre.split(/\s+/).slice(0,2).map(n=>n[0]).join(''));avatar.className='org-miembro-avatar';colorearAvatar(avatar,u.id_usuario,u);avatar.setAttribute('aria-hidden','true');const texto=crear('span');texto.append(colorearNombre(crear('strong',u.nombre),u.id_usuario),crear('small',etiquetaRol(u.rol)));a.append(avatar,texto);lista.append(a);
  }
  if(!lista.children.length)lista.append(crear('p','Sin integrantes'));integrantes.append(lista);perfilUnidad.append(integrantes);
 }
 function etiquetaRol(r){return {directiva:'Directiva',consejero:'Consejero',capitan:'Capitán',subcapitan:'Subcapitán',conquistador:'Conquistador'}[r]||r;}
 function pintarMiembros(){if(!panel)return;$('orgMiembros').replaceChildren();const q=$('orgBuscar').value.toLocaleLowerCase('es');
- for(const u of panel.integrantes.filter(u=>u.nombre.toLocaleLowerCase('es').includes(q))){const tr=crear('tr');tr.append(colorearNombre(crear('th',u.nombre+(u.activo?'':' · Inactivo')),u.id_usuario),crear('td',etiquetaRol(u.rol)),crear('td',panel.vigente?panel.unidades.find(x=>x.id_unidad===u.id_unidad)?.nombre||'—':u.unidad||'—'),crear('td',panel.vigente?panel.clases.find(x=>x.id_clase===u.id_clase)?.nombre||'—':u.clase||'—'));
+ for(const u of panel.integrantes.filter(u=>u.nombre.toLocaleLowerCase('es').includes(q)).sort(ordenarIntegrantes)){const tr=crear('tr');tr.append(colorearNombre(crear('th',u.nombre+(u.activo?'':' · Inactivo')),u.id_usuario),crear('td',etiquetaRol(u.rol)),crear('td',panel.vigente?panel.unidades.find(x=>x.id_unidad===u.id_unidad)?.nombre||'—':u.unidad||'—'),crear('td',panel.vigente?panel.clases.find(x=>x.id_clase===u.id_clase)?.nombre||'—':u.clase||'—'));
  const td=crear('td');if(puedeAdministrar()&&u.rol!=='directiva')td.append(btn('Asignar',()=>editar('asignar',u)));tr.append(td);$('orgMiembros').append(tr);}}
 function campo(nombre,titulo,valor='',tipo='text',opciones=null){const label=crear('label',titulo),e=document.createElement(opciones?'select':tipo==='textarea'?'textarea':'input');e.name=nombre;
  if(opciones){for(const [id,t] of opciones){const o=crear('option',t);o.value=id;e.append(o);}}else if(tipo!=='textarea')e.type=tipo;
@@ -139,6 +139,6 @@ function pintarPerfilClase(){
  const cabecera=crear('div');cabecera.className='org-perfil-cabecera org-panel';const avatar=avatarUnidad(clase);avatar.style.background=colorHex(clase.color_distintivo)||'';cabecera.append(avatar);const nombre=crear('h2',clase.nombre);nombre.id='orgClaseNombre';nombre.tabIndex=-1;cabecera.append(nombre);
  if(puedeAdministrar()){const editarClase=btn('Editar clase',()=>editar('clase',clase));editarClase.id='orgEditarClase';cabecera.append(editarClase,btn(clase.es_activa?'Desactivar':'Reactivar',()=>cambiarEstado('clase',clase)));}destino.append(cabecera);
  const miembros=crear('section');miembros.className='org-panel';miembros.append(crear('h3','Integrantes'));const lista=crear('div');lista.className='org-miembros-perfil';
- for(const u of panel.integrantes.filter(u=>u.id_clase===clase.id_clase&&u.activo&&u.rol!=='directiva')){const a=crear('a');a.className='org-miembro';a.href=`#perfil/${u.id_usuario}`;const texto=crear('span');texto.append(colorearNombre(crear('strong',u.nombre),u.id_usuario),crear('small',etiquetaRol(u.rol)));a.append(texto);lista.append(a);}
+ for(const u of panel.integrantes.filter(u=>u.id_clase===clase.id_clase&&u.activo&&u.rol!=='directiva').sort(ordenarIntegrantes)){const a=crear('a');a.className='org-miembro';a.href=`#perfil/${u.id_usuario}`;const texto=crear('span');texto.append(colorearNombre(crear('strong',u.nombre),u.id_usuario),crear('small',etiquetaRol(u.rol)));a.append(texto);lista.append(a);}
  if(!lista.children.length)lista.append(crear('p','Sin integrantes'));miembros.append(lista);destino.append(miembros);
 }

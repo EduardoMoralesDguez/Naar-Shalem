@@ -1,3 +1,4 @@
+import {obtenerPuntajePerfil,obtenerPublicacion} from './services/competencia.js';
 import {abrirCompetencia,reiniciarCompetencia,puedeSalirCompetencia} from './modules/competencia.js';
 import {pendientesAsistencias} from './services/asistencias-offline.js';
 import {configurarColores} from './lib/colores.js';
@@ -124,7 +125,7 @@ function estado(texto, reintentar = false) {
 
 function cuenta() {
   configurarColores(usuarios);
-  if(navigator.onLine&&sesion?.user.id) void localCuotas(sesion.user.id,d=>{d.colores=usuarios.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase}));});
+  if(navigator.onLine&&sesion?.user.id) void localCuotas(sesion.user.id,d=>{d.colores=usuarios.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase,clase:u.clase,unidad:u.unidad,es_directiva:u.es_directiva,rol:u.rol}));});
   const usuario = usuarios.find(
     integrante => integrante.id_usuario === perfil.id_usuario
   ) || perfil;
@@ -165,7 +166,7 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|competencia(?:\/(?:resultados|criterios|cortes|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|competencia(?:\/(?:puntaje|resultados|admin|criterios|cortes|estadisticas|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
@@ -199,6 +200,7 @@ async function renderRuta(forzar = false) {
 
   try {
     if (ruta === 'inicio') {
+      void cargarAnuncioCompetencia(actual);
       $('inicio').hidden = false;
     } else if (ruta.startsWith('competencia')) {
       $('vistaCompetencia').hidden = false;
@@ -264,6 +266,8 @@ async function renderRuta(forzar = false) {
         }
 
         mostrarPerfil(usuario);
+        $('perfilPuntaje').hidden=true;
+        $('perfilPuntaje').replaceChildren();
         $('vistaPerfil').hidden = false;
 
         $('editarPerfil').hidden = !admin() || !usuario.es_activo;
@@ -285,6 +289,7 @@ async function renderRuta(forzar = false) {
         // El dashboard incluye cuotas y conserva sus permisos.
         // Al abrir el perfil consulta nuevamente los registros guardados.
         if ((admin() || id === perfil.id_usuario) && !usuario.es_directiva && usuario.rol !== 'directiva') {
+          void obtenerPuntajePerfil(id).then(p=>{if(!vigente()||!p)return;const titulo=document.createElement('h3');titulo.textContent=p.nombre;const valor=document.createElement('strong');valor.textContent=`${p.puntos} puntos`;const fechas=document.createElement('small');fechas.textContent=`${p.desde} · ${p.hasta}`;$('perfilPuntaje').replaceChildren(titulo,valor,fechas);$('perfilPuntaje').hidden=false;}).catch(()=>{if(vigente()){$('perfilPuntaje').textContent='No se pudo consultar el puntaje.';$('perfilPuntaje').hidden=false;}});
           void cargarProgreso(id, vigente, ['conquistador', 'capitan', 'subcapitan'].includes(usuario.rol));
         }
 
@@ -337,7 +342,7 @@ async function aplicarSesion(nueva, forzar = false) {
 
     perfil = propio;
     if (navigator.onLine) {
-      await localCuotas(sesion.user.id, d => { d.perfil = propio; d.colores=lista.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase})); });
+      await localCuotas(sesion.user.id, d => { d.perfil = propio; d.colores=lista.map(u=>({id_usuario:u.id_usuario,color_clase:u.color_clase,clase:u.clase,unidad:u.unidad,es_directiva:u.es_directiva,rol:u.rol})); });
       if (actual !== authRevision) return;
       recordarCuenta(sesion.user.id);
     }
@@ -545,3 +550,7 @@ window.addEventListener('online', async () => {
   const { data } = await obtenerSupabase().auth.getSession();
   await aplicarSesion(data.session, true);
 });
+
+const anuncioCompetencia=document.createElement('a');anuncioCompetencia.className='competencia-anuncio';anuncioCompetencia.href='#competencia/resultados';anuncioCompetencia.hidden=true;document.querySelector('#inicio .menu-grid').before(anuncioCompetencia);
+let anuncioTimer;
+async function cargarAnuncioCompetencia(actual){clearTimeout(anuncioTimer);anuncioCompetencia.hidden=true;try{const p=await obtenerPublicacion();if(actual!==vistaRevision||!perfil||!p)return;const restante=new Date(p.publicado_hasta)-Date.now();if(restante<=0)return;anuncioCompetencia.textContent=`${p.nombre} · Resultados publicados →`;anuncioCompetencia.hidden=false;anuncioTimer=setTimeout(()=>{anuncioCompetencia.hidden=true;},Math.min(restante,2147483647));}catch{/* El acceso al inicio no depende del aviso. */}}
