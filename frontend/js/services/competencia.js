@@ -5,3 +5,4 @@ export const guardarCompetencia=(id,accion,datos)=>rpc('competencia_guardar',{p_
 
 export const obtenerPuntajePerfil=usuario=>rpc('competencia_perfil',{p_usuario:usuario});
 export const obtenerPublicacion=()=>rpc('competencia_publicacion',{});
+export const obtenerPuntajeUnidad=unidad=>rpc('competencia_unidad',{p_unidad:unidad});
