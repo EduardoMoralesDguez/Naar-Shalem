@@ -1,4 +1,8 @@
-let colores=new Map();
+let integrantes=new Map();
 export function colorHex(valor){return /^#[0-9a-f]{6}$/i.test(valor||'')?valor:null;}
-export function configurarColores(filas){colores=new Map(filas.map(u=>[u.id_usuario,colorHex(u.color_clase)]));document.querySelectorAll('[data-color-integrante]').forEach(n=>colorearNombre(n,n.dataset.colorIntegrante));}
-export function colorearNombre(nodo,id){nodo.dataset.colorIntegrante=id;nodo.style.color=colores.get(id)||'';return nodo;}
+const normalizar=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const clases=['amigo','companero','explorador','orientador','viajero','guia'];
+export function ordenarIntegrantes(a,b){const ua={...integrantes.get(a.id_usuario),...a},ub={...integrantes.get(b.id_usuario),...b};const orden=u=>{const i=clases.indexOf(normalizar(u.clase));return i<0?99:i;};return orden(ua)-orden(ub)||String(ua.clase||'').localeCompare(ub.clase||'','es')||String(ua.nombre||`${ua.nombres||''} ${ua.apellido||''}`).localeCompare(ub.nombre||`${ub.nombres||''} ${ub.apellido||''}`,'es');}
+export function configurarColores(filas){integrantes=new Map(filas.map(u=>[u.id_usuario,u]));document.querySelectorAll('[data-color-integrante]').forEach(n=>colorearNombre(n,n.dataset.colorIntegrante));document.querySelectorAll('[data-avatar-integrante]').forEach(n=>colorearAvatar(n,n.dataset.avatarIntegrante));}
+export function colorearNombre(nodo,id){nodo.dataset.colorIntegrante=id;nodo.style.color=colorHex(integrantes.get(id)?.color_clase)||'';return nodo;}
+export function colorearAvatar(nodo,id,datos=null){const u={...datos,...integrantes.get(id)};const sinUnidad=('unidad' in u)?!u.unidad||u.unidad==='Sin unidad':('id_unidad' in u&&!u.id_unidad);const color=u.rol==='directiva'||u.es_directiva||sinUnidad?'#111111':colorHex(u.color_clase)||'#302c9c';nodo.dataset.avatarIntegrante=id;nodo.style.backgroundColor=color;const rgb=color.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);nodo.style.color=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>.179?'#111111':'#ffffff';return nodo;}
