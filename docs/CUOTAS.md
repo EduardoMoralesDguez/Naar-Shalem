@@ -68,3 +68,7 @@ La limpieza opcional cambia la generación de datos. Los pagos offline anteriore
 - Después del cierre, capitanes no agregan pagos a ese cobro. Directiva puede registrar abonos o corregir ingresos desde Historial. Un pago offline de otro teléfono que llegue después del cierre se detiene para revisión; nunca se descarta automáticamente.
 - Al instalar 013: los cargos anteriores a hoy se consideran cerrados. En los de hoy/futuros se liberan aplicaciones de ingresos anteriores a la fecha o no destinados explícitamente a ese cobro en su operación original. El dinero permanece como saldo a favor; no se borran ingresos. Revisar los cobros de hoy después de actualizar. Reejecutar 013 no repite esta conversión.
 - Cancelar y restaurar una actividad conserva sus ingresos como saldo y reabre el cobro para volver a revisarlo.
+
+## Cambios de privacidad en 020
+
+Cuotas se abre dentro de Competencia. La preparación y sincronización conjunta está en su botón Actualizar. Directiva conserva historial, bitácora y saldos; capitán/subcapitán solo cobran su unidad en las reuniones del día vigente, con importe aplicado y total por reunión. El resto de integrantes no recibe importes por RPC, únicamente su porcentaje de cumplimiento cuando corresponde. Aplicar `020_competencia_integrada.sql` después de 019 antes de desplegar esta interfaz. Véase `docs/COMPETENCIA.md` para preparación sin conexión y cierres reversibles.

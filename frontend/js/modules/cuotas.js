@@ -1,3 +1,4 @@
+import {navegacionCompetencia,permisosNavegacion} from '../lib/competencia-nav.js';
 import {colorearNombre,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 import { obtenerCuotas, enviarCuota, verificarCuenta } from '../services/cuotas.js';
 import { localCuotas, guardarOperacion, recordarCuenta } from '../lib/cuotas-local.js';
@@ -6,19 +7,16 @@ const dinero = c => new Intl.NumberFormat('es-MX', { style: 'currency', currency
 const etiquetaPeriodo = p => p ? `${p.fecha} · ${p.hora?.slice(0, 5) || '09:00'} · ${p.nombre || 'Cobro anterior'}` : 'Actividad anterior';
 const hoy = () => { const parts = new Intl.DateTimeFormat('en', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); return ['year', 'month', 'day'].map(t => parts.find(p => p.type === t).value).join('-'); };
 const estilo = document.createElement('link'); estilo.rel = 'stylesheet'; estilo.href = new URL('../../css/cuotas.css', import.meta.url).href; document.head.append(estilo);
-const entrada = document.createElement('a'); entrada.href = '#cuotas'; entrada.className = 'modulo';
-entrada.innerHTML = '<span class="modulo-icono" aria-hidden="true">$</span><span class="sobre-titulo">TESORERÍA</span><h2>Cuotas</h2><p>Cobros por actividad, abonos y saldo a favor.</p><strong>Entrar al módulo →</strong>';
-document.querySelector('#inicio .menu-grid').append(entrada);
 const vista = document.createElement('section'); vista.id = 'vistaCuotas'; vista.className = 'vista'; vista.hidden = true;
 vista.innerHTML = `
- <span class="sobre-titulo">TESORERÍA DEL CLUB</span><h1>Cuotas</h1><a class="boton-volver" href="#competencia">Competencia</a>
+ <span class="sobre-titulo">VIDA DEL CLUB</span><h1>Competencia</h1>${navegacionCompetencia('cuotas')}<h2>Cuotas</h2><p id="cuCumplimiento" hidden></p>
  <div class="aviso cu-estado"><p id="cuEstado" role="status"></p><span id="cuPreparacion"></span></div>
  <div class="cu-herramientas"><span id="cuConexion" role="status"></span><button id="cuSync" class="boton-volver">Actualizar</button></div>
  <nav class="cu-tabs" aria-label="Secciones de cuotas"><button id="cuTabCobro" class="boton-volver" aria-pressed="true">Cobro</button><button id="cuTabHistorial" class="boton-volver" aria-pressed="false">Historial</button><button id="cuTabBitacora" class="boton-volver" aria-pressed="false" hidden>Bitácora</button></nav>
  <section id="cuPendientes" class="cu-panel" hidden><h2>Guardado en este dispositivo</h2><p>Estos movimientos todavía no están confirmados en Supabase. Se enviarán con la cuenta que los capturó.</p><div id="cuCola"></div></section>
  <div id="cuVistaCobro"><section id="cuCalendario" class="cu-panel" hidden><h2>Actividades</h2><a href="#calendario" class="boton-volver">Abrir calendario</a></section>
  <section class="cu-panel"><div class="cu-form"><label>Actividad<select id="cuPeriodo"></select></label><label id="cuUnidadCampo">Unidad<select id="cuUnidad"></select></label></div>
- <div class="cu-scroll"><table class="cu-tabla"><caption>Registro de cuotas</caption><thead><tr><th>Integrante</th><th>Aplicado / cuota</th><th>Saldo a favor</th><th>Registro</th></tr></thead><tbody id="cuLista"></tbody></table></div>
+ <div class="cu-scroll"><table class="cu-tabla"><caption>Registro de cuotas</caption><thead><tr><th>Integrante</th><th>Aplicado</th><th id="cuSaldoCabecera">Saldo a favor</th><th>Registro</th></tr></thead><tbody id="cuLista"></tbody><tfoot id="cuTotales"></tfoot></table></div>
  <p id="cuVacio"></p><button id="cuGuardar" class="boton-principal" hidden>Guardar pagos marcados</button><button id="cuCerrar" class="boton-volver" hidden>Cerrar cobro de unidad</button><p id="cuCierreEstado" role="status"></p></section>
  </div>
  <section id="cuVistaHistorial" class="cu-panel" hidden>
@@ -67,6 +65,7 @@ export function reiniciarCuotas() {
 export async function pendientesCuotas(id) { return id ? (await localCuotas(id)).cola.length : 0; }
 function pintar() {
   const p = local?.panel; if (!p) return;
+  $('cuSaldoCabecera').hidden=!admin();$('cuTabHistorial').hidden=!admin();$('cuCumplimiento').hidden=cobra();$('cuCumplimiento').textContent=p.cumplimiento==null?'Sin cuotas asignadas':`Cumplimiento de cuotas: ${p.cumplimiento}%`;
   $('cuCalendario').hidden = !admin(); $('cuUnidadCampo').hidden = !admin();
   $('cuGuardar').hidden = !cobra(); $('cuGuardar').disabled = ocupado || !marcados.size;
   $('cuSync').disabled = ocupado || !navigator.onLine;
@@ -86,7 +85,7 @@ function pintar() {
     const cargo = p.cargos.find(c => c.id_usuario === u.id_usuario && c.periodo === periodo?.id);
     const pendientes = local.cola.filter(o => o.datos.id_usuario === u.id_usuario);
     const pendiente = pendientes.some(o => o.revisar || o.error || o.accion !== 'pago' || o.datos.importe !== 1000 || o.datos.periodos?.length !== 1 || o.datos.periodos.includes(periodo?.id));
-    const fila = document.createElement('tr'); fila.append(colorearNombre(nodo('th', u.nombre),u.id_usuario), nodo('td', cargo ? `${dinero(cargo.pagado)} / ${dinero(cargo.importe)}` : 'Sin cargo en esta actividad'), nodo('td', dinero(u.saldo)));
+    const fila = document.createElement('tr'); fila.append(colorearNombre(nodo('th', u.nombre),u.id_usuario), nodo('td', cargo ? dinero(cargo.pagado) : '—'));if(admin())fila.append(nodo('td',dinero(u.saldo)));
     const acciones = document.createElement('td'); acciones.className = 'cu-acciones';
     if (pendiente) acciones.append(nodo('span', 'Pendiente de sincronizar / revisar'));
     else if (cobra()) {
@@ -99,6 +98,7 @@ function pintar() {
     } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
     fila.append(acciones); $('cuLista').append(fila);
   }
+  $('cuTotales').replaceChildren();const pie=nodo('tr','');pie.append(nodo('th','Total'),nodo('td',dinero(p.cargos.filter(c=>c.periodo===periodo?.id&&usuarios.some(u=>u.id_usuario===c.id_usuario)).reduce((a,c)=>a+c.pagado,0))));if(admin())pie.append(nodo('td',dinero(usuarios.reduce((a,u)=>a+(u.saldo||0),0))));pie.append(nodo('td',''));$('cuTotales').append(pie);
   const grupo = admin() ? $('cuUnidad').value : (perfil.id_unidad || 'sin-unidad');
   const cargosUnidad = p.cargos.filter(c => c.periodo === periodo?.id && (c.id_unidad || 'sin-unidad') === grupo);
   const cerrado = cargosUnidad.length && cargosUnidad.every(c => c.cerrado);
@@ -136,8 +136,8 @@ function pintar() {
   pintarSecciones(); pintarVistaHistorial();
 }
 function pintarSecciones() {
-  if (pestaña === 'bitacora' && !admin()) pestaña = 'cobro';
-  $('cuVistaCobro').hidden = pestaña !== 'cobro';
+  if (pestaña !== 'cobro' && !admin()) pestaña = 'cobro';
+  $('cuVistaCobro').hidden = pestaña !== 'cobro'||!cobra();
   $('cuVistaHistorial').hidden = pestaña !== 'historial';
   $('cuAuditoria').hidden = pestaña !== 'bitacora' || !admin();
   for (const [id, valor] of [['cuTabCobro', 'cobro'], ['cuTabHistorial', 'historial'], ['cuTabBitacora', 'bitacora']]) $(id).setAttribute('aria-pressed', String(pestaña === valor));
@@ -147,7 +147,7 @@ function cambiarSeccion(valor) {
   marcados.clear(); pestaña = valor; pintar();
 }
 function pintarVistaHistorial() {
-  const p = local?.panel; if (!p) return;
+  const p = local?.panel; if (!p||!admin()){ $('cuMatriz').replaceChildren();$('cuHistorial').replaceChildren();$('cuIntegrantes').replaceChildren();return;}
   const individual = !cobra();
   if (individual) { historialVista = 'integrante'; historialUsuario = p.integrantes[0]?.id_usuario || null; }
   $('cuPorUnidad').hidden = individual; $('cuPorIntegrante').hidden = individual;
@@ -178,7 +178,7 @@ function pintarVistaHistorial() {
     fila.append(nodo('td', dinero(total))); body.append(fila);
   }
   if (!usuarios.length) { const row = document.createElement('tr'), td = nodo('td', 'No hay integrantes.'); td.colSpan = periodos.length + 2; row.append(td); body.append(row); }
-  $('cuMatriz').append(body);
+  $('cuMatriz').append(body);const foot=document.createElement('tfoot'),tr=nodo('tr','');tr.append(nodo('th','Total'));let general=0;for(const periodo of periodos){const total=p.cargos.filter(c=>c.periodo===periodo.id&&usuarios.some(u=>u.id_usuario===c.id_usuario)).reduce((a,c)=>a+c.pagado,0);general+=total;tr.append(nodo('td',dinero(total)));}tr.append(nodo('td',dinero(general)));foot.append(tr);$('cuMatriz').append(foot);
   const buscar = $('cuBuscar').value.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const encontrados = usuarios.filter(u => u.nombre.toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(buscar));
   $('cuIntegrantes').replaceChildren();
@@ -236,7 +236,7 @@ async function cargar() {
   recordarCuenta(id); pintar();
 }
 export async function abrirCuotas(p, id) {
-  perfil = p; cuenta = id; const rev = ++revision;
+  perfil = p; permisosNavegacion(vista,perfil);cuenta = id; const rev = ++revision;
   try { const actual = await localCuotas(id); if (rev !== revision) return; local = actual;
     if (navigator.onLine) { await cargar(); if (rev !== revision) return; await sincronizar(); }
     else { pintar(); mensaje(local.panel ? 'Sin conexión: puedes guardar cuotas en este dispositivo.' : 'Conecta el dispositivo y prepara la lista antes de usarla sin internet.'); }
@@ -327,7 +327,7 @@ $('cuSync').onclick = () => void actualizar();
 $('cuPeriodo').onchange = cambiaFiltro;
 $('cuUnidad').onchange = cambiaFiltro;
 $('cuTabCobro').onclick = () => cambiarSeccion('cobro');
-$('cuTabHistorial').onclick = () => cambiarSeccion('historial');
+$('cuTabHistorial').onclick = () => {if(admin())cambiarSeccion('historial');};
 $('cuTabBitacora').onclick = () => { if (admin()) cambiarSeccion('bitacora'); };
 $('cuPorUnidad').onclick = () => { historialVista = 'unidad'; historialUsuario = null; pintarVistaHistorial(); };
 $('cuPorIntegrante').onclick = () => { historialVista = 'integrante'; historialUsuario = null; pintarVistaHistorial(); };

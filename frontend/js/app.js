@@ -1,3 +1,4 @@
+import {pendientesPuntajes} from './services/competencia-local.js';
 import {obtenerPuntajePerfil,obtenerPublicacion} from './services/competencia.js';
 import {abrirCompetencia,reiniciarCompetencia,puedeSalirCompetencia} from './modules/competencia.js';
 import {pendientesAsistencias} from './services/asistencias-offline.js';
@@ -193,10 +194,10 @@ async function renderRuta(forzar = false) {
   );
 
   enlaceModulo.href =
-    ruta.startsWith('competencia') ? '#competencia' : ruta === 'organizacion' ? '#organizacion' : ruta === 'calendario' ? '#calendario' : ruta === 'cuotas' ? '#cuotas' : ruta.startsWith('asistencias') ? '#asistencias' : '#integrantes';
+    (ruta.startsWith('competencia')||ruta==='cuotas'||ruta.startsWith('asistencias')) ? '#competencia' : ruta === 'organizacion' ? '#organizacion' : ruta === 'calendario' ? '#calendario' : ruta === 'cuotas' ? '#cuotas' : ruta.startsWith('asistencias') ? '#asistencias' : '#integrantes';
 
   enlaceModulo.textContent =
-    ruta.startsWith('competencia') ? 'Competencia' : ruta === 'organizacion' ? 'Organización' : ruta === 'calendario' ? 'Calendario' : ruta === 'cuotas' ? 'Cuotas' : ruta.startsWith('asistencias') ? 'Asistencias' : 'Integrantes';
+    (ruta.startsWith('competencia')||ruta==='cuotas'||ruta.startsWith('asistencias')) ? 'Competencia' : ruta === 'organizacion' ? 'Organización' : ruta === 'calendario' ? 'Calendario' : ruta === 'cuotas' ? 'Cuotas' : ruta.startsWith('asistencias') ? 'Asistencias' : 'Integrantes';
 
   try {
     if (ruta === 'inicio') {
@@ -204,11 +205,11 @@ async function renderRuta(forzar = false) {
       $('inicio').hidden = false;
     } else if (ruta.startsWith('competencia')) {
       $('vistaCompetencia').hidden = false;
-      await abrirCompetencia(perfil,ruta.split('/')[1]);
+      await abrirCompetencia(perfil,ruta.split('/')[1],sesion.user.id);
     } else if (ruta === 'organizacion') {
       $('vistaOrganizacion').hidden = false;
       await abrirOrganizacion(perfil, async () => { const rev = authRevision; const lista = await obtenerUsuarios(); if (rev !== authRevision) return; usuarios = lista; cuenta(); }, async () => {
-        if ((await pendientesCuotas(sesion.user.id))+(await pendientesAsistencias(sesion.user.id))) throw new Error('Sincroniza o resuelve tus cuotas y asistencias pendientes antes de iniciar otro ciclo.');
+        if ((await pendientesCuotas(sesion.user.id))+(await pendientesAsistencias(sesion.user.id))+(await pendientesPuntajes(sesion.user.id))) throw new Error('Sincroniza o resuelve tus cuotas, asistencias y puntajes pendientes antes de iniciar otro ciclo.');
       });
     } else if (ruta === 'cuotas') {
       $('vistaCuotas').hidden = false;
@@ -288,9 +289,9 @@ async function renderRuta(forzar = false) {
 
         // El dashboard incluye cuotas y conserva sus permisos.
         // Al abrir el perfil consulta nuevamente los registros guardados.
-        if ((admin() || id === perfil.id_usuario) && !usuario.es_directiva && usuario.rol !== 'directiva') {
+        if(!usuario.es_directiva&&usuario.rol!=='directiva'){
           void obtenerPuntajePerfil(id).then(p=>{if(!vigente()||!p)return;const titulo=document.createElement('h3');titulo.textContent=p.nombre;const valor=document.createElement('strong');valor.textContent=`${p.puntos} puntos`;const fechas=document.createElement('small');fechas.textContent=`${p.desde} · ${p.hasta}`;$('perfilPuntaje').replaceChildren(titulo,valor,fechas);$('perfilPuntaje').hidden=false;}).catch(()=>{if(vigente()){$('perfilPuntaje').textContent='No se pudo consultar el puntaje.';$('perfilPuntaje').hidden=false;}});
-          void cargarProgreso(id, vigente, ['conquistador', 'capitan', 'subcapitan'].includes(usuario.rol));
+          if(admin()||id===perfil.id_usuario)void cargarProgreso(id, vigente, ['conquistador', 'capitan', 'subcapitan'].includes(usuario.rol),admin());
         }
 
         void cargarEspecialidades(id, vigente);
@@ -416,7 +417,7 @@ $('botonSalir').addEventListener('click', async () => {
     return;
   }
 
-  const pendientes = (await pendientesCuotas(sesion?.user.id))+(await pendientesAsistencias(sesion?.user.id));
+  const pendientes = (await pendientesCuotas(sesion?.user.id))+(await pendientesAsistencias(sesion?.user.id))+(await pendientesPuntajes(sesion?.user.id));
   if (pendientes && !confirm(`Hay ${pendientes} movimientos sin sincronizar. Quedarán guardados para esta cuenta; tendrás que volver a iniciar sesión para enviarlos. ¿Cerrar sesión?`)) return;
   olvidarCuenta();
   cerrando = true;
@@ -553,4 +554,4 @@ window.addEventListener('online', async () => {
 
 const anuncioCompetencia=document.createElement('a');anuncioCompetencia.className='competencia-anuncio';anuncioCompetencia.href='#competencia/resultados';anuncioCompetencia.hidden=true;document.querySelector('#inicio .menu-grid').before(anuncioCompetencia);
 let anuncioTimer;
-async function cargarAnuncioCompetencia(actual){clearTimeout(anuncioTimer);anuncioCompetencia.hidden=true;try{const p=await obtenerPublicacion();if(actual!==vistaRevision||!perfil||!p)return;const restante=new Date(p.publicado_hasta)-Date.now();if(restante<=0)return;anuncioCompetencia.textContent=`${p.nombre} · Resultados publicados →`;anuncioCompetencia.hidden=false;anuncioTimer=setTimeout(()=>{anuncioCompetencia.hidden=true;},Math.min(restante,2147483647));}catch{/* El acceso al inicio no depende del aviso. */}}
+async function cargarAnuncioCompetencia(actual){clearTimeout(anuncioTimer);anuncioCompetencia.hidden=true;try{const p=await obtenerPublicacion();if(actual!==vistaRevision||!perfil||!p)return;const restante=p.anual?Infinity:new Date(p.publicado_hasta)-Date.now();if(restante<=0)return;anuncioCompetencia.textContent=`${p.nombre} · Resultados publicados →`;anuncioCompetencia.hidden=false;if(!p.anual)anuncioTimer=setTimeout(()=>{anuncioCompetencia.hidden=true;},Math.min(restante,2147483647));}catch{/* El acceso al inicio no depende del aviso. */}}

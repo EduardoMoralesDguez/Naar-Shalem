@@ -169,7 +169,7 @@ await waitFor("!document.getElementById('cuGuardar').hidden&&document.getElement
 assert.ok(await evaluate("[...document.querySelectorAll('#cuLista th')].every(t=>t.textContent.includes('Daniel'))"));
 assert.equal(await evaluate("document.getElementById('cuTabBitacora').hidden"),true);
 await evaluate("document.getElementById('cuTabHistorial').click();document.getElementById('cuPorIntegrante').click()");
-assert.ok(await evaluate("document.getElementById('cuHistUnidadCampo').hidden&&[...document.querySelectorAll('#cuIntegrantes strong')].every(e=>e.textContent.includes('Daniel'))"));
+assert.ok(await evaluate("document.getElementById('cuTabHistorial').hidden&&document.getElementById('cuVistaHistorial').hidden&&document.getElementById('cuSaldoCabecera').hidden&&document.querySelectorAll('#cuIntegrantes strong').length===0"));
 await evaluate("document.getElementById('cuTabCobro').click()");
 
 await evaluate('fixture.emit(0)');await waitFor("!document.getElementById('cuCalendario').hidden&&!document.getElementById('cuSync').disabled");
@@ -227,4 +227,4 @@ await evaluate("document.getElementById('cuCerrar').click()");await waitFor("doc
 assert.equal(await evaluate("document.getElementById('cuCerrar').hidden"),true);
 await shot('cuotas-cierre');
 console.log('Cuotas UI OK: preparación, recarga sin red, sincronización, respuesta perdida, conflicto, aislamiento entre cuentas, móvil y varios cobros offline con conflictos encadenados. Capturas: '+output);
-} catch (e) { console.error(await evaluate('document.body.innerText')); await shot('error'); console.error(output); throw e; } finally { ws.close();chrome.kill();server.close(); }
+} catch (e) { console.error(e); console.error(await evaluate('document.body?.innerText').catch(()=>'')); await shot('error').catch(()=>{}); console.error(output); throw e; } finally { ws.close();chrome.kill();server.close(); }

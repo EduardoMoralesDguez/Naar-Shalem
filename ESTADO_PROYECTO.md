@@ -1,7 +1,11 @@
 <!-- ESTADO_PROYECTO.md -->
 # Naar-Shalem
 
-Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicación estática en Vercel. Incluye manifest y service worker para el módulo de cuotas sin conexión. El resto del portal requiere conexión; no asumir soporte offline para otros módulos.
+Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicación estática en Vercel. Incluye manifest y service worker. Competencia prepara Asistencias, Cuotas y Puntos sin conexión; el resto del portal requiere conexión.
+
+## Iteración 020: Competencia integrada
+
+Aplicar `020_competencia_integrada.sql` después de 019. Navegación compartida, actualización conjunta sin conexión, lectura de la última matriz por unidad, Top 15 permanente con empates, resultados de cortes por 72 horas y cierre anual reversible. Importes acumulados de cuotas exclusivos de directiva; capitán/subcapitán mantienen cobro y total por reunión de su unidad. La especificación vigente está en `docs/COMPETENCIA.md`; sustituye las reglas anteriores de publicación y permisos financieros.
 
 ## Arquitectura y permisos
 
@@ -32,7 +36,7 @@ Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicac
 
 ## Cuotas por actividad
 
-- Inicio → Cuotas registra pagos. Cada reunión regular con cobro tiene una cuota independiente de $10, cualquier día; varias reuniones en una fecha pueden tener varios cobros.
+- Inicio → Competencia → Cuotas registra pagos. Cada reunión regular con cobro tiene una cuota independiente de $10, cualquier día; varias reuniones en una fecha pueden tener varios cobros.
 - Capitán y subcapitán registran cuotas completas de su unidad. Conquistadores solo consultan lo propio. Directiva cobra en cualquier unidad y administra abonos, anticipos, saldo, correcciones y anulaciones.
 - Subcapitán es un rol explícito, seleccionable en el editor, con los mismos permisos de asistencia que capitán. Consejeros/directiva no generan cuotas.
 - Libro privado de ingresos y aplicaciones en centavos. Un ingreso de $50 puede aplicarse a cinco cuotas, sin duplicar dinero.

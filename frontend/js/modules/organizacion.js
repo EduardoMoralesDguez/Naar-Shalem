@@ -1,3 +1,4 @@
+import {obtenerPuntajeUnidad} from '../services/competencia.js';
 import {colorearNombre,colorHex,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 import { obtenerOrganizacion,guardarOrganizacion,subirFotoUnidad } from '../services/organizacion.js';
 const $=id=>document.getElementById(id);
@@ -76,7 +77,7 @@ function pintarPerfilUnidad(){
  const cifras=crear('div');cifras.className='org-asistencia-cifras';for(const [clave,nombre] of [['asistencias','Asistencias'],['justificados','Justificados'],['faltas','Faltas']]){const item=crear('div');item.append(crear('strong',datos[clave]),crear('span',nombre));cifras.append(item);}asistencia.append(cifras);
  asistencia.title='Asistencias y justificados / registros de reuniones cerradas del ciclo. Se conserva la unidad de cada pase.';
  }else asistencia.append(crear('p',datos?'Sin reuniones cerradas':'Asistencia no disponible'));
- columnas.append(asistencia);
+ columnas.append(asistencia);const puntos=crear('section');puntos.className='org-panel';const rev=revision;void obtenerPuntajeUnidad(grupo.id_unidad).then(p=>{if(!p||rev!==revision||unidadSeleccionada!==grupo.id_unidad)return;puntos.append(crear('h3',p.nombre),crear('strong',`${p.puntos} puntos`));columnas.append(puntos);}).catch(()=>{});
  const porra=crear('section');porra.className='org-panel org-porra';porra.append(crear('h3','Porra'),crear('p',grupo.porra||'Sin porra'));columnas.append(porra);perfilUnidad.append(columnas);
  const integrantes=crear('section');integrantes.className='org-panel';integrantes.append(crear('h3','Integrantes'));
  const lista=crear('div');lista.className='org-miembros-perfil';

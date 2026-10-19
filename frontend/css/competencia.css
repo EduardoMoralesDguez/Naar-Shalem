@@ -7,3 +7,7 @@
 @media(max-width:950px){.cp-menu{grid-template-columns:repeat(3,minmax(0,1fr))}.cp-tarjeta{padding:1rem}}@media(max-width:560px){.cp-menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}.cp-tarjeta{gap:.5rem;font-size:.85rem}.cp-tarjeta>span{min-width:28px;height:28px}}
 
 .competencia-anuncio{display:block;margin:1rem 0;padding:1rem 1.2rem;border:1px solid var(--color-borde);border-left:4px solid #e9bc25;border-radius:12px;background:white;color:var(--club-azul);text-decoration:none;font-weight:600}.competencia-anuncio[hidden]{display:none}
+
+.cp-tarjeta[aria-current=page]{border-color:var(--club-azul);box-shadow:inset 0 -3px var(--club-azul)}.cp-menu [hidden]{display:none!important}.cp-tabla tfoot,.cu-tabla tfoot{font-weight:700;background:#f1f2fb}.cp-tabla tfoot td,.cu-tabla tfoot td{border-top:2px solid var(--color-borde)}#cpConexion{font-size:.85rem;color:var(--color-suave)}
+
+#cuSync,#asRecargar{display:none}#vistaCuotas [hidden],#vistaAsistencias [hidden]{display:none!important}
