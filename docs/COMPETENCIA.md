@@ -1,18 +1,18 @@
-# Competencia (020)
+# Competencia (021)
 
 ## Instalación
 
-Ejecutar `database/migrations/020_competencia_integrada.sql` después de 019 en el SQL Editor de Supabase, y desplegar el frontend. La migración es repetible, conserva capturas y añade cierres anuales y archivo de reaperturas. No ejecutarla antes de las migraciones previas.
+Ejecutar `database/migrations/021_cierre_puntajes.sql` después de 020 en el SQL Editor de Supabase, y desplegar el frontend. La migración es repetible, conserva las capturas y añade el cierre de puntaje por reunión. Las capturas existentes permanecen abiertas hasta que directiva las cierre. No ejecutarla antes de las migraciones previas.
 
 Abrir con internet, cerrar las ventanas de la PWA y volver a entrar. En Competencia, pulsar **Actualizar** antes de la reunión. No borrar los datos del sitio si hay movimientos pendientes.
 
 ## Navegación y captura
 
-Asistencias, Cuotas, Puntos, Clasificación y Admin comparten las tarjetas de Competencia. Admin es exclusivo de directiva. Cuotas ya no aparece como entrada independiente en Inicio. El marcado A/J/F no cambia.
+Asistencias, Cuotas, Puntos, Clasificación y Admin comparten las tarjetas de Competencia. Admin y la tarjeta Cuotas solo aparecen para directiva. Se oculta Cuotas en las tres pantallas que comparten navegación; no se eliminan pagos ni permisos de cobro ya existentes en el servidor. Cuotas tampoco aparece como entrada independiente en Inicio. El marcado A/J/F no cambia.
 
 En **Puntos**, directiva elige reunión y unidad, incluyendo **Sin unidad**. La matriz por criterios lleva total general de la unidad visible; los extras están debajo, con destinatario, cantidad y motivo. **Por reunión** muestra integrantes por filas, reuniones por columnas y totales de fila, columna y tabla. La captura guarda la reunión completa, incluidas sus otras unidades.
 
-Capitanes, subcapitanes, consejeros y conquistadores pueden consultar la matriz de su unidad, sin editar. Solo se ofrece la última reunión calificada y las posteriores sin calificar. Al calificar otra reunión, la anterior deja de estar accesible también por RPC. Quien no tiene unidad solo ve su propia fila. Los motivos de extras no se exponen en esta consulta, pero su cantidad suma al total.
+Capitanes, subcapitanes, consejeros y conquistadores pueden consultar la matriz de su unidad, sin editar. Se ofrece la última reunión con puntaje cerrado y todas las reuniones con puntaje abierto, incluidas las futuras. Al cerrar el puntaje de una reunión posterior, el cerrado anterior deja de estar accesible también por RPC. El cierre de puntajes es independiente del pase de Asistencias. Quien no tiene unidad solo ve su propia fila. Los motivos de extras no se exponen en esta consulta, pero su cantidad suma al total.
 
 Criterios iniciales: asistencia, cuota, Biblia, puntualidad, versículo, cuadernillo y limpieza, con 5 puntos. Directiva puede añadir criterios, cambiar valores y activarlos. La primera captura fija los valores y reglas de esa reunión; cambiar configuración no reescribe reuniones anteriores.
 
@@ -21,6 +21,12 @@ Criterios iniciales: asistencia, cuota, Biblia, puntualidad, versículo, cuadern
 - Cuota suma cuando el cargo está totalmente cubierto y solo donde existe cargo. Un anticipo cuenta cuando se aplica al cargo.
 - Consejeros participan, aportan a su unidad y tienen tabla individual aparte. No tienen cuadernillo ni cargo de cuota.
 - Los puntos conservan la unidad de su convocatoria. Asignar posteriormente una unidad no traslada puntos obtenidos sin unidad.
+
+## Guardar y cerrar puntaje
+
+Al entrar se selecciona **Por criterios**. **Guardar** conserva la captura sin cerrarla y muestra **Guardado ✓**. Al modificarla aparece **Cambios sin guardar**. **Cerrar puntaje completo** cierra todas las unidades de esa reunión: exige una captura guardada, conexión y resolver pendientes locales. Los controles de captura quedan en solo lectura y se muestra **Puntaje cerrado ✓**.
+
+Directiva puede **Reabrir puntaje** para corregirlo. Si la reunión está dentro de un corte o ciclo finalizado, primero debe reabrirse ese corte/ciclo. Guardar ya aporta al Top 15; no exige cerrar puntajes ni crear un corte para aparecer. Cerrar puntajes bloquea la edición manual; los criterios automáticos siguen reflejando asistencia y cuota hasta que un corte fija el resultado.
 
 ## Sin conexión
 
@@ -41,7 +47,7 @@ Las restricciones se aplican en SQL y en la interfaz. Se retira el acceso de cli
 
 ## Clasificación y publicaciones
 
-Siempre hay un **Top 15 aleatorio** del acumulado del ciclo para los integrantes, sin puntos ni posición. Incluye a todos los empatados en el puesto 15, por lo que puede mostrar más de 15 personas. Solo participan puntuaciones positivas. No se aceptan filtros arbitrarios de usuarios no directivos para inferir resultados ocultos.
+Siempre se muestran los integrantes del **Top 15** del acumulado del ciclo, sin puntos ni posición, agrupados por clase en **dos columnas**. Dentro de cada clase se conserva el orden aleatorio recibido del servidor. Incluye a todos los empatados en el puesto 15, por lo que puede mostrar más de 15 personas. Solo participan puntuaciones positivas. No se aceptan filtros arbitrarios de usuarios no directivos para inferir resultados ocultos.
 
 Directiva mantiene clasificación completa, filtros y estadísticas por criterio, con consejeros separados. Los puntos de unidad suman integrantes, consejeros y extras grupales, sin normalizar por tamaño.
 
@@ -71,8 +77,8 @@ Las iniciales son siempre blancas. El círculo usa el color de clase; directiva 
 Prueba manual:
 
 1. Con directiva, actualizar Competencia y desconectar internet. Guardar un pase y una matriz; cerrar y volver a abrir. Reconectar y actualizar; verificar pendientes y totales.
-2. Con capitán, cobrar su unidad y comprobar el total, sin Historial ni Saldo a favor.
-3. Con un conquistador, ver la última matriz de su unidad sin poder editar. Calificar una reunión posterior con directiva y comprobar que sustituye a la anterior.
+2. Con capitán, subcapitán, consejero y conquistador, comprobar que la navegación no muestra Cuotas ni Admin.
+3. Con un conquistador, ver la última matriz cerrada de su unidad y las abiertas, sin poder editar. Cerrar el puntaje de una reunión posterior con directiva y comprobar que sustituye a la cerrada anterior.
 4. Revisar Por reunión y su total general. Comprobar que extras individuales suman y extras grupales pertenecen a la unidad.
 5. Finalizar un corte, revisar las tablas y perfiles, y reabrirlo. Confirmar que las capturas siguen presentes.
 6. Finalizar y reabrir el ciclo; verificar que la publicación anual aparece y se retira.

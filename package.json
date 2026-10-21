@@ -2,7 +2,7 @@
   "name": "naar-shalem",
   "private": true,
   "scripts": {
-    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs && node tests/calendario-sql.mjs && node tests/calendario-tipos-sql.mjs && node tests/cuotas-cierre-sql.mjs && node tests/organizacion-sql.mjs && node tests/asistencias-offline-sql.mjs && node tests/altas-reuniones-sql.mjs && node tests/competencia-sql.mjs && node tests/competencia-resultados-sql.mjs && node tests/competencia-integrada-sql.mjs",
+    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs && node tests/calendario-sql.mjs && node tests/calendario-tipos-sql.mjs && node tests/cuotas-cierre-sql.mjs && node tests/organizacion-sql.mjs && node tests/asistencias-offline-sql.mjs && node tests/altas-reuniones-sql.mjs && node tests/competencia-sql.mjs && node tests/competencia-resultados-sql.mjs && node tests/competencia-integrada-sql.mjs && node tests/competencia-cierre-sql.mjs",
     "test:ui": "node tests/asistencias-ui.mjs && node tests/cuotas-ui.mjs && node tests/calendario-ui.mjs && node tests/organizacion-ui.mjs && node tests/asistencias-offline-ui.mjs && node tests/competencia-ui.mjs",
     "build": "node scripts/build-sw.mjs"
   },

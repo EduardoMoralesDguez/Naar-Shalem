@@ -71,22 +71,12 @@ export async function obtenerProgreso(idUsuario, cobraCuotas = true) {
   const supabase = obtenerSupabase();
 
   const [asistencias, cuotas] = await Promise.all([
-    consultarTodasLasFilas(() =>
-      supabase
-        .from('asistencias')
-        .select(`
-          id_asistencia,
-          estado,
-          ciclos!inner(es_activo)
-        `)
-        .eq('id_usuario', idUsuario)
-        .eq('ciclos.es_activo', true)
-        .order('id_asistencia')
-    ),
+    supabase.rpc('asistencia_resumen', { p_usuario: idUsuario }).then(({ data, error }) => { if (error) throw error; return data; }),
     cobraCuotas ? supabase.rpc('cuotas_resumen', { p_usuario: idUsuario }).then(({ data, error }) => { if (error) throw error; return data; }) : Promise.resolve(null),
   ]);
 
-  const progreso = calcularProgreso(asistencias, []);
+  const progreso = calcularProgreso([], []);
+  progreso.asistencia = asistencias;
   if (cuotas) progreso.cuotas = cuotas;
   return progreso;
 }

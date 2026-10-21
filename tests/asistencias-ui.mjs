@@ -41,7 +41,7 @@ f.meeting={id:'meeting-1',nombre:'General',numero:1,fecha:today,hoy:today,estado
 f.meetings=[f.meeting];
 export async function listarReuniones(){return [{id:'future',fecha:'2099-01-01',nombre:'Futuro',numero:1,estado:'borrador'},...f.meetings.slice().reverse().map(m=>({id:m.id,fecha:m.fecha,nombre:m.nombre,numero:m.numero,estado:m.estado})),{id:'older',fecha:'2020-01-01',nombre:'General',numero:1,estado:'cerrada'}];}
 export async function crearReunion(fecha,nombre){const previo=f.meetings.find(m=>m.nombre.toLowerCase()===nombre.trim().toLowerCase());if(previo)return previo.id;const m=structuredClone(f.meeting);m.id='meeting-'+(f.meetings.length+1);m.nombre=nombre.trim();m.numero=f.meetings.length+1;m.estado='borrador';m.grupos.forEach(g=>g.revisada=false);m.integrantes.forEach(u=>u.estado='falta');f.meetings.push(m);return m.id;}
-export async function obtenerReunion(id=f.meeting.id){const actor=f.users[f.actor];const p=structuredClone(f.meetings.find(m=>m.id===id)||{...f.meeting,id,fecha:id==='future'?'2099-01-01':'2020-01-01',estado:id==='future'?'borrador':'cerrada'});p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>['capitan','consejero'].includes(actor.rol)?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
+export async function obtenerReunion(id=f.meeting.id){const actor=f.users[f.actor];const p=structuredClone(f.meetings.find(m=>m.id===id)||{...f.meeting,id,fecha:id==='future'?'2099-01-01':'2020-01-01',estado:id==='future'?'borrador':'cerrada'});p.rol=actor.rol;p.clave_actor=actor.unidad||'sin-unidad';p.puede_justificar=actor.rol==='capitan';if(actor.rol!=='directiva'){p.integrantes=p.integrantes.filter(u=>actor.unidad?u.clave===actor.unidad:u.id_usuario===actor.id_usuario);p.grupos=p.grupos.filter(g=>p.integrantes.some(u=>u.clave===g.clave));}p.integrantes.forEach(u=>u.puede_justificar=p.puede_justificar);return p;}
 export async function actuarReunion(p,accion,datos){const m=f.meetings.find(m=>m.id===p.id);if(f.conflict){f.conflict=false;throw {code:'40001'};}
  if(accion==='unidad'){for(const x of datos.integrantes)Object.assign(m.integrantes.find(u=>u.id_usuario===x.id_usuario),x);m.grupos.find(g=>g.clave===datos.clave).revisada=true;}
  if(accion==='celda')Object.assign(m.integrantes.find(u=>u.id_usuario===datos.id_usuario),{estado:datos.estado});
@@ -122,6 +122,16 @@ assert.equal(await evaluate("document.querySelectorAll('#asLista button').length
 await evaluate("location.hash='perfil/'+fixture.users[3].id_usuario");await waitFor("!document.getElementById('dashboard').hidden");
 assert.equal(await evaluate("document.getElementById('cuotasPorcentaje').closest('.metrica').hidden"),true);
 assert.equal(await evaluate("fixture.progress.at(-1).cobraCuotas"),false);
+// Conquistador: unidad completa, última cerrada y abiertos futuros; Cuotas oculto.
+await evaluate("fixture.users.push({...fixture.users[1],id_usuario:'d0000000-0000-4000-8000-000000000009',nombres:'Compañera',apellido:'Prueba'});fixture.meeting.integrantes.push({...fixture.meeting.integrantes.find(u=>u.id_usuario===fixture.users[1].id_usuario),id_usuario:fixture.users.at(-1).id_usuario,nombre:'Compañera Prueba'});fixture.emit(1);location.hash='asistencias'");
+await waitFor("!document.getElementById('asCampos').disabled&&!document.getElementById('vistaAsistencias').hidden&&document.querySelectorAll('#asLista tr').length===2");
+assert.equal(await evaluate("document.querySelector('#vistaAsistencias [data-competencia-enlace=cuotas]').hidden"),true);
+assert.equal(await evaluate("document.querySelectorAll('#asPasesHoy button').length"),2);
+assert.equal(await evaluate("document.querySelectorAll('#asLista button').length"),0);
+await evaluate("[...document.querySelectorAll('#asPasesHoy button')].find(b=>b.textContent.includes('2099')).click()");
+await waitFor("document.getElementById('asFechaTitulo').textContent.includes('2099')&&!document.getElementById('asCampos').disabled");
+await shot('unidad-abierta-conquistador');
+await evaluate("fixture.meeting.integrantes=fixture.meeting.integrantes.filter(u=>u.id_usuario!==fixture.users.at(-1).id_usuario);fixture.users.pop()");
 await evaluate("fixture.emit(0);location.hash='perfil/'+fixture.users[0].id_usuario");await waitFor("document.getElementById('dashboard').hidden&&!document.getElementById('vistaPerfil').hidden&&document.getElementById('tarjetaUnidad').parentElement.hidden");
 assert.equal(await evaluate("document.getElementById('tarjetaClase').parentElement.hidden"),true);
 await evaluate("location.hash='consultar'");await waitFor("!document.getElementById('directorio').hidden");
