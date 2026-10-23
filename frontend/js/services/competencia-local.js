@@ -12,10 +12,10 @@ export async function obtenerCompetenciaLocal(reunion=null,desde=null,hasta=null
  if(!cuenta)return remoto.obtenerCompetencia(reunion,desde,hasta);
  const id=cuenta,d=await localCuotas(id);if(navigator.onLine&&!(d.competencia?.cola||[]).length){const p=await remoto.obtenerCompetencia(reunion,desde,hasta);if(cuenta!==id)throw new Error('Cambió la cuenta.');await localCuotas(id,d=>{d.competencia ||= vacio();d.competencia.panel=p;if(reunion)d.competencia.capturas[reunion]=p;d.competencia.actualizado=Date.now();});return p;}
  const p=structuredClone(reunion?d.competencia?.capturas[reunion]:d.competencia?.panel);if(!p)throw new Error('Actualiza Competencia con internet para preparar esta reunión.');
- return aplicarAsistencia(p,d);
+ if(p.api_version!==21)throw new Error('Actualiza Competencia con internet para renovar los datos preparados.');return aplicarAsistencia(p,d);
 }
 export async function guardarCompetenciaLocal(id,accion,datos){
- if(accion!=='captura'){if(!navigator.onLine)throw new Error('Conecta para administrar periodos o criterios.');if(await pendientesPuntajes(cuenta))throw new Error('Sincroniza los puntajes pendientes antes de administrar.');return remoto.guardarCompetencia(id,accion,datos);}
+ if(accion!=='captura'){if(!navigator.onLine)throw new Error('Conecta para cerrar puntajes o administrar Competencia.');const d=cuenta?await localCuotas(cuenta):null;if((d?.competencia?.cola.length||0)+(d?.cola.length||0)+(d?.asistencias?.cola.length||0))throw new Error('Actualiza y resuelve los pendientes antes de cerrar o administrar Competencia.');return remoto.guardarCompetencia(id,accion,datos);}
  if(!cuenta)return remoto.guardarCompetencia(id,accion,datos);
  const cuentaGuardado=cuenta;
  await localCuotas(cuentaGuardado,d=>{d.competencia ||= vacio();const c=d.competencia;if(c.cola.some(o=>o.id===id))return;if(c.cola.some(o=>o.datos.reunion===datos.reunion))throw new Error('Esta reunión tiene un puntaje pendiente. Actualiza antes de volver a guardarlo.');c.cola.push({id,accion,datos,guardado:Date.now()});const p=c.capturas[datos.reunion];if(p?.captura){p.captura.version++;for(const u of p.captura.integrantes)u.cumplidos=datos.integrantes.find(x=>x.id_usuario===u.id_usuario).cumplidos;p.captura.extras=datos.extras;} });

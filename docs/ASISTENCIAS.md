@@ -38,3 +38,10 @@ La misma alta genera el cargo de $10 en actividades con cobro activo si su unida
 La migración completa también los faltantes actuales en actividades abiertas de hoy en adelante, una sola vez. No modifica asistencias pasadas, marcas existentes, ingresos ni saldos, ni inventa una fecha de ingreso histórica. Para las nuevas altas se usa el día en que se registran; no se añaden cargos o faltas anteriores. Los cambios de unidad, reactivaciones y ediciones de perfiles existentes conservan su comportamiento anterior.
 
 Después de instalarla o registrar integrantes, usar Actualizar en Asistencias y Cuotas en cada dispositivo. Los pendientes que partían de una lista anterior pueden requerir revisión. No borrar los datos locales para actualizar.
+
+
+## Consulta por unidad (021)
+
+Desde `021_cierre_puntajes.sql`, conquistadores, capitanes, subcapitanes y consejeros consultan las filas de su propia unidad en la última reunión cerrada y en todas las abiertas, incluidas futuras. La lista muestra fecha, nombre y estado. El historial detallado no entrega reuniones cerradas anteriores; directiva mantiene su acceso completo. Sin unidad solo permite consultar la propia fila. Los permisos para editar/justificar no se amplían.
+
+El perfil conserva el porcentaje acumulado de todas las reuniones cerradas del ciclo mediante `asistencia_resumen`, disponible para el titular y directiva. Limitar el detalle visible a la última cerrada no reinicia ese porcentaje. La regla de consulta es independiente de qué reuniones tengan el puntaje cerrado.

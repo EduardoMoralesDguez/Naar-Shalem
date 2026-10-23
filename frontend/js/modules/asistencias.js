@@ -39,7 +39,7 @@ vista.innerHTML = `
 
     <section id="asVistaReunion">
       <div id="asCrearPanel" class="as-calendario" hidden><h2>Actividades</h2><a class="boton-volver" href="#calendario">Abrir calendario</a></div>
-      <section class="as-panel as-registro"><nav id="asPasesHoy" class="acciones" aria-label="Pases del día"></nav>
+      <section class="as-panel as-registro"><nav id="asPasesHoy" class="acciones" aria-label="Reuniones disponibles"></nav>
       <h2 id="asFechaTitulo"></h2>
       <input id="asReunion" type="hidden">
       <p id="asAvisoReunion" class="texto-suave"></p>
@@ -353,17 +353,18 @@ async function cargarReuniones(id = $('asReunion').value) {
 
     if (actual !== revision) return;
 
-    const disponibles = lista.filter(r => r.estado !== 'anulada' && (admin() ? r.fecha === hoy() : r.fecha <= hoy()));
+    const ultimaCerrada=lista.find(r=>r.estado==='cerrada');
+    const disponibles = lista.filter(r => r.estado !== 'anulada' && (admin() ? r.fecha === hoy() : r.estado!=='cerrada'||r.id===ultimaCerrada?.id));
     const fechaActual = disponibles[0]?.fecha;
-    const pasesDia = disponibles.filter(r => r.fecha === fechaActual);
-    const elegido = modo === 'editar' ? lista.find(r => r.id === id)?.id
-      : pasesDia.find(r => r.id === id)?.id || pasesDia[0]?.id;
+    const pasesDia = admin() ? disponibles.filter(r => r.fecha === fechaActual) : disponibles;
+    const elegido = modo === 'editar' ? (admin()?lista:disponibles).find(r => r.id === id)?.id
+      : pasesDia.find(r => r.id === id)?.id || (!admin()&&pasesDia.find(r=>r.estado==='cerrada')?.id) || pasesDia[0]?.id;
     $('asReunion').value = elegido || '';
     $('asCrearPanel').hidden = !admin() || modo !== 'reunion';
     $('asPasesHoy').replaceChildren();
     if (modo === 'reunion' && pasesDia.length > 1) {
       for (const pase of pasesDia) {
-        const b = boton(`${pase.nombre || 'General'} · ${pase.estado}`, () => {
+        const b = boton(`${admin()?'':pase.fecha+' · '}${pase.nombre || 'General'} · ${pase.estado}`, () => {
           if (ocupado || !puedeSalirAsistencias()) return;
           sucio = false; grupo = ''; void cargarReuniones(pase.id);
         });
@@ -440,16 +441,17 @@ async function cargarHistorial() {
   const actual = ++revision; bloquear(true); mensaje('Cargando historial…');
   $('asMatriz').replaceChildren(); $('asFechas').replaceChildren();
   try {
-    const [filas, fechas] = await Promise.all([obtenerMatriz(), admin() ? listarReuniones() : Promise.resolve([])]);
+    const [filas, fechas] = await Promise.all([obtenerMatriz(), listarReuniones()]);
     if (actual !== revision) return;
-    matriz = filas;
+    const ultima=fechas.find(r=>r.estado==='cerrada');
+    matriz = admin()?filas:filas.filter(f=>f.reunion===ultima?.id);
     const unidades = new Map(filas.map(r => [r.unidad_clave, r.unidad]));
     if (!unidades.has(filtroUnidad)) filtroUnidad = unidades.keys().next().value || '';
     $('asFiltroUnidad').replaceChildren(...Array.from(unidades, ([id, nombre]) => new Option(nombre, id)));
     $('asFiltroUnidad').value = filtroUnidad; $('asFiltroUnidadCampo').hidden = !admin();
     if (!admin()) filtroUnidad = '';
     $('asAdministrarFechas').hidden = !admin();
-    for (const f of fechas) $('asFechas').append(boton(`${f.fecha} · ${f.nombre || 'General'} · ${f.estado}`, () => {
+    for (const f of (admin()?fechas:[])) $('asFechas').append(boton(`${f.fecha} · ${f.nombre || 'General'} · ${f.estado}`, () => {
       modo = 'editar'; $('asVistaHistorial').hidden = true; $('asVistaReunion').hidden = false;
       void cargarReuniones(f.id);
     }));

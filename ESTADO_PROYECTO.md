@@ -3,6 +3,10 @@
 
 Frontend Vanilla JS con módulos ES, Supabase Auth/PostgreSQL/Storage y publicación estática en Vercel. Incluye manifest y service worker. Competencia prepara Asistencias, Cuotas y Puntos sin conexión; el resto del portal requiere conexión.
 
+## Iteración 021: consulta por unidad y cierre de puntajes
+
+Aplicar `021_cierre_puntajes.sql` después de 020. La navegación de integrantes no directivos oculta Cuotas. Asistencias muestra la última reunión cerrada y todas las abiertas de la unidad, manteniendo el porcentaje acumulado del perfil. Puntajes tiene Guardar, Cerrar puntaje completo y Reabrir; su cierre es independiente del pase. Top 15 por clases en dos columnas, sin posiciones ni puntos fuera de publicación. Por criterios queda seleccionado por defecto. Documentación vigente: `docs/COMPETENCIA.md` y `docs/ASISTENCIAS.md`.
+
 ## Iteración 020: Competencia integrada
 
 Aplicar `020_competencia_integrada.sql` después de 019. Navegación compartida, actualización conjunta sin conexión, lectura de la última matriz por unidad, Top 15 permanente con empates, resultados de cortes por 72 horas y cierre anual reversible. Importes acumulados de cuotas exclusivos de directiva; capitán/subcapitán mantienen cobro y total por reunión de su unidad. La especificación vigente está en `docs/COMPETENCIA.md`; sustituye las reglas anteriores de publicación y permisos financieros.
