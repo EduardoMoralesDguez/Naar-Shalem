@@ -105,8 +105,9 @@ assert.ok(await evaluate("document.getElementById('calAgenda').textContent.inclu
 await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Camporee — tarde';document.getElementById('calHora').value='16:00';document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
 await waitFor("fixture.actividades.length===2&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
 assert.ok(await evaluate("document.querySelector('#calAgenda .cal-actividad-titulo time').textContent.includes('09:00')"));await shot('calendario-desktop');
-// El enlace abre exactamente el pase futuro seleccionado.
-await evaluate("document.querySelector('#calAgenda a[href^=\"#asistencias/\"]').click()");
+// Calendario enlaza la matriz integrada; el acceso histórico de asistencia sigue disponible.
+assert.equal(await evaluate("document.querySelector('#calAgenda a[href^=\"#competencia/puntaje/\"]').getAttribute('href')"),await evaluate("'#competencia/puntaje/'+fixture.actividades[0].id"));
+await evaluate("location.hash='asistencias/'+fixture.actividades[0].id");
 await waitFor("!document.getElementById('vistaAsistencias').hidden&&document.getElementById('asReunion').value===fixture.actividades[0].id&&!document.getElementById('asCampos').disabled");
 assert.ok(await evaluate("document.getElementById('asFechaTitulo').textContent.includes(fixture.fechaDomingo)"));
 // El pase futuro puede cerrarse después de revisar todas sus unidades.

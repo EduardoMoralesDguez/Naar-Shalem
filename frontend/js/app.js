@@ -167,7 +167,7 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|competencia(?:\/(?:puntaje|resultados|admin|criterios|cortes|estadisticas|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|competencia(?:\/(?:puntaje(?:\/[0-9a-f-]{36})?|resultados|admin|criterios|cortes|estadisticas|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
@@ -205,7 +205,7 @@ async function renderRuta(forzar = false) {
       $('inicio').hidden = false;
     } else if (ruta.startsWith('competencia')) {
       $('vistaCompetencia').hidden = false;
-      await abrirCompetencia(perfil,ruta.split('/')[1],sesion.user.id);
+      await abrirCompetencia(perfil,ruta.split('/')[1],sesion.user.id,ruta.split('/')[2]||null);
     } else if (ruta === 'organizacion') {
       $('vistaOrganizacion').hidden = false;
       await abrirOrganizacion(perfil, async () => { const rev = authRevision; const lista = await obtenerUsuarios(); if (rev !== authRevision) return; usuarios = lista; cuenta(); }, async () => {

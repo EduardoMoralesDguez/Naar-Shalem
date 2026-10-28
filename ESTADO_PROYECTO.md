@@ -11,6 +11,10 @@ Aplicar `021_cierre_puntajes.sql` después de 020. La navegación de integrantes
 
 Aplicar `020_competencia_integrada.sql` después de 019. Navegación compartida, actualización conjunta sin conexión, lectura de la última matriz por unidad, Top 15 permanente con empates, resultados de cortes por 72 horas y cierre anual reversible. Importes acumulados de cuotas exclusivos de directiva; capitán/subcapitán mantienen cobro y total por reunión de su unidad. La especificación vigente está en `docs/COMPETENCIA.md`; sustituye las reglas anteriores de publicación y permisos financieros.
 
+## Rama de prueba 022
+
+Captura integrada por reunión y unidad: asistencia, dinero recibido y criterios. Navegación Reuniones / Clasificación / Administración. RPC aditivas, guardado transaccional y cola offline por unidad. Instalación y validación: `docs/REUNION_UNIFICADA.md`.
+
 ## Arquitectura y permisos
 
 - `frontend/js/app.js`: sesión, navegación y coordinación.

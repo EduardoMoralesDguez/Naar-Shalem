@@ -81,7 +81,7 @@ function pintar() {
     const acciones = document.createElement('div'); acciones.className = 'acciones';
     if (a.estado !== 'anulada') {
       if (tipo === 'regular') {
-        const link = n('a', 'Ver asistencia'); link.href = `#asistencias/${a.id}`; link.className = 'boton-volver'; acciones.append(link);
+        const link = n('a', 'Abrir reunión'); link.href = `#competencia/puntaje/${a.id}`; link.className = 'boton-volver'; acciones.append(link);
         if (a.cobra_cuota) { const q = n('a', 'Ver cuotas'); q.href = '#cuotas'; q.className = 'boton-volver'; acciones.append(q); }
       }
       if (admin()) acciones.append(boton('Editar', () => abrirEditor(a)), boton('Cancelar actividad', () => void cancelar(a)));
