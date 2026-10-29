@@ -125,7 +125,7 @@ assert.equal(await evaluate("fixture.progress.at(-1).cobraCuotas"),false);
 // Conquistador: unidad completa, última cerrada y abiertos futuros; Cuotas oculto.
 await evaluate("fixture.users.push({...fixture.users[1],id_usuario:'d0000000-0000-4000-8000-000000000009',nombres:'Compañera',apellido:'Prueba'});fixture.meeting.integrantes.push({...fixture.meeting.integrantes.find(u=>u.id_usuario===fixture.users[1].id_usuario),id_usuario:fixture.users.at(-1).id_usuario,nombre:'Compañera Prueba'});fixture.emit(1);location.hash='asistencias'");
 await waitFor("!document.getElementById('asCampos').disabled&&!document.getElementById('vistaAsistencias').hidden&&document.querySelectorAll('#asLista tr').length===2");
-assert.equal(await evaluate("document.querySelector('#vistaAsistencias [data-competencia-enlace=cuotas]').hidden"),true);
+assert.equal(await evaluate("!document.querySelector('#vistaAsistencias [data-competencia-enlace=cuotas]')"),true);
 assert.equal(await evaluate("document.querySelectorAll('#asPasesHoy button').length"),2);
 assert.equal(await evaluate("document.querySelectorAll('#asLista button').length"),0);
 await evaluate("[...document.querySelectorAll('#asPasesHoy button')].find(b=>b.textContent.includes('2099')).click()");
