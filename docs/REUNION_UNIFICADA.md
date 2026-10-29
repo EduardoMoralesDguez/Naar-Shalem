@@ -40,3 +40,9 @@ Tras sincronizar, se vuelven a preparar asistencia, cuotas y puntajes para que l
 7. Reabrir y corregir; confirmar que el Top y el historial mantienen sus reglas.
 
 Pruebas automatizadas: suites existentes de SQL e interfaz, `tests/reunion-unificada-sql.mjs` (migración repetible, guardado atómico, reversión por conflicto, reintento, cierre y permisos) y prueba Chromium de dos unidades sin conexión, cobro y sincronización. Build regenera el service worker.
+
+## Ajuste 023: captura sencilla y capitán
+
+Aplicar `023_captura_capitan.sql` después de 022 y actualizar el frontend de la rama. La asistencia inicia en F; el valor se registra al guardar la unidad. Cuota usa una casilla «Recibí $10»: desmarcada no genera ingreso.
+
+El capitán dispone de Guardar cobros para su unidad en la reunión del día, con conexión. No puede cobrar nuevamente una cuota ya cubierta ni editar criterios o extras. Puede justificar una falta registrada de su unidad durante el mismo día (Ciudad de México), indicando motivo. Los reintentos no duplican pagos ni justificaciones. Conserva acceso exclusivamente a importes de esa reunión, sin saldo acumulado ni historial financiero.
