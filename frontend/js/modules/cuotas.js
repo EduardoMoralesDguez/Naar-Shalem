@@ -47,7 +47,7 @@ function cambiaFiltro() {
 }
 const admin = () => perfil?.rol === 'directiva';
 const cobra = () => ['directiva', 'capitan', 'subcapitan'].includes(perfil?.rol);
-function mensaje(t) { $('cuEstado').textContent = t; }
+function mensaje(t) { $('cuEstado').textContent = vista.classList.contains('cu-embebido')&&['Todos los movimientos están sincronizados.','Actualizado. Disponible sin conexión.'].includes(t)?'':t; }
 function nodo(tag, texto) { const n = document.createElement(tag); n.textContent = texto; return n; }
 function boton(t, fn) { const b = nodo('button', t); b.type = 'button'; b.className = 'boton-volver'; b.addEventListener('click', fn); return b; }
 function opciones(select, rows, value, label) {
@@ -94,7 +94,7 @@ function pintar() {
         check.addEventListener('change', () => { check.checked ? marcados.add(u.id_usuario) : marcados.delete(u.id_usuario); pintar(); });
         label.append(check, document.createTextNode(' Recibí $10')); acciones.append(label);
       } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
-      if (admin() && !pendientes.length) { const b = boton('Abono / anticipo', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); if (u.saldo > 0 && cargo?.cerrado) acciones.append(boton('Aplicar saldo', () => abrir('saldo', u))); }
+      if (admin() && !pendientes.length) { const b = boton('Abono / anticipo', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); }
     } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
     fila.append(acciones); $('cuLista').append(fila);
   }
@@ -338,3 +338,9 @@ $('cuHistVolver').onclick = () => { historialUsuario = null; pintarVistaHistoria
 window.addEventListener('online', () => { if (!vista.hidden) void sincronizar(); });
 window.addEventListener('offline', () => { if (!vista.hidden) { mensaje('Sin conexión. Guarda los pagos antes de cerrar la app.'); pintar(); } });
 window.addEventListener('beforeunload', e => { if (marcados.size || editando) { e.preventDefault(); e.returnValue = ''; } });
+
+export async function abrirHistorialFinanciero(p,id,contenedor){
+ if(p.rol!=='directiva')return;
+ contenedor.append(vista);vista.classList.add('cu-embebido');vista.hidden=false;pestaña='historial';
+ await abrirCuotas(p,id);
+}

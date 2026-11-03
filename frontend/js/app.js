@@ -7,7 +7,7 @@ import { abrirOrganizacion, reiniciarOrganizacion, puedeSalirOrganizacion } from
 // frontend/js/app.js
 import { abrirCalendario, reiniciarCalendario, puedeSalirCalendario } from './modules/calendario.js';
 import { SUPABASE_URL } from './config.js';
-import { abrirCuotas, reiniciarCuotas, puedeSalirCuotas, pendientesCuotas } from './modules/cuotas.js';
+import { reiniciarCuotas, puedeSalirCuotas, pendientesCuotas } from './modules/cuotas.js';
 import { localCuotas, recordarCuenta, olvidarCuenta, cuentaRecordada } from './lib/cuotas-local.js';
 import { obtenerSupabase } from './lib/supabase.js';
 
@@ -48,11 +48,7 @@ import {
   cargarEspecialidades,
 } from './modules/especialidades.js';
 
-import {
-  abrirAsistencias,
-  reiniciarAsistencias,
-  puedeSalirAsistencias,
-} from './modules/asistencias.js';
+
 
 const $ = id => document.getElementById(id);
 
@@ -62,7 +58,6 @@ const vistas = [
   'directorio',
   'vistaPerfil',
   'editor',
-  'vistaAsistencias',
   'vistaCuotas',
   'vistaCalendario',
   'vistaOrganizacion',
@@ -100,7 +95,6 @@ function limpiar() {
   usuarios = [];
   rutaActual = '';
 
-  reiniciarAsistencias();
   reiniciarCuotas();
   reiniciarCalendario();
   reiniciarOrganizacion();
@@ -151,7 +145,7 @@ async function renderRuta(forzar = false) {
     (
       cambiandoEstado ||
       !puedeSalir() ||
-      !puedeSalirAsistencias() ||
+
       !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion() || !puedeSalirCompetencia()
     )
   ) {
@@ -167,18 +161,19 @@ async function renderRuta(forzar = false) {
   }
 
   if (
-    !/^(inicio|competencia(?:\/(?:puntaje(?:\/[0-9a-f-]{36})?|resultados|admin|criterios|cortes|estadisticas|bitacora))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
+    !/^(inicio|competencia(?:\/(?:puntaje(?:\/[0-9a-f-]{36})?|resultados|admin|criterios|cortes|estadisticas|bitacora|finanzas))?|organizacion|calendario|cuotas|asistencias(?:\/[0-9a-f-]{36})?|integrantes|consultar|registrar|perfil\/[0-9a-f-]{36}|editar\/[0-9a-f-]{36})$/.test(ruta)
   ) {
     ruta = 'inicio';
   }
 
+  if(ruta.startsWith('asistencias'))ruta='competencia/puntaje'+(ruta.split('/')[1]?'/'+ruta.split('/')[1]:'');
+  if(ruta==='cuotas')ruta='competencia/finanzas';
   if (!navigator.onLine && ruta !== 'cuotas' && !ruta.startsWith('competencia') && !ruta.startsWith('asistencias') && ruta !== 'inicio') ruta = 'inicio';
   history.replaceState(null, '', `#${ruta}`);
   rutaActual = ruta;
 
   const actual = ++vistaRevision;
 
-  reiniciarAsistencias();
   reiniciarCuotas();
   reiniciarCalendario();
   reiniciarOrganizacion();
@@ -211,15 +206,11 @@ async function renderRuta(forzar = false) {
       await abrirOrganizacion(perfil, async () => { const rev = authRevision; const lista = await obtenerUsuarios(); if (rev !== authRevision) return; usuarios = lista; cuenta(); }, async () => {
         if ((await pendientesCuotas(sesion.user.id))+(await pendientesAsistencias(sesion.user.id))+(await pendientesPuntajes(sesion.user.id))) throw new Error('Sincroniza o resuelve tus cuotas, asistencias y puntajes pendientes antes de iniciar otro ciclo.');
       });
-    } else if (ruta === 'cuotas') {
-      $('vistaCuotas').hidden = false;
-      await abrirCuotas(perfil, sesion.user.id);
+
     } else if (ruta === 'calendario') {
       $('vistaCalendario').hidden = false;
       await abrirCalendario(perfil);
-    } else if (ruta.startsWith('asistencias')) {
-      $('vistaAsistencias').hidden = false;
-      await abrirAsistencias(perfil, ruta.split('/')[1],sesion.user.id);
+
     } else if (ruta === 'integrantes') {
       $('menuIntegrantes').hidden = false;
     } else if (ruta === 'registrar' || ruta.startsWith('editar/')) {
@@ -411,7 +402,7 @@ $('botonSalir').addEventListener('click', async () => {
     cerrando ||
     cambiandoEstado ||
     !puedeSalir() ||
-    !puedeSalirAsistencias() ||
+
     !puedeSalirCuotas() || !puedeSalirCalendario() || !puedeSalirOrganizacion() || !puedeSalirCompetencia()
   ) {
     return;

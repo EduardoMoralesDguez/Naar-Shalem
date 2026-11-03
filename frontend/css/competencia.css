@@ -18,3 +18,6 @@
 .cp-nav .boton-principal{background:var(--club-azul);color:white}
 
 .cp-matriz input[type=number]{width:85px}.cp-matriz td>div>label{display:grid;gap:.3rem;text-align:left;font-size:.8rem}.cp-matriz select{max-width:125px}
+.cp-guardar.cp-guardado { background:#7679bd; box-shadow:none; }
+.cu-embebido > .sobre-titulo,.cu-embebido > h1,.cu-embebido > h2,.cu-embebido > nav,.cu-embebido > .cu-herramientas,.cu-embebido #cuPreparacion { display:none; }
+.cu-embebido > .cu-estado:has(#cuEstado:empty) { display:none; }

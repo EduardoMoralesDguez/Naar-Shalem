@@ -105,20 +105,8 @@ assert.ok(await evaluate("document.getElementById('calAgenda').textContent.inclu
 await evaluate("document.getElementById('calNueva').click();document.getElementById('calNombre').value='Camporee — tarde';document.getElementById('calHora').value='16:00';document.getElementById('calCobro').checked=true;document.getElementById('calForm').requestSubmit()");
 await waitFor("fixture.actividades.length===2&&!document.getElementById('calDialogo').open&&!document.getElementById('calNueva').disabled");
 assert.ok(await evaluate("document.querySelector('#calAgenda .cal-actividad-titulo time').textContent.includes('09:00')"));await shot('calendario-desktop');
-// Calendario enlaza la matriz integrada; el acceso histórico de asistencia sigue disponible.
+// Calendario enlaza la matriz integrada; la asistencia se captura dentro de Competencia.
 assert.equal(await evaluate("document.querySelector('#calAgenda a[href^=\"#competencia/puntaje/\"]').getAttribute('href')"),await evaluate("'#competencia/puntaje/'+fixture.actividades[0].id"));
-await evaluate("location.hash='asistencias/'+fixture.actividades[0].id");
-await waitFor("!document.getElementById('vistaAsistencias').hidden&&document.getElementById('asReunion').value===fixture.actividades[0].id&&!document.getElementById('asCampos').disabled");
-assert.ok(await evaluate("document.getElementById('asFechaTitulo').textContent.includes(fixture.fechaDomingo)"));
-// El pase futuro puede cerrarse después de revisar todas sus unidades.
-for(let i=0;i<3;i++){
- await evaluate(`document.querySelectorAll('#asGrupos button')[${i}].click();document.getElementById('asGuardar').click()`);
- await waitFor(`!document.getElementById('asCampos').disabled&&fixture.meetings.find(m=>m.id===fixture.actividades[0].id).grupos[${i}].revisada`);
-}
-assert.equal(await evaluate("document.getElementById('asCerrar').disabled"),false);
-await evaluate("document.getElementById('asCerrar').click()");
-await waitFor("fixture.meetings.find(m=>m.id===fixture.actividades[0].id).estado==='cerrada'&&!document.getElementById('asCampos').disabled");
-await evaluate("location.hash='calendario'");await waitFor("!document.getElementById('vistaCalendario').hidden&&!document.getElementById('calNueva').disabled");
 // La agenda vuelve a hoy: navega al mes/fecha programado a través del formulario para editar.
 await evaluate("document.getElementById('calTodo').click()");
 // Si el próximo domingo cae en otro mes, avanza una vez.
@@ -159,5 +147,5 @@ await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScal
 assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'));
 await evaluate('fixture.emit(1)');await waitFor("!document.getElementById('vistaCalendario').hidden&&document.getElementById('calNueva').hidden");
 assert.equal(await evaluate("document.querySelectorAll('#calAgenda button').length"),0);
-console.log('Calendario UI OK: domingo–sábado, tipos, rangos, destinos, cobro entre semana, cierre futuro, eliminar, permisos y móvil. Capturas: '+output);
+console.log('Calendario UI OK: domingo–sábado, tipos, rangos, destinos, cobro entre semana, enlace a captura, eliminar, permisos y móvil. Capturas: '+output);
 } catch(e) {console.error(await evaluate('document.body.innerText'));throw e;} finally { ws.close();chrome.kill();server.close(); }

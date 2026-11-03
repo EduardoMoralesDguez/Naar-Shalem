@@ -46,3 +46,11 @@ Pruebas automatizadas: suites existentes de SQL e interfaz, `tests/reunion-unifi
 Aplicar `023_captura_capitan.sql` después de 022 y actualizar el frontend de la rama. La asistencia inicia en F; el valor se registra al guardar la unidad. Cuota usa una casilla «Recibí $10»: desmarcada no genera ingreso.
 
 El capitán dispone de Guardar cobros para su unidad en la reunión del día, con conexión. No puede cobrar nuevamente una cuota ya cubierta ni editar criterios o extras. Puede justificar una falta registrada de su unidad durante el mismo día (Ciudad de México), indicando motivo. Los reintentos no duplican pagos ni justificaciones. Conserva acceso exclusivamente a importes de esa reunión, sin saldo acumulado ni historial financiero.
+
+## Simplificación de captura y administración
+
+Las filas con F (incluido el valor inicial) o J bloquean los criterios presenciales y nuevos cobros. Cambiar a A los habilita. Cambiar nuevamente a F/J descarta las marcas presenciales y el cobro aún no guardado; no anula ingresos ni extras ya registrados. Una cuota cubierta se muestra marcada y bloqueada para evitar recibirla otra vez.
+
+Guardar unidad muestra «Unidad guardada ✓» en azul tenue y vuelve al estado normal al editar. El historial financiero es una pestaña de Administración, conservando su menú y sus consultas por unidad/integrante. Se retiró el módulo visual independiente de Asistencias y sus pruebas de interfaz obsoletas; los datos, las reglas SQL y la recuperación de operaciones locales anteriores se conservan. La captura unificada cubre el flujo actual.
+
+No aparece el botón Aplicar saldo. El cierre de reunión aplica automáticamente los saldos disponibles a las cuotas pendientes. La preparación ocurre al entrar con internet y al recuperar conexión, sin indicadores rutinarios de conexión; los conflictos y el botón para reintentar pendientes siguen disponibles. Este ajuste de interfaz no requiere una migración adicional a 023.
