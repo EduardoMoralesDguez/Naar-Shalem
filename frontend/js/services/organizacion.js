@@ -1,9 +1,7 @@
+import {crearRpc} from '../lib/rpc.js';
 import { obtenerSupabase } from '../lib/supabase.js';
 import { prepararFoto } from './fotos.js';
-async function rpc(nombre, datos) {
- const {data,error}=await obtenerSupabase().rpc(nombre,datos).abortSignal(AbortSignal.timeout(15000));
- if(error) throw error; return data;
-}
+const rpc = crearRpc(15000);
 export async function obtenerOrganizacion(ciclo=null) {
  const panel=await rpc('organizacion_panel',{p_ciclo:ciclo});
  const paths=panel.unidades.map(u=>u.foto_path).filter(Boolean);

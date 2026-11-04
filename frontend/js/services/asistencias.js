@@ -1,17 +1,9 @@
+import {crearRpc} from '../lib/rpc.js';
 // frontend/js/services/asistencias.js
 import { obtenerSupabase } from '../lib/supabase.js';
 import { consultarTodasLasFilas } from '../lib/consultas.js';
 
-async function rpc(nombre, parametros) {
-  const { data, error } = await obtenerSupabase().rpc(
-    nombre,
-    parametros
-  ).abortSignal(AbortSignal.timeout(15000));
-
-  if (error) throw error;
-
-  return data;
-}
+const rpc = crearRpc(15000);
 
 export function listarReuniones() {
   return consultarTodasLasFilas(() =>

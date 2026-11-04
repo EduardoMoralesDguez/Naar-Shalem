@@ -2,12 +2,16 @@
   "name": "naar-shalem",
   "private": true,
   "scripts": {
-    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs && node tests/calendario-sql.mjs && node tests/calendario-tipos-sql.mjs && node tests/cuotas-cierre-sql.mjs && node tests/organizacion-sql.mjs && node tests/asistencias-offline-sql.mjs && node tests/altas-reuniones-sql.mjs && node tests/competencia-sql.mjs && node tests/competencia-resultados-sql.mjs && node tests/competencia-integrada-sql.mjs && node tests/competencia-cierre-sql.mjs && node tests/reunion-unificada-sql.mjs",
+    "test": "node tests/asistencias-sql.mjs && node tests/cuotas-sql.mjs && node tests/calendario-sql.mjs && node tests/calendario-tipos-sql.mjs && node tests/cuotas-cierre-sql.mjs && node tests/organizacion-sql.mjs && node tests/asistencias-offline-sql.mjs && node tests/altas-reuniones-sql.mjs && node tests/competencia-sql.mjs && node tests/competencia-resultados-sql.mjs && node tests/competencia-integrada-sql.mjs && node tests/competencia-cierre-sql.mjs && node tests/reunion-unificada-sql.mjs && node tests/schema-consolidado.mjs && node tests/rpc.mjs",
     "test:ui": "node tests/calendario-ui.mjs && node tests/organizacion-ui.mjs && node tests/competencia-ui.mjs",
-    "build": "node scripts/build-sw.mjs"
+    "build": "node scripts/build-sw.mjs",
+    "check": "node scripts/verificar-proyecto.mjs",
+    "db:consolidar": "node scripts/consolidar-schema.mjs",
+    "test:schema": "node tests/schema-consolidado.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
     "ws": "8.22.0"
-  }
+  },
+  "type": "module"
 }

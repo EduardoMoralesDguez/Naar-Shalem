@@ -1,3 +1,4 @@
+import {crearNodo as node} from '../lib/dom.js';
 import {abrirHistorialFinanciero,puedeSalirCuotas} from './cuotas.js';
 import {controlesReunion} from '../lib/captura-reunion.js';
 import {navegacionCompetencia,permisosNavegacion} from '../lib/competencia-nav.js';
@@ -23,7 +24,6 @@ ${navegacionCompetencia('inicio',true)}
 $('aplicacion').append(vista);
 let perfilActual=null,cuentaActual=null;
 let panel=null,captura=null,tab='inicio',periodoSeleccionado='actual',revision=0,ocupado=false,sucio=false,marcas=new Map(),extras=[],intento=null,unidadSeleccionada=null,statsConsejeros=false,registro=null;
-const node=(tag,texto)=>{const e=document.createElement(tag);e.textContent=texto??'';return e;};
 const boton=(texto,fn)=>{const b=node('button',texto);b.type='button';b.className='boton-volver';b.onclick=fn;return b;};
 function mensaje(t){$('cpMensaje').textContent=t||'';}
 function bloquear(v){ocupado=v;$('cpCampos').disabled=v;$('cpActualizar').disabled=v;vista.querySelectorAll('[data-cp-tab]').forEach(b=>b.disabled=v);}

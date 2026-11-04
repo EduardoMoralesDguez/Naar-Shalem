@@ -1,9 +1,6 @@
+import {crearRpc} from '../lib/rpc.js';
 import { obtenerSupabase } from '../lib/supabase.js';
-async function rpc(nombre, datos = {}) {
-  const { data, error } = await obtenerSupabase().rpc(nombre, datos).abortSignal(AbortSignal.timeout(15000));
-  if (error) throw error;
-  return data;
-}
+const rpc = crearRpc(15000);
 export const obtenerCuotas = () => rpc('cuotas_panel');
 export const enviarCuota = o => rpc('cuotas_operar', { p_operacion: o.id, p_accion: o.accion, p_datos: o.datos });
 export async function verificarCuenta(id) {

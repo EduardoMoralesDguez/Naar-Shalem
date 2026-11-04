@@ -1,3 +1,4 @@
+import {crearNodo as nodo} from '../lib/dom.js';
 import {navegacionCompetencia,permisosNavegacion} from '../lib/competencia-nav.js';
 import {colorearNombre,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
 import { obtenerCuotas, enviarCuota, verificarCuenta } from '../services/cuotas.js';
@@ -48,7 +49,6 @@ function cambiaFiltro() {
 const admin = () => perfil?.rol === 'directiva';
 const cobra = () => ['directiva', 'capitan', 'subcapitan'].includes(perfil?.rol);
 function mensaje(t) { $('cuEstado').textContent = vista.classList.contains('cu-embebido')&&['Todos los movimientos están sincronizados.','Actualizado. Disponible sin conexión.'].includes(t)?'':t; }
-function nodo(tag, texto) { const n = document.createElement(tag); n.textContent = texto; return n; }
 function boton(t, fn) { const b = nodo('button', t); b.type = 'button'; b.className = 'boton-volver'; b.addEventListener('click', fn); return b; }
 function opciones(select, rows, value, label) {
   const anterior = select.value; select.replaceChildren(...rows.map(r => { const o = nodo('option', label(r)); o.value = value(r); return o; }));
