@@ -12,3 +12,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Artefactos locales de pruebas
+work/
