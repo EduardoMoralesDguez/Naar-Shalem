@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import {historical,sql} from '../scripts/lib/database.mjs';
+import {rutaFoto} from '../frontend/js/lib/foto-estatica.js';
+assert.equal(rutaFoto('ana.webp'),'img/perfiles/ana.webp');
+assert.equal(rutaFoto('img/unidades/jaspe.png','unidades'),'img/unidades/jaspe.png');
+assert.equal(rutaFoto(''),null);
+for(const ruta of ['../foto.webp','https://github.com/foto.png','a.svg','a.webp?token=x','á.webp'])assert.throws(()=>rutaFoto(ruta));
+const db=await historical(23);
+try {
+const unidad=(await db.query("SELECT id_unidad,id_ciclo FROM usuarios WHERE rol='capitan' LIMIT 1")).rows[0];
+const uid=crypto.randomUUID(),auth=crypto.randomUUID();
+await db.query("INSERT INTO usuarios(id_usuario,id_ciclo,id_unidad,nombres,apellido,rol) VALUES($1,$2,$3,'Antes','Subcapitán','subcapitan')",[uid,unidad.id_ciclo,unidad.id_unidad]);
+await db.query('INSERT INTO auth.users(id) VALUES($1)',[auth]);
+await db.query('SELECT privado.vincular_cuenta($1,$2)',[uid,auth]);
+const antes=(await db.query('SELECT version_perfil FROM usuarios WHERE id_usuario=$1',[uid])).rows[0];
+await db.exec(sql('migrations/024_capitanes_fotos.sql'));
+await db.exec(sql('migrations/024_capitanes_fotos.sql'));
+const despues=(await db.query('SELECT rol,version_perfil FROM usuarios WHERE id_usuario=$1',[uid])).rows[0];
+assert.equal(despues.rol,'capitan');assert.ok(Number(despues.version_perfil)>Number(antes.version_perfil));
+assert.equal((await db.query("SELECT count(*)::int n FROM privado.inscripciones WHERE id_unidad=$1 AND rol='capitan' AND activo",[unidad.id_unidad])).rows[0].n,2);
+await assert.rejects(db.query("INSERT INTO usuarios(id_ciclo,id_unidad,nombres,apellido,rol) VALUES($1,$2,'Tercero','Capitán','capitan')",[unidad.id_ciclo,unidad.id_unidad]),e=>e.code==='23505');
+await assert.rejects(db.query("UPDATE usuarios SET rol='subcapitan' WHERE id_usuario=$1",[uid]),e=>e.code==='23514');
+await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[auth]);await db.exec('SET ROLE authenticated');
+assert.equal((await db.query('SELECT * FROM mi_perfil()')).rows[0].rol,'capitan');
+const panel=(await db.query('SELECT organizacion_panel(null) p')).rows[0].p;
+const u=panel.unidades.find(x=>x.id_unidad===unidad.id_unidad);
+const data={id_ciclo:unidad.id_ciclo,id:u.id_unidad,version:u.version,lema:'Firmes',porra:'Unidos',url_foto:'img/unidades/jaspe.webp'};
+await db.query("SELECT organizacion_guardar('identidad',$1)",[JSON.stringify(data)]);
+let updated=(await db.query('SELECT organizacion_panel(null) p')).rows[0].p.unidades.find(x=>x.id_unidad===u.id_unidad);
+assert.equal(updated.url_foto,data.url_foto);assert.equal(updated.foto_path,null);
+await assert.rejects(db.query("SELECT organizacion_guardar('identidad',$1)",[JSON.stringify({...data,version:updated.version,url_foto:'img/unidades/../secreto.webp'})]),e=>e.code==='22023');
+const otra=panel.unidades.find(x=>x.id_unidad!==u.id_unidad);
+await assert.rejects(db.query("SELECT organizacion_guardar('identidad',$1)",[JSON.stringify({...data,id:otra.id_unidad,version:otra.version})]),e=>e.code==='42501');
+await assert.rejects(db.query("SELECT organizacion_guardar('unidad',$1)",[JSON.stringify({...data,version:updated.version,nombre:'Nuevo nombre'})]),e=>e.code==='42501');
+await db.exec('RESET ROLE;SET ROLE anon');
+await assert.rejects(db.query("SELECT organizacion_guardar('identidad',$1)",[JSON.stringify(data)]),e=>e.code==='42501');
+console.log('Capitanes/fotos OK: migración repetible, conversión y versión, dos cargos, tercero rechazado, ruta estática y permisos de identidad.');
+} finally {await db.close();}

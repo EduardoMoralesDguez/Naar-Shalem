@@ -1,3 +1,4 @@
+import {rutaFoto} from '../lib/foto-estatica.js';
 // frontend/js/modules/integrantes-admin.js
 
 import {
@@ -9,9 +10,6 @@ import {
 import {
   nuevoId,
   firmarFotos,
-  prepararFoto,
-  subirFoto,
-  limpiarFoto,
 } from '../services/fotos.js';
 
 import { mostrarFoto } from './usuarios.js';
@@ -24,23 +22,13 @@ let registro = null;
 let revision = 0;
 let sucio = false;
 let guardando = false;
-let preparando = false;
-let blob = null;
-let preview = null;
-let pendiente = null;
 let alGuardar = null;
-let fotoOriginal = null;
 
 function mostrarError(error) {
   console.error(error);
   $('adminError').textContent =
     error.message || 'No se pudo completar la operación.';
   $('adminError').hidden = false;
-}
-
-function soltarPreview() {
-  if (preview) URL.revokeObjectURL(preview);
-  preview = null;
 }
 
 export function puedeSalir() {
@@ -55,13 +43,6 @@ export function reiniciarEditor() {
   registro = null;
   sucio = false;
   guardando = false;
-  preparando = false;
-  blob = null;
-
-  if (pendiente) void limpiarFoto(pendiente);
-
-  pendiente = null;
-  soltarPreview();
 
   form.reset();
   $('fotoPreview').textContent = 'NS';
@@ -113,7 +94,8 @@ export async function abrirEditor(id, callback) {
       foto_path: null,
     };
 
-    fotoOriginal = registro.foto_path;
+    $('fotoRuta').value = registro.url_foto?.startsWith('img/perfiles/') ? registro.url_foto : '';
+    $('fotoRuta').placeholder = `img/perfiles/${registro.id_usuario}.webp`;
 
     ['nombres', 'apellido', 'rol'].forEach(nombre => {
       campo(nombre).value = registro[nombre];
@@ -157,58 +139,23 @@ form.addEventListener('input', () => {
   sucio = true;
 });
 
-$('fotoArchivo').addEventListener('change', async () => {
-  const archivo = $('fotoArchivo').files[0];
-
-  if (!archivo || !registro) return;
-
-  const actual = revision;
-  preparando = true;
-
-  $('adminGuardar').disabled = true;
-  $('adminCampos').disabled = true;
-
+$('fotoRuta').addEventListener('change', () => {
+  if (!registro) return;
   try {
-    const preparado = await prepararFoto(archivo);
-
-    if (actual !== revision) return;
-
-    if (pendiente) void limpiarFoto(pendiente);
-
-    pendiente = null;
-    blob = preparado;
-    soltarPreview();
-    preview = URL.createObjectURL(blob);
-
-    mostrarFoto($('fotoPreview'), {
-      ...registro,
-      url_foto: preview,
-    });
-
-    sucio = true;
-  } catch (error) {
-    if (actual === revision) mostrarError(error);
-  } finally {
-    if (actual === revision) {
-      preparando = false;
-      $('adminGuardar').disabled = false;
-      $('adminCampos').disabled = false;
-    }
-  }
+    const ruta = rutaFoto($('fotoRuta').value);
+    registro.url_foto = ruta;
+    registro.foto_path = null;
+    $('adminError').hidden = true;
+    mostrarFoto($('fotoPreview'), registro);
+  } catch (error) { mostrarError(error); }
 });
 
 $('quitarFoto').addEventListener('click', () => {
   if (!registro) return;
 
-  if (pendiente) void limpiarFoto(pendiente);
-
-  pendiente = null;
-  blob = null;
-  soltarPreview();
-
   registro.foto_path = null;
   registro.url_foto = null;
-  $('fotoArchivo').value = '';
+  $('fotoRuta').value = '';
   sucio = true;
 
   mostrarFoto($('fotoPreview'), registro);
@@ -220,7 +167,6 @@ form.addEventListener('submit', async evento => {
   if (
     !registro ||
     guardando ||
-    preparando ||
     !form.reportValidity()
   ) {
     return;
@@ -235,17 +181,7 @@ form.addEventListener('submit', async evento => {
   $('adminError').hidden = true;
 
   try {
-    if (blob && !pendiente) {
-      const path = await subirFoto(registro.id_usuario, blob);
-
-      if (actual !== revision) {
-        void limpiarFoto(path);
-        return;
-      }
-
-      pendiente = path;
-    }
-
+    if ($('fotoRuta').value.trim()) { registro.url_foto = rutaFoto($('fotoRuta').value); registro.foto_path = null; }
     const datos = {
       ...registro,
       nombres: campo('nombres').value.trim(),
@@ -253,19 +189,14 @@ form.addEventListener('submit', async evento => {
       rol: campo('rol').value,
       id_unidad: campo('id_unidad').value || null,
       id_clase: campo('id_clase').value || null,
-      foto_path: pendiente || registro.foto_path,
-      url_foto: pendiente ? null : registro.url_foto,
+      foto_path: registro.foto_path,
+      url_foto: registro.url_foto,
     };
 
     const id = await guardarIntegrante(datos);
 
     if (actual !== revision) return;
 
-    if (fotoOriginal && fotoOriginal !== datos.foto_path) {
-      void limpiarFoto(fotoOriginal);
-    }
-
-    pendiente = null;
     sucio = false;
     guardando = false;
     registro = null;

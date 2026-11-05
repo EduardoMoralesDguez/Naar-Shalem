@@ -1,6 +1,7 @@
+import {rutaFoto} from '../lib/foto-estatica.js';
 import {obtenerPuntajeUnidad} from '../services/competencia.js';
 import {colorearNombre,colorHex,colorearAvatar,ordenarIntegrantes} from '../lib/colores.js';
-import { obtenerOrganizacion,guardarOrganizacion,subirFotoUnidad } from '../services/organizacion.js';
+import { obtenerOrganizacion,guardarOrganizacion } from '../services/organizacion.js';
 const $=id=>document.getElementById(id);
 const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('../../css/organizacion.css',import.meta.url).href;document.head.append(css);
 const entrada=document.createElement('a');entrada.href='#organizacion';entrada.className='modulo';
@@ -86,7 +87,7 @@ function pintarPerfilUnidad(){
  }
  if(!lista.children.length)lista.append(crear('p','Sin integrantes'));integrantes.append(lista);perfilUnidad.append(integrantes);
 }
-function etiquetaRol(r){return {directiva:'Directiva',consejero:'Consejero',capitan:'Capitán',subcapitan:'Subcapitán',conquistador:'Conquistador'}[r]||r;}
+function etiquetaRol(r){return {directiva:'Directiva',consejero:'Consejero',capitan:'Capitán',subcapitan:'Capitán',conquistador:'Conquistador'}[r]||r;}
 function pintarMiembros(){if(!panel)return;$('orgMiembros').replaceChildren();const q=$('orgBuscar').value.toLocaleLowerCase('es');
  for(const u of panel.integrantes.filter(u=>u.nombre.toLocaleLowerCase('es').includes(q)).sort(ordenarIntegrantes)){const tr=crear('tr');tr.append(colorearNombre(crear('th',u.nombre+(u.activo?'':' · Inactivo')),u.id_usuario),crear('td',etiquetaRol(u.rol)),crear('td',panel.vigente?panel.unidades.find(x=>x.id_unidad===u.id_unidad)?.nombre||'—':u.unidad||'—'),crear('td',panel.vigente?panel.clases.find(x=>x.id_clase===u.id_clase)?.nombre||'—':u.clase||'—'));
  const td=crear('td');if(puedeAdministrar()&&u.rol!=='directiva')td.append(btn('Asignar',()=>editar('asignar',u)));tr.append(td);$('orgMiembros').append(tr);}}
@@ -96,14 +97,14 @@ function campo(nombre,titulo,valor='',tipo='text',opciones=null){const label=cre
 function editar(tipo,g={}){
  if(ocupado)return;editando={tipo,g};sucio=false;$('orgCampos').replaceChildren();$('orgError').textContent='';$('orgTitulo').textContent=tipo==='asignar'?g.nombre:tipo==='unidad'?'Unidad':'Clase';
  if(tipo==='asignar'){
- campo('rol','Cargo',g.rol,'text',['conquistador','consejero','capitan','subcapitan'].map(r=>[r,etiquetaRol(r)]));
+ campo('rol','Cargo',g.rol,'text',['conquistador','consejero','capitan'].map(r=>[r,etiquetaRol(r)]));
  campo('unidad','Unidad',g.id_unidad,'text',[['','Sin unidad'],...panel.unidades.filter(u=>u.es_activa).map(u=>[u.id_unidad,u.nombre])]);
  campo('clase','Clase',g.id_clase,'text',[['','Sin clase'],...panel.clases.filter(c=>c.es_activa).map(c=>[c.id_clase,c.nombre])]);
  }else{
  if(admin()){const n=campo('nombre','Nombre',g.nombre);n.required=true;n.maxLength=100;}
  if(tipo==='unidad'){
  campo('lema','Lema',g.lema).maxLength=255;campo('porra','Porra',g.porra,'textarea').maxLength=5000;
- if(g.id_unidad){const f=campo('foto','Foto grupal','','file');f.accept='image/jpeg,image/png,image/webp';if(g.foto_path){const quitar=campo('quitar','Quitar foto','','checkbox');quitar.value='si';}}
+ const f=campo('foto','Foto de la unidad',g.url_foto||'');f.placeholder='img/unidades/archivo.webp';f.maxLength=500;if(g.foto_path||g.url_foto){const quitar=campo('quitar','Quitar foto','','checkbox');quitar.value='si';}
  }else {
  const valor=colorHex(g.color_distintivo)||'#302ca0';const hex=campo('color','Color hexadecimal',valor);hex.pattern='#[0-9A-Fa-f]{6}';hex.maxLength=7;hex.required=true;
  const selector=campo('selector','Elegir color',valor,'color');selector.oninput=()=>{hex.value=selector.value;};hex.oninput=()=>{if(colorHex(hex.value))selector.value=hex.value;};
@@ -117,7 +118,7 @@ $('orgForm').oninput=()=>{sucio=true;};
 $('orgForm').onsubmit=async e=>{e.preventDefault();if(ocupado||!editando)return;const rev=revision,{tipo,g}=editando,fd=new FormData(e.target);bloquear(true);
  try{
  const datos=Object.fromEntries([...fd].filter(([k])=>!['foto','quitar','selector'].includes(k)));datos.id=(tipo==='asignar'?g.id_usuario:tipo==='unidad'?g.id_unidad:g.id_clase)||crypto.randomUUID();datos.version=g.version??null;
- if(tipo==='unidad'){datos.foto_path=fd.get('quitar')?null:g.foto_path||null;const f=fd.get('foto');if(f?.size)datos.foto_path=await subirFotoUnidad(datos.id,f);}
+ if(tipo==='unidad'){datos.foto_path=g.foto_path||null;const texto=fd.get('foto')?.trim()||'';if(texto||fd.get('quitar')||g.url_foto){datos.url_foto=fd.get('quitar')?null:rutaFoto(texto,'unidades');datos.foto_path=null;}}
  await ejecutar(tipo==='unidad'&&!admin()?'identidad':tipo,datos);
  if(rev!==revision)return;editando=null;sucio=false;$('orgDialogo').close();await cargar(panel.id_ciclo);
  }catch(err){if(rev===revision)$('orgError').textContent=err.message;}finally{if(rev===revision)bloquear(false);}

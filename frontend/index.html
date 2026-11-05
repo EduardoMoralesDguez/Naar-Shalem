@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/directorio.css">
   <link rel="stylesheet" href="css/perfiles.css">
   <link rel="stylesheet" href="css/portal.css">
+  <link rel="stylesheet" href="css/panel.css">
   <script src="vendor/supabase-2.49.8.js"></script>
 </head>
 <body>
@@ -65,6 +66,7 @@
   </section>
 
   <header id="barraSesion" class="portal-cabecera" hidden>
+    <button id="panelMenu" class="panel-menu" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="panelLateral">☰</button>
     <a href="#inicio" class="portal-inicio">
       Portal del club
       <span>Inicio</span>
@@ -99,6 +101,20 @@
     <noscript>Activa JavaScript para utilizar el portal.</noscript>
 
     <div id="aplicacion" hidden>
+      <button id="panelSombra" class="panel-sombra" type="button" aria-label="Cerrar menú"></button>
+      <aside id="panelLateral" class="panel-lateral" aria-label="Menú principal">
+        <a class="panel-marca" href="#inicio"><img src="img/LogoNS.png" alt="" width="40"><span>Naar-Shalem<small>Portal del club</small></span></a>
+        <label class="panel-buscar"><span class="sr-only">Buscar módulo</span><input id="panelBuscar" type="search" placeholder="Buscar módulo" autocomplete="off"></label>
+        <span class="panel-grupo">Tu espacio</span>
+        <nav>
+          <a href="#inicio" data-panel-ruta="inicio"><span aria-hidden="true">⌂</span>Inicio</a>
+          <a href="#consultar" data-panel-ruta="comunidad"><span aria-hidden="true">◉</span>Integrantes</a>
+          <a href="#organizacion" data-panel-ruta="organizacion"><span aria-hidden="true">◇</span>Organización</a>
+          <a href="#calendario" data-panel-ruta="calendario"><span aria-hidden="true">▦</span>Calendario</a>
+          <a href="#competencia" data-panel-ruta="competencia"><span aria-hidden="true">★</span>Competencia</a>
+        </nav>
+        <p class="panel-pie">Siervo de Dios<br><span>Un sentimiento que se lleva en el corazón.</span></p>
+      </aside>
       <nav class="ruta" aria-label="Navegación">
         <a href="#inicio">Inicio</a>
         <span aria-hidden="true">/</span>
@@ -330,14 +346,9 @@
               <span class="sobre-titulo">FOTO DEL INTEGRANTE</span>
               <span id="fotoPreview" class="foto-preview" aria-hidden="true">NS</span>
 
-              <label for="fotoArchivo" class="etiqueta">Seleccionar imagen</label>
-              <input
-                id="fotoArchivo"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-              >
-
-              <p class="texto-suave">JPG, PNG o WebP, hasta 8 MB.</p>
+              <label for="fotoRuta" class="etiqueta">Foto del perfil</label>
+              <input id="fotoRuta" type="text" maxlength="500" placeholder="img/perfiles/archivo.webp" aria-describedby="fotoRutaAyuda">
+              <p id="fotoRutaAyuda" class="texto-suave">Nombre o ruta de la imagen publicada en la carpeta de perfiles.</p>
               <button id="quitarFoto" class="boton-volver" type="button">
                 Quitar foto
               </button>
@@ -364,7 +375,6 @@
                     <option value="conquistador">Conquistador</option>
                     <option value="consejero">Consejero</option>
                     <option value="capitan">Capitán</option>
-                    <option value="subcapitan">Subcapitán</option>
                     <option value="directiva">Directiva</option>
                   </select>
                 </label>

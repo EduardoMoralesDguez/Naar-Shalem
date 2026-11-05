@@ -1,18 +1,18 @@
 # Operación y reglas vigentes
 
-Referencia del código con migraciones 001–023. Instalación/configuración se describen únicamente en el README raíz. Este documento sustituye las descripciones de pantallas antiguas: Asistencias y Cuotas ya no son módulos de captura independientes.
+Referencia del código con migraciones 001–024. Instalación/configuración se describen únicamente en el README raíz. Este documento sustituye las descripciones de pantallas antiguas: Asistencias y Cuotas ya no son módulos de captura independientes.
 
 ## Identidad, organización y privacidad
 
 Cada cuenta Auth se vincula a un integrante; perfil, cuenta y contraseña no son lo mismo. Salud y contacto están en tablas privadas. El directorio básico se comparte entre miembros autenticados, mientras que expedientes y finanzas usan RPC con alcance por rol. Los buckets privados entregan URLs firmadas, no enlaces públicos permanentes.
 
-Clase y unidad son asignaciones independientes. Directiva crea/desactiva clases y unidades y asigna miembros. Hay un capitán y un subcapitán por unidad; índices y validaciones rechazan duplicados incluso mediante llamadas directas. Capitanes, subcapitanes y consejeros editan la identidad de su unidad dentro de los permisos actuales, sin mover integrantes ni modificar otras unidades. No hay módulo de consejero de clase académico.
+Clase y unidad son asignaciones independientes. Directiva crea/desactiva clases y unidades y asigna miembros. Hay hasta dos capitanes activos por unidad; la validación transaccional rechaza un tercero incluso mediante llamadas directas. La migración 024 convierte los subcapitanes actuales a capitanes, conservando cuentas e históricos. Capitanes y consejeros editan la identidad de su unidad dentro de los permisos actuales, sin mover integrantes ni modificar otras unidades. No hay módulo de consejero de clase académico.
 
 Unidades tienen perfil, foto, lema, porra, integrantes y asistencia agregada. El porcentaje conjunto es `(asistencias + justificados) / convocatorias` de reuniones regulares cerradas del ciclo: ponderado por registros, no promedio de porcentajes. Usa la unidad histórica y excluye directiva, borradores, anulaciones y eliminadas. Sin registros muestra «—».
 
 Clases tienen perfil e integrantes, sin competencia grupal ni porra. El color admite `#RRGGBB`; conversiones de nombres de colores se hicieron en 016, con azul como respaldo. Los nombres siguen el color de clase en directorios/matrices; cabecera personal blanca, iniciales blancas, círculo negro para directiva/sin unidad. Bitácoras y cabecera de cuenta no adoptan esos colores. Se preservan fotografías.
 
-Nuevo ciclo: directiva elige año posterior y confirma; requiere conexión y no tener pendientes locales. Se archivan inscripciones, roles y nombres de agrupaciones. El nuevo ciclo no tiene unidades ni asignaciones de unidad/clase; capitanes/subcapitanes vuelven a conquistador, directiva/consejeros conservan rol y miembros inactivos siguen inactivos. No se copian cuotas ni asistencias. El archivo conserva lo conocido desde 014, sin inventar historia anterior. No hay todavía visor integral de todos los módulos por año.
+Nuevo ciclo: directiva elige año posterior y confirma; requiere conexión y no tener pendientes locales. Se archivan inscripciones, roles y nombres de agrupaciones. El nuevo ciclo no tiene unidades ni asignaciones de unidad/clase; capitanes vuelven a conquistador, directiva/consejeros conservan rol y miembros inactivos siguen inactivos. No se copian cuotas ni asistencias. El archivo conserva lo conocido desde 014, sin inventar historia anterior. No hay todavía visor integral de todos los módulos por año.
 
 ## Calendario y convocatorias
 
@@ -41,15 +41,15 @@ Guardar unidad conserva asistencia, ingresos y puntos juntos; si falla una parte
 
 Cerrar reunión exige todas las unidades guardadas y pendientes sincronizados. Cierra pase, aplica saldo disponible y cierra puntajes en una transacción. Puede cerrarse anticipadamente si cumple las reglas. Reabrir puntaje habilita correcciones; si hay corte/ciclo finalizado se debe reabrir antes. Los criterios automáticos se calculan desde asistencia/cuota hasta fijar un corte.
 
-Lectores ven la última reunión con puntaje cerrado y las abiertas de su unidad; sin unidad ven su propia fila. No reciben motivos privados de extras ni importes financieros. En 023 el capitán puede cobrar a su unidad el día de la reunión y justificar una falta registrada del mismo día con motivo de 3–500 caracteres, con conexión. No modifica una asistencia ni criterios/extras. El subcapitán conserva operaciones antiguas de servidor pero no estas acciones en la matriz nueva; es una limitación documentada, no corregida silenciosamente en esta refactorización.
+Lectores ven la última reunión con puntaje cerrado y las abiertas de su unidad; sin unidad ven su propia fila. No reciben motivos privados de extras ni importes financieros. En 023 el capitán puede cobrar a su unidad el día de la reunión y justificar una falta registrada del mismo día con motivo de 3–500 caracteres, con conexión. No modifica una asistencia ni criterios/extras. Después de 024 ambos cargos se llaman Capitán y tienen las mismas acciones.
 
 ## Tesorería
 
-Las cantidades se almacenan en centavos. Un ingreso se distingue de su aplicación a un cargo. El remanente es saldo a favor, no ingreso nuevo. Crear una actividad no consume anticipos. Al cerrar su cobro se aplica saldo disponible de forma automática; se retiró el botón Aplicar saldo de la interfaz. Un abono parcial no cuenta como cuota cumplida. El porcentaje financiero usa cargos vencidos completamente cubiertos; no el número de reuniones sin cuota. Total recibido excluye anulaciones e incluye anticipos.
+Las cantidades se almacenan en centavos. Un ingreso se distingue de su aplicación a un cargo. El remanente es saldo a favor, no ingreso nuevo. Crear una actividad no consume saldo a favor. Al cerrar su cobro se aplica saldo disponible de forma automática; se retiró el botón Aplicar saldo de la interfaz. Un abono parcial no cuenta como cuota cumplida. El porcentaje financiero usa cargos vencidos completamente cubiertos; no el número de reuniones sin cuota. Total recibido excluye anulaciones e incluye abonos.
 
 Historial financiero está dentro de Administración, con consultas por unidad/integrante, importes y corrección/anulación con motivo. Corregir recalcula aplicaciones; anular libera aplicaciones y deja el ingreso auditado. No se debe editar `public.cuotas` para cambiar pagos actuales: es compatibilidad histórica. Directiva recibe datos financieros completos; capitán solo lo necesario para el cobro de su unidad/reunión. Los demás consultan porcentajes autorizados.
 
-Limitación previa: la RPC de abonos/anticipos existe, pero su entrada quedó en el panel de cobro antiguo oculto. Esta refactorización conserva esa capacidad del servidor y la registra como funcionalidad parcial; no inventa un flujo nuevo.
+Directiva registra **Abonos** en Competencia → Admin → Historial financiero → Por integrante → seleccionar integrante → Registrar abono. Puede elegir las actividades pendientes a cubrir; el resto queda como saldo a favor. Se usa la misma RPC y cola transaccional de ingresos; se conservan corrección, anulación y bitácora. No se debe registrar dos veces el mismo dinero desde la matriz y desde Abonos.
 
 ## Clasificación, cortes y publicaciones
 

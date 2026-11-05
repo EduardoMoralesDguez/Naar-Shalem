@@ -29,7 +29,7 @@ export async function database() {
   return db;
 }
 
-export async function historical() {
+export async function historical(hasta = Infinity) {
   const db = await database();
   await db.exec(sql('schema.sql'));
   // 002 exige una directiva vinculada. Estos fixtures NO se exportan al maestro.
@@ -40,7 +40,7 @@ export async function historical() {
     INSERT INTO auth.users(id) VALUES('f0000000-0000-4000-8000-000000000004');
   `);
   const migrations = readdirSync(new URL('../../database/migrations/', import.meta.url))
-    .filter(file => file.endsWith('.sql')).sort();
+    .filter(file => file.endsWith('.sql') && parseInt(file, 10) <= hasta).sort();
   for (const file of migrations) {
     try {
       await db.exec(sql('migrations/' + file));

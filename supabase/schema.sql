@@ -1,4 +1,4 @@
--- Naar-Shalem: instalación NUEVA, estado final de 001–023.
+-- Naar-Shalem: instalación NUEVA, estado final de 001–024.
 -- Generado desde catálogos PostgreSQL por scripts/consolidar-schema.mjs.
 -- No ejecutar sobre una instalación existente. No incluye personas ni movimientos de prueba.
 -- Supabase proporciona auth.uid(), auth.users, roles anon/authenticated y Storage.
@@ -1196,10 +1196,10 @@ BEGIN
  RAISE EXCEPTION 'Selecciona una unidad activa del ciclo actual.' USING ERRCODE='22023'; END IF;
  IF NEW.id_clase IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.clases WHERE id_clase=NEW.id_clase AND es_activa) THEN
  RAISE EXCEPTION 'Selecciona una clase activa.' USING ERRCODE='22023'; END IF;
- IF NEW.es_activo AND NEW.rol IN ('capitan','subcapitan') AND NEW.id_unidad IS NULL THEN
- RAISE EXCEPTION 'Asigna una unidad al capitán o subcapitán.' USING ERRCODE='22023'; END IF;
- IF NEW.es_activo AND NEW.rol IN ('capitan','subcapitan') AND EXISTS(SELECT 1 FROM privado.inscripciones i WHERE i.id_ciclo=NEW.id_ciclo AND i.id_unidad=NEW.id_unidad AND i.rol=NEW.rol AND i.activo AND i.id_usuario<>NEW.id_usuario) THEN
- RAISE EXCEPTION 'La unidad ya tiene ese cargo. Revócalo antes de nombrar a otra persona.' USING ERRCODE='23505'; END IF;
+ IF NEW.es_activo AND NEW.rol='capitan' AND NEW.id_unidad IS NULL THEN
+ RAISE EXCEPTION 'Asigna una unidad al capitán.' USING ERRCODE='22023'; END IF;
+ IF NEW.es_activo AND NEW.rol='capitan' AND (SELECT count(*) FROM privado.inscripciones i WHERE i.id_ciclo=NEW.id_ciclo AND i.id_unidad=NEW.id_unidad AND i.rol='capitan' AND i.activo AND i.id_usuario<>NEW.id_usuario)>=2 THEN
+ RAISE EXCEPTION 'La unidad ya tiene dos capitanes. Revoca un cargo antes de nombrar otro.' USING ERRCODE='23505'; END IF;
  RETURN NEW;
 END $function$;
 
@@ -2201,6 +2201,24 @@ CREATE OR REPLACE FUNCTION public.organizacion_guardar(p_accion text, p_datos js
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
+DECLARE foto text:=nullif(btrim(p_datos->>'url_foto'),''); BEGIN
+ IF p_accion IN ('unidad','identidad') AND p_datos ? 'url_foto' THEN
+ IF foto IS NOT NULL AND (length(foto)>500 OR foto !~ '^img/unidades/[A-Za-z0-9_-]+\.(webp|png|jpg|jpeg)$') THEN
+ RAISE EXCEPTION 'La foto debe ser una ruta img/unidades/archivo.webp, png o jpg.' USING ERRCODE='22023'; END IF;
+ END IF;
+ -- Conserva validación de rol/unidad, ciclo, versión, bitácora y campos de identidad.
+ PERFORM public.organizacion_guardar_023(p_accion,p_datos);
+ IF p_accion IN ('unidad','identidad') AND p_datos ? 'url_foto' THEN
+ UPDATE public.unidades SET url_foto=foto,foto_path=NULL WHERE id_unidad=(p_datos->>'id')::uuid;
+ END IF;
+END $function$;
+
+CREATE OR REPLACE FUNCTION public.organizacion_guardar_023(p_accion text, p_datos jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 #variable_conflict use_variable
 <<org>>
 DECLARE ciclo UUID; unidad public.unidades%ROWTYPE; clase public.clases%ROWTYPE; miembro public.usuarios%ROWTYPE; id UUID; nombre TEXT; nuevo UUID; anio INTEGER; BEGIN
@@ -3160,7 +3178,7 @@ ALTER TABLE "public"."unidades" ADD CONSTRAINT "unidades_pkey" PRIMARY KEY (id_u
 
 ALTER TABLE "public"."usuarios" ADD CONSTRAINT "usuarios_pkey" PRIMARY KEY (id_usuario);
 
-ALTER TABLE "public"."usuarios" ADD CONSTRAINT "usuarios_rol_check" CHECK (rol::text = ANY (ARRAY['directiva'::character varying, 'consejero'::character varying, 'capitan'::character varying, 'subcapitan'::character varying, 'conquistador'::character varying]::text[]));
+ALTER TABLE "public"."usuarios" ADD CONSTRAINT "usuarios_rol_check" CHECK (rol::text = ANY (ARRAY['directiva'::character varying, 'consejero'::character varying, 'capitan'::character varying, 'conquistador'::character varying]::text[]));
 
 ALTER TABLE "privado"."bitacora_reuniones" ADD CONSTRAINT "bitacora_reuniones_reunion_fkey" FOREIGN KEY (reunion) REFERENCES privado.reuniones(id);
 
@@ -3272,7 +3290,7 @@ CREATE UNIQUE INDEX competencia_criterio_nombre ON privado.competencia_criterios
 
 CREATE UNIQUE INDEX competencia_fuente_auto ON privado.competencia_criterios USING btree (fuente) WHERE (fuente <> 'manual'::text);
 
-CREATE UNIQUE INDEX un_cargo_por_unidad ON privado.inscripciones USING btree (id_ciclo, id_unidad, rol) WHERE (activo AND (rol = ANY (ARRAY['capitan'::text, 'subcapitan'::text])) AND (id_unidad IS NOT NULL));
+CREATE INDEX capitanes_por_unidad ON privado.inscripciones USING btree (id_ciclo, id_unidad) WHERE (activo AND (rol = 'capitan'::text));
 
 CREATE UNIQUE INDEX reunion_nombre_dia ON privado.reuniones USING btree (id_ciclo, fecha, lower(nombre)) WHERE (NOT eliminado);
 
@@ -3311,65 +3329,67 @@ INSERT INTO public.especialidades ("id_especialidad","nombre","url_imagen") VALU
 
 INSERT INTO privado.competencia_config ("id","version","justificados") VALUES ('true','1','true');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('4c00b5fd-917b-45eb-a13e-04e11122aae2','Biblia','manual','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('37f8d127-78d6-412d-a87b-3a914220842d','Biblia','manual','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('931e361b-c75c-4a7b-8880-a0202bfc8d8f','Puntualidad','manual','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('197cd1c2-7640-44a7-a8b3-8c3da297d70c','Puntualidad','manual','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('31479860-a620-4302-9ced-4863be25abf8','Versículo','manual','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('222af395-67bd-4cf8-a8e2-4a3bc18ea096','Versículo','manual','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('ee707125-6e9c-41d2-8749-91f2c74cb13d','Limpieza','manual','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('d05f8e3c-94a6-4e73-a34c-11f88e36eb53','Limpieza','manual','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('a8a5749a-95b2-43ee-b8b4-5a8691c236c6','Asistencia','asistencia','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('27bb59b7-c7bd-482b-bd4f-5e66bd608905','Asistencia','asistencia','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('f83a3989-dd7d-4860-8aa2-48f4dcc1ea18','Cuota','cuota','5','true','false');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('64b25040-1851-4da7-9096-2b0bf028dd55','Cuota','cuota','5','true','false');
 
-INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('fbc0a6ac-d72e-48cb-810b-46e76d45054b','Cuadernillo','manual','5','true','true');
+INSERT INTO privado.competencia_criterios ("id","nombre","fuente","valor","activo","solo_conquistadores") VALUES ('dbedb533-2b3b-4d39-9ee7-3085788545ff','Cuadernillo','manual','5','true','true');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('001_cuentas_y_datos_privados','2026-11-04T05:44:02.141+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('001_cuentas_y_datos_privados','2026-11-05T03:23:41.9+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('002_login_rls','2026-11-04T05:44:02.171+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('002_login_rls','2026-11-05T03:23:41.932+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('003_directorio_compartido','2026-11-04T05:44:02.211+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('003_directorio_compartido','2026-11-05T03:23:41.99+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('004_administrar_integrantes','2026-11-04T05:44:02.214+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('004_administrar_integrantes','2026-11-05T03:23:41.993+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('005_portal_y_fotos','2026-11-04T05:44:02.221+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('005_portal_y_fotos','2026-11-05T03:23:41.998+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('006_asistencias','2026-11-04T05:44:02.226+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('006_asistencias','2026-11-05T03:23:42.004+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('007_reuniones','2026-11-04T05:44:02.234+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('007_reuniones','2026-11-05T03:23:42.012+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('008_matriz_asistencias','2026-11-04T05:44:02.252+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('008_matriz_asistencias','2026-11-05T03:23:42.036+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('009_pases_por_reunion','2026-11-04T05:44:02.255+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('009_pases_por_reunion','2026-11-05T03:23:42.04+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('010_cuotas','2026-11-04T05:44:02.268+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('010_cuotas','2026-11-05T03:23:42.094+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('011_calendario','2026-11-04T05:44:02.301+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('011_calendario','2026-11-05T03:23:42.131+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('012_tipos_actividades','2026-11-04T05:44:02.314+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('012_tipos_actividades','2026-11-05T03:23:42.145+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('013_cierre_cuotas','2026-11-04T05:44:02.335+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('013_cierre_cuotas','2026-11-05T03:23:42.191+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('014_organizacion','2026-11-04T05:44:02.342+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('014_organizacion','2026-11-05T03:23:42.199+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('015_perfiles_unidades','2026-11-04T05:44:02.358+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('015_perfiles_unidades','2026-11-05T03:23:42.217+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('016_asistencias_offline_colores','2026-11-04T05:44:02.359+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('016_asistencias_offline_colores','2026-11-05T03:23:42.219+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('017_altas_reuniones_pendientes','2026-11-04T05:44:02.366+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('017_altas_reuniones_pendientes','2026-11-05T03:23:42.225+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('018_competencia','2026-11-04T05:44:02.372+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('018_competencia','2026-11-05T03:23:42.231+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('019_competencia_resultados','2026-11-04T05:44:02.394+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('019_competencia_resultados','2026-11-05T03:23:42.254+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('020_competencia_integrada','2026-11-04T05:44:02.41+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('020_competencia_integrada','2026-11-05T03:23:42.293+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('021_cierre_puntajes','2026-11-04T05:44:02.421+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('021_cierre_puntajes','2026-11-05T03:23:42.309+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('022_reunion_unificada','2026-11-04T05:44:02.425+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('022_reunion_unificada','2026-11-05T03:23:42.321+00:00');
 
-INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('023_captura_capitan','2026-11-04T05:44:02.427+00:00');
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('023_captura_capitan','2026-11-05T03:23:42.332+00:00');
+
+INSERT INTO privado.migraciones ("version","aplicada_en") VALUES ('024_capitanes_fotos','2026-11-05T03:23:42.34+00:00');
 
 INSERT INTO privado.cuota_epoca DEFAULT VALUES;
 
@@ -3824,6 +3844,10 @@ GRANT EXECUTE ON FUNCTION "public"."mi_perfil"() TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."organizacion_guardar"(p_accion text, p_datos jsonb) FROM PUBLIC,anon,authenticated;
 
 GRANT EXECUTE ON FUNCTION "public"."organizacion_guardar"(p_accion text, p_datos jsonb) TO "authenticated";
+
+REVOKE ALL ON FUNCTION "public"."organizacion_guardar_023"(p_accion text, p_datos jsonb) FROM PUBLIC,anon,authenticated;
+
+GRANT EXECUTE ON FUNCTION "public"."organizacion_guardar_023"(p_accion text, p_datos jsonb) TO "authenticated";
 
 REVOKE ALL ON FUNCTION "public"."organizacion_panel"(p_ciclo uuid) FROM PUBLIC,anon,authenticated;
 

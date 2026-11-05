@@ -26,7 +26,7 @@ vista.innerHTML = `
   <h2 id="cuMiUnidad"></h2>
   <div id="cuHistMatriz" class="cu-scroll" tabindex="0" role="region" aria-label="Cuotas por unidad"><table id="cuMatriz" class="cu-tabla cu-matriz"></table></div>
   <div id="cuHistDirectorio" hidden><label>Buscar integrante<input id="cuBuscar" type="search" placeholder="Nombre del integrante"></label><div id="cuIntegrantes" class="cu-integrantes"></div></div>
-  <div id="cuHistDetalle" hidden><button id="cuHistVolver" class="boton-volver">← Integrantes</button><h2 id="cuHistNombre"></h2><div class="cu-scroll"><table class="cu-tabla"><caption>Historial de ingresos</caption><thead><tr><th>Fecha</th><th>Importe</th><th>Aplicación</th><th>Registró / estado</th><th>Acciones</th></tr></thead><tbody id="cuHistorial"></tbody></table></div></div>
+  <div id="cuHistDetalle" hidden><button id="cuAbono" class="boton-principal" type="button">Registrar abono</button><button id="cuHistVolver" class="boton-volver">← Integrantes</button><h2 id="cuHistNombre"></h2><div class="cu-scroll"><table class="cu-tabla"><caption>Historial de ingresos</caption><thead><tr><th>Fecha</th><th>Importe</th><th>Aplicación</th><th>Registró / estado</th><th>Acciones</th></tr></thead><tbody id="cuHistorial"></tbody></table></div></div>
  </section>
  <section id="cuAuditoria" class="cu-panel" hidden><h2>Bitácora de cambios</h2><div class="cu-scroll"><table class="cu-tabla"><thead><tr><th>Fecha</th><th>Registró</th><th>Movimiento</th><th>Integrante / actividad</th><th>Motivo</th></tr></thead><tbody id="cuBitacora"></tbody></table></div></section>
  <dialog id="cuDialogo" class="cu-dialogo"><form id="cuFormulario"><h2 id="cuTitulo"></h2><p id="cuAyuda"></p>
@@ -94,7 +94,7 @@ function pintar() {
         check.addEventListener('change', () => { check.checked ? marcados.add(u.id_usuario) : marcados.delete(u.id_usuario); pintar(); });
         label.append(check, document.createTextNode(' Recibí $10')); acciones.append(label);
       } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
-      if (admin() && !pendientes.length) { const b = boton('Abono / anticipo', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); }
+      if (admin() && !pendientes.length) { const b = boton('Abono', () => abrir('pago', u)); b.disabled = ocupado; acciones.append(b); }
     } else acciones.append(nodo('span', cargo?.pagado >= cargo?.importe ? 'Pagado' : 'Pendiente'));
     fila.append(acciones); $('cuLista').append(fila);
   }
@@ -194,7 +194,7 @@ function pintarVistaHistorial() {
 }
 function pintarHistorial() {
   const p = local?.panel; if (!p) return;
-  const id = historialUsuario; $('cuHistorial').replaceChildren();
+  const id = historialUsuario; $('cuHistorial').replaceChildren();$('cuAbono').hidden=!admin();$('cuAbono').disabled=ocupado||local.cola.some(o=>o.datos.id_usuario===id);
   const ingresos = p.ingresos.filter(i => i.id_usuario === id);
   for (const i of ingresos) {
     const tr = document.createElement('tr');
@@ -211,7 +211,7 @@ function pintarHistorial() {
 function abrir(accion, u, ingreso) {
   if (ocupado) return;
   editando = { accion, u, ingreso }; $('cuFormulario').reset(); $('cuError').textContent = '';
-  $('cuTitulo').textContent = `${{ pago: 'Registrar ingreso', saldo: 'Aplicar saldo', corregir: 'Corregir ingreso', anular: 'Anular ingreso' }[accion]} · ${u.nombre}`;
+  $('cuTitulo').textContent = `${{ pago: 'Registrar abono', saldo: 'Aplicar saldo', corregir: 'Corregir ingreso', anular: 'Anular ingreso' }[accion]} · ${u.nombre}`;
   $('cuAyuda').textContent = accion === 'pago' ? 'Registra el dinero recibido una sola vez. Por ejemplo, $50 pueden cubrir cinco cuotas de $10.' : 'El cambio conservará su autor y motivo en la bitácora.';
   $('cuMontoCampo').hidden = !['pago', 'corregir'].includes(accion); $('cuMonto').disabled = $('cuMontoCampo').hidden;
   $('cuMonto').value = ingreso ? ingreso.importe / 100 : 10;
@@ -344,3 +344,5 @@ export async function abrirHistorialFinanciero(p,id,contenedor){
  contenedor.append(vista);vista.classList.add('cu-embebido');vista.hidden=false;pestaña='historial';
  await abrirCuotas(p,id);
 }
+
+$('cuAbono').onclick=()=>{const u=local?.panel?.integrantes.find(u=>u.id_usuario===historialUsuario);if(admin()&&u)abrir('pago',u);};
