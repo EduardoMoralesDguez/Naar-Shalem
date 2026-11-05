@@ -1,0 +1,48 @@
+/* Panel de trabajo: navegación persistente, superficies claras y acentos del club. */
+:root { --panel-ancho:224px; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.panel-menu,.panel-sombra { display:none; }
+.panel-lateral { position:fixed; inset:80px auto 0 0; width:var(--panel-ancho); z-index:25; background:#fff; border-right:1px solid var(--color-borde); padding:24px 14px; display:flex; flex-direction:column; overflow:auto; }
+.panel-marca { display:flex; gap:10px; align-items:center; padding:0 10px 24px; text-decoration:none; font-size:15px; font-weight:750; }
+.panel-marca small { display:block; font-size:11px; font-weight:400; color:var(--color-suave); margin-top:3px; }
+.panel-buscar input { width:100%; min-height:36px; padding:8px 10px; border:1px solid var(--color-borde); border-radius:6px; background:#fafafe; font-size:13px; }
+.panel-grupo { margin:26px 10px 10px; color:var(--color-suave); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+.panel-lateral nav { display:grid; gap:5px; }
+.panel-lateral nav a { min-height:42px; display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:6px; text-decoration:none; font-size:14px; color:var(--color-texto); border:1px solid transparent; }
+.panel-lateral nav a[hidden] { display:none; }
+.panel-lateral nav a span { width:18px; color:var(--club-azul); font-size:18px; }
+.panel-lateral nav a:hover { background:#f5f5fb; }
+.panel-lateral nav a[aria-current] { background:#eeeefa; border-color:#dcdcf0; color:var(--club-azul); font-weight:650; box-shadow:inset 3px 0 var(--club-oro); }
+.panel-pie { margin:auto 10px 0; padding-top:35px; font-size:12px; color:var(--club-azul); line-height:1.5; }
+.panel-pie span { display:block; margin-top:6px; font-size:11px; color:var(--color-suave); }
+body:has(#aplicacion:not([hidden])) { background:#fafafe; }
+body:has(#aplicacion:not([hidden])) .portal-cabecera { position:sticky; top:0; min-height:80px; z-index:30; background:#fff; border-bottom:1px solid var(--color-borde); box-shadow:none; padding:10px 28px; }
+body:has(#aplicacion:not([hidden])) .portal-contenido { width:calc(100% - var(--panel-ancho)); max-width:none; margin-left:var(--panel-ancho); padding:28px clamp(18px,3vw,48px) 48px; }
+.portal-contenido .vista { max-width:1500px; margin-inline:auto; }
+.portal-contenido .ruta { font-size:12px; margin-bottom:28px; }
+.portal-contenido h1 { font-size:clamp(25px,2.1vw,32px); letter-spacing:-.035em; }
+.portal-contenido h2 { letter-spacing:-.02em; }
+.portal-contenido .bienvenida { padding:30px; border-radius:10px; box-shadow:none; background:var(--club-azul); border-bottom:3px solid var(--club-oro); }
+.portal-contenido .modulo,.portal-contenido .cp-panel,.portal-contenido .org-panel,.portal-contenido .cu-panel,.portal-contenido .integrante-tarjeta { border-radius:8px; box-shadow:none; border-color:var(--color-borde); }
+.portal-contenido .modulo { padding:24px; transition:border-color .15s,background .15s; }
+.portal-contenido .modulo:hover { border-color:var(--club-azul); background:#fdfdff; transform:none; }
+.portal-contenido button,.portal-contenido .boton-volver { border-radius:6px; box-shadow:none; }
+.portal-contenido input,.portal-contenido select,.portal-contenido textarea { border-radius:6px; }
+.portal-contenido .cp-menu { gap:12px; }
+.portal-contenido .cp-tarjeta { border-radius:8px; padding:18px; min-height:70px; box-shadow:none; }
+.portal-contenido .cp-tarjeta[aria-pressed=true] { box-shadow:inset 0 -3px var(--club-azul); }
+.portal-contenido .cp-nav { gap:8px; }
+.portal-contenido .cp-tabla th,.portal-contenido .cu-tabla th { background:#f6f6fc; }
+.portal-contenido .cp-guardar.cp-guardado { background:#7679bd; }
+@media(max-width:900px) {
+ .panel-menu { display:inline-flex; align-items:center; justify-content:center; min-width:40px; min-height:40px; border:1px solid var(--color-borde); border-radius:6px; background:white; color:var(--club-azul); font-size:20px; }
+ .panel-lateral { display:none; top:0; padding-top:24px; z-index:50; box-shadow:10px 0 25px #171a5320; }
+ .panel-abierto:has(#aplicacion:not([hidden])) .panel-lateral { display:flex; }
+ .panel-abierto:has(#aplicacion:not([hidden])) .panel-sombra { display:block; position:fixed; inset:0; background:#10123455; border:0; z-index:45; width:100%; height:100%; }
+ body:has(#aplicacion:not([hidden])) .portal-contenido { width:100%; margin-left:0; padding:20px 14px 35px; }
+ body:has(#aplicacion:not([hidden])) .portal-cabecera { padding:10px 14px; gap:10px; }
+ .portal-cabecera .portal-inicio { display:none; }
+ .portal-contenido .cp-tarjeta { padding:12px; min-height:58px; }
+ .portal-contenido .ruta { margin-bottom:20px; }
+}
+@media(prefers-reduced-motion:reduce) { .portal-contenido .modulo { transition:none; } }

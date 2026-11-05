@@ -7,7 +7,7 @@ const ident=s=>'"'+s.replaceAll('"','""')+'"';
 const literal=s=>s===null?'NULL':"'"+String(s).replaceAll("'","''")+"'";
 const name=r=>ident(r.nspname)+'.'+ident(r.relname||r.proname);
 const scope="n.nspname IN ('public','privado')";
-const out=[`-- Naar-Shalem: instalación NUEVA, estado final de 001–023.
+const out=[`-- Naar-Shalem: instalación NUEVA, estado final de 001–024.
 -- Generado desde catálogos PostgreSQL por scripts/consolidar-schema.mjs.
 -- No ejecutar sobre una instalación existente. No incluye personas ni movimientos de prueba.
 -- Supabase proporciona auth.uid(), auth.users, roles anon/authenticated y Storage.

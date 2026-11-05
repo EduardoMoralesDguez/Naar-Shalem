@@ -5,11 +5,11 @@ Portal del Club de Conquistadores. Frontend estático con JavaScript (módulos E
 ## Qué está disponible
 
 - Directorio, perfiles y administración de integrantes, salud/contactos privados, fotografías.
-- Clases y unidades independientes, identidad de unidad, colores de clase, capitán/subcapitán y ciclos anuales.
+- Clases y unidades independientes, identidad de unidad, colores de clase, hasta dos capitanes por unidad y ciclos anuales.
 - Calendario de reuniones, prácticas, eventos y avisos segmentados.
 - Competencia: matriz por reunión/unidad con asistencia, cuota de $10, criterios, extras y cierre transaccional.
 - Clasificación, cortes, publicaciones temporales, acumulado anual y estadísticas.
-- Historial financiero, correcciones, consulta de insignias y porcentajes de progreso.
+- Historial financiero, abonos, correcciones, consulta de insignias y porcentajes de progreso.
 - Captura offline de directiva y sincronización con control de conflictos; no envío garantizado con la app cerrada.
 
 No están completos cuadernillos/tareas, otorgamiento de insignias, biblioteca, retos, turnos de programa, preinscripción, mapa ni push. La [auditoría y matriz de cumplimiento](docs/AUDITORIA.md) distingue lo probado de lo pendiente. Las [reglas operativas](docs/OPERACION.md) documentan permisos, cálculos, históricos y resolución de conflictos.
@@ -74,13 +74,13 @@ END $$;
 
 5. Configurar el frontend, iniciar sesión, crear unidades y completar integrantes. Cada miembro necesita una cuenta Auth y una vinculación independiente; registrar un perfil no crea su cuenta automáticamente. `database/admin/vincular_cuenta.sql` contiene las consultas administrativas para identificar los UUID.
 
-Los buckets `integrantes-fotos` y `unidades-fotos` son privados, con límites y políticas incluidas. No exponer el esquema `privado` en PostgREST. `gen_random_uuid()` es nativo de PostgreSQL 13+; no se requiere instalar una extensión adicional. Auth/Storage y sus roles son provistos por Supabase, no recreados por el maestro.
+Los buckets `integrantes-fotos` y `unidades-fotos` se conservan privados para mostrar fotos anteriores. Las nuevas fotos se enlazan como archivos estáticos del repositorio, sin subirlas a Storage. No exponer el esquema `privado` en PostgREST. `gen_random_uuid()` es nativo de PostgreSQL 13+; no se requiere instalar una extensión adicional. Auth/Storage y sus roles son provistos por Supabase, no recreados por el maestro.
 
 **El maestro es para instalaciones nuevas.** Se detiene si detecta tablas de una instalación existente y se ejecuta en una transacción. No es un script de actualización ni un respaldo. La validación local usa PostgreSQL PGlite con un contrato mínimo de Auth/Storage; falta validación de servicios alojados en un proyecto Supabase real.
 
 ### Base existente y scripts históricos
 
-Conservar los datos existentes: no ejecutar el maestro encima. Consultar `privado.migraciones` y aplicar únicamente migraciones faltantes en orden. El estado consolidado corresponde a **001–023**. La rama de captura unificada con 023 aplicada no necesita SQL adicional por esta refactorización.
+Conservar los datos existentes: no ejecutar el maestro encima. Consultar `privado.migraciones` y aplicar únicamente migraciones faltantes en orden. El estado consolidado corresponde a **001–024**. Si ya aplicaste 023, ejecuta únicamente **`database/migrations/024_capitanes_fotos.sql`**. Convierte subcapitanes a capitanes sin cambiar sus UUID ni movimientos y admite hasta dos capitanes activos por unidad. Cierra sesión y vuelve a entrar después.
 
 `database/schema.sql` y `database/migrations/` se conservan como referencia histórica y para probar equivalencia/upgrades. En la secuencia histórica, 002 requiere vincular previamente una directiva después de 001; el maestro elimina ese paso intermedio de instalación. Las migraciones incluyen importaciones de modelos anteriores que no se necesitan al iniciar vacío.
 
@@ -92,12 +92,23 @@ Importar el repositorio y seleccionar la rama a probar. Configuración recomenda
 
 Git y Vercel no ejecutan SQL automáticamente. Configurar en Supabase las URLs permitidas de la publicación. Tras desplegar, cerrar todas las ventanas de la PWA y volver a abrir con conexión. No borrar IndexedDB si hay capturas pendientes. La interfaz debe conservar «Siervo de Dios», «Un sentimiento que se lleva en el corazón», azul `#292C98`, oro `#FFCA00`, rojo `#FF1A10` y blanco.
 
+## Fotos desde GitHub
+
+1. Colocar la imagen en **`frontend/img/perfiles/`** (integrante) o **`frontend/img/unidades/`** (unidad). En GitHub se puede usar *Add file → Upload files* dentro de esa carpeta; publicar el commit en la rama que despliega Vercel.
+2. Usar nombres sin espacios ni acentos, por ejemplo `ana.webp` o el UUID del integrante. Se aceptan `.webp`, `.png`, `.jpg`, `.jpeg`; recomendado máximo 640×640 y menos de 200 KB.
+3. Esperar el despliegue. En **Editar integrante → Foto de perfil** escribir `ana.webp` o `img/perfiles/ana.webp`. Para una unidad usar `img/unidades/jaspe.webp` en **Editar unidad**. No pegar la página `github.com/.../blob/...`.
+4. Guardar. La base solo guarda la ruta y Vercel sirve el archivo del repositorio; no se necesita token GitHub en el navegador. «Quitar foto» desvincula la imagen, no borra el archivo ni una foto antigua de Storage.
+
+Las fotos publicadas son accesibles por URL, como las insignias; no tienen la privacidad de Storage firmado. Usa esta carpeta solo para imágenes que quieras publicar. Las fotos antiguas siguen funcionando y no se copian automáticamente; para sustituirlas, publicar su archivo y cambiar la ruta. Para actualizar una foto usa un nombre nuevo (`ana-2.webp`) y evita cachés antiguos. Las fotos nuevas no se precargan masivamente en el paquete offline.
+
+La interfaz incorpora navegación lateral con búsqueda, paneles de bordes discretos y menú móvil, conservando la paleta azul, oro y blanco. Las operaciones siguen protegidas por sus permisos actuales.
+
 ## Validación y mantenimiento
 
 ```bash
 npm run build          # genera SW a partir de los assets actuales
 npm run check          # sintaxis JS, imports y archivos estáticos
-npm test               # 13 suites históricas SQL + maestro + RPC
+npm test               # SQL histórico/maestro, RPC, capitanes y rutas de fotos
 npm run test:ui        # calendario, organización y competencia en Chromium
 npm run test:schema    # restauración limpia, catálogo, RLS y flujo operativo
 ```
@@ -105,3 +116,5 @@ npm run test:schema    # restauración limpia, catálogo, RLS y flujo operativo
 `npm run db:consolidar` reconstruye el estado histórico en una base PGlite efímera y extrae definiciones finales de PostgreSQL. No concatena archivos ni se conecta a tu Supabase. Después de modificar SQL, regenerar el maestro y ejecutar `test:schema`; los UUID de semillas pueden variar entre generaciones. No editar copias de funciones a mano en ambos sitios.
 
 Las pruebas SQL y de navegador son locales; las de navegador sustituyen servicios por fixtures. No certifican email, Storage alojado, Vercel, rendimiento 3G ni instalación en iOS. Los resultados y límites de esta auditoría están en `docs/AUDITORIA.md`.
+
+Para validar la rama en tu proyecto de pruebas, sigue [la lista manual por rol](docs/PRUEBAS_MANUALES.md).

@@ -1,3 +1,4 @@
+import {actualizarPanel} from './lib/panel.js';
 import {pendientesPuntajes} from './services/competencia-local.js';
 import {obtenerPuntajePerfil,obtenerPublicacion} from './services/competencia.js';
 import {abrirCompetencia,reiniciarCompetencia,puedeSalirCompetencia} from './modules/competencia.js';
@@ -104,6 +105,7 @@ function limpiar() {
   ocultarVistas();
   aviso('');
 
+  actualizarPanel('inicio');
   $('aplicacion').hidden = true;
   $('barraSesion').hidden = true;
   $('sesionNombre').textContent = '';
@@ -171,6 +173,7 @@ async function renderRuta(forzar = false) {
   if (!navigator.onLine && ruta !== 'cuotas' && !ruta.startsWith('competencia') && !ruta.startsWith('asistencias') && ruta !== 'inicio') ruta = 'inicio';
   history.replaceState(null, '', `#${ruta}`);
   rutaActual = ruta;
+  actualizarPanel(ruta);
 
   const actual = ++vistaRevision;
 

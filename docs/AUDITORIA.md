@@ -2,17 +2,19 @@
 
 Fecha de referencia: 3 de noviembre de 2026 (Ciudad de México). Base auditada: commit `478d048` de `codex/reunion-unificada`. Trabajo aislado en `codex/auditoria-integral`. No se ejecutaron modificaciones contra Supabase ni Vercel de producción.
 
+Actualización del 5 de noviembre de 2026, rama `codex/capitanes-fotos-panel`: migración 024, capitanes unificados, acceso a Abonos, fotos estáticas y navegación lateral. Se actualizaron los hallazgos afectados y el recuento LEV-09 con pruebas locales; el inventario de la auditoría original se conserva como referencia histórica. Validación alojada pendiente: [pruebas manuales](PRUEBAS_MANUALES.md).
+
 ## Alcance y fuentes
 
 Se inspeccionaron los 106 archivos versionados iniciales, más el documento `1.docx` recuperado en adjuntos locales. Hay dos versiones locales: SHA-256 `e574386f0f0008e2d9243b0e691c4df9e4091ff8bb44be4fc4663e602aa6cfa5` (incluye 13 iteraciones) y `eac3643257c78779f86b9f25f271ac6832807c5a0af32a5eb1fc4e9f61f6b19c` (mismos requisitos, sin el apéndice de iteraciones). Se compararon ambos textos; no se incorporaron adjuntos privados al repositorio.
 
-Los RF/RNF se desglosan por enunciado para no declarar completo un módulo que solo tiene una parte. Los IDs con decimal corresponden al orden del enunciado dentro del RF/RNF original. CU-01–12 corresponden a los doce casos de uso. LEV identifica requisitos adicionales del levantamiento o detalles operativos expresamente solicitados en la conversación. El diagrama ER es un modelo propuesto: sus tablas de tareas/retos no demuestran implementación. Las decisiones posteriores del usuario prevalecen en la implementación (Top 15 por clase, captura de puntos exclusiva de directiva, reunión integrada, capitán/subcapitán y cuotas por actividad), pero las diferencias frente al documento se indican.
+Los RF/RNF se desglosan por enunciado para no declarar completo un módulo que solo tiene una parte. Los IDs con decimal corresponden al orden del enunciado dentro del RF/RNF original. CU-01–12 corresponden a los doce casos de uso. LEV identifica requisitos adicionales del levantamiento o detalles operativos expresamente solicitados en la conversación. El diagrama ER es un modelo propuesto: sus tablas de tareas/retos no demuestran implementación. Las decisiones posteriores del usuario prevalecen en la implementación (Top 15 por clase, captura de puntos exclusiva de directiva, reunión integrada, dos capitanes y cuotas por actividad), pero las diferencias frente al documento se indican.
 
 ## Arquitectura real e inventario
 
-Frontend HTML/CSS/JavaScript ES sin framework; router hash en app.js; módulos de UI y servicios Supabase separados. Auth en cliente oficial UMD 2.49.8, PostgreSQL con RPC y RLS, buckets privados de fotos y URLs firmadas. PWA: manifest, service worker de recursos estáticos e IndexedDB por cuenta/proyecto. Vercel es publicación estática configurada fuera del repositorio. No existen Express activo, TypeScript, backend Node, funciones Edge, push ni dependencias de producción npm.
+Frontend HTML/CSS/JavaScript ES sin framework; router hash en app.js; módulos de UI y servicios Supabase separados. Auth en cliente oficial UMD 2.49.8, PostgreSQL con RPC y RLS, fotos estáticas publicadas y compatibilidad con fotos previas en buckets privados mediante URLs firmadas. PWA: manifest, service worker de recursos estáticos e IndexedDB por cuenta/proyecto. Vercel es publicación estática configurada fuera del repositorio. No existen Express activo, TypeScript, backend Node, funciones Edge, push ni dependencias de producción npm.
 
-Dos dependencias npm de desarrollo, ambas utilizadas: PGlite (PostgreSQL real en WASM) y ws (control de Chromium por CDP). No se eliminaron ni actualizaron versiones de librerías. Hay 23 migraciones, un esquema histórico y cuatro scripts administrativos: 28 SQL históricos en total, no aproximadamente 30 instaladores independientes. Había dos archivos llamados README (raíz y vendor), además de siete documentos de estado/módulo; no siete README equivalentes.
+Dos dependencias npm de desarrollo, ambas utilizadas: PGlite (PostgreSQL real en WASM) y ws (control de Chromium por CDP). No se eliminaron ni actualizaron versiones de librerías. Hay 24 migraciones, un esquema histórico y cuatro scripts administrativos: 29 SQL históricos en total, no aproximadamente 30 instaladores independientes. Había dos archivos llamados README (raíz y vendor), además de siete documentos de estado/módulo; no siete README equivalentes.
 
 ## Plan aplicado y decisiones
 
@@ -44,7 +46,7 @@ No se movieron ni borraron las migraciones históricas: las suites dependen de e
 
 ## SQL consolidado y dependencias
 
-El maestro contiene el estado final de **40 tablas, una vista y 79 funciones**. No contiene datos de personas, pagos, asistencia, vínculos Auth ni bitácoras ficticias. Incluye catálogos, criterios, ciclo inicial del año vigente, marcadores de migración y buckets privados. Supabase proporciona Auth, Storage, roles y auth.uid; el maestro no sustituye esos servicios. No se necesitan extensiones de aplicación; UUID usa función nativa.
+El maestro contiene el estado final de **40 tablas, una vista y 80 funciones**. No contiene datos de personas, pagos, asistencia, vínculos Auth ni bitácoras ficticias. Incluye catálogos, criterios, ciclo inicial del año vigente, marcadores de migración y buckets privados. Supabase proporciona Auth, Storage, roles y auth.uid; el maestro no sustituye esos servicios. No se necesitan extensiones de aplicación; UUID usa función nativa.
 
 Orden: precondiciones/transacción → tablas finales → funciones (check_function_bodies desactivado durante restauración para dependencias circulares) → defaults/constraints/FK → índices/vista → semillas → triggers → RLS/policies → grants/revokes → recarga PostgREST. La equivalencia se verifica después, y un flujo real invoca las funciones restauradas. Los CHECK de arrays varchar pueden redistribuir casts al restaurar; el comparador normaliza exclusivamente esa diferencia de representación. Las restricciones NOT NULL se representan como nulabilidad de columna para no requerir sintaxis nueva de PostgreSQL 18.
 
@@ -73,6 +75,7 @@ Orden: precondiciones/transacción → tablas finales → funciones (check_funct
 | 021_cierre_puntajes.sql | Cierre de puntajes y lectura de última cerrada. |
 | 022_reunion_unificada.sql | Guardado/cierre unificado transaccional. |
 | 023_captura_capitan.sql | Panel y acciones limitadas de capitán. |
+| 024_capitanes_fotos.sql | Conversión de subcapitanes, dos capitanes y foto estática de unidad. |
 
 Las cuatro utilidades de database/admin quedan fuera del maestro: dos vinculan cuentas manualmente; dos limpian registros de prueba y son destructivas. No son duplicados de instalación y requieren una decisión administrativa independiente. El maestro no se ejecutó en un proyecto alojado; la prueba usa contrato mínimo de Auth/Storage, no certifica email ni subida real.
 
@@ -83,13 +86,13 @@ Las cuatro utilidades de database/admin quedan fuera del maestro: dos vinculan c
 | ID | Módulo | Funcionalidad | Estado | Observaciones/evidencia |
 | --- | --- | --- | --- | --- |
 | RF-01.1 | Usuarios | Altas, edición y baja lógica de miembros/unidades | Implementada | SQL organización y altas; UI organización/integrantes. La baja conserva históricos. |
-| RF-01.2 | Usuarios | Expediente con salud, tutor, foto e historial de clases | Parcialmente implementada | Perfil básico, contacto y salud privados; foto Storage conectada. Falta historial académico de clases cursadas. |
+| RF-01.2 | Usuarios | Expediente con salud, tutor, foto e historial de clases | Parcialmente implementada | Perfil básico, contacto y salud privados; foto estática conectada, conservando Storage anterior. Falta historial académico de clases cursadas. |
 | RF-01.3 | Preinscripción | Formulario, bandeja y conversión a integrante | No implementada | No hay tabla, RPC ni formulario de prospectos funcional. |
 | RF-02.1 | Estructura dual | Asignación simultánea de clase y unidad | Implementada | organizacion_guardar e integrantes_guardar; suites organización y altas. |
-| RF-02.2 | Estructura dual | Nombrar y revocar hasta dos líderes por unidad | Implementada | Regla vigente: un capitán y un subcapitán; índices y pruebas de unicidad. Sustituye dos capitanes iguales del documento. |
+| RF-02.2 | Estructura dual | Nombrar y revocar hasta dos líderes por unidad | Implementada | Hasta dos capitanes activos; conversión desde subcapitán, trigger con bloqueo y pruebas negativas de tercer cargo. |
 | RF-03.1 | Asistencia | Captura y porcentaje por reunión | Implementada | Matriz unificada, asistencia_resumen; SQL asistencia y reunión unificada; UI Competencia. |
 | RF-03.2 | Tesorería | Cuota, cumplimiento (meta 70%) y puntos automáticos | Implementada | Cuota de $10 por actividad activada, no por semana; SQL cuotas/cierre y Competencia. |
-| RF-03.3 | Asistencia | Justificación según rol y porcentaje | Parcialmente implementada | Directiva y capitán del día comprobados; consejero no justifica; subcapitán no tiene acción en matriz 023. Se preservó esta diferencia. |
+| RF-03.3 | Asistencia | Justificación según rol y porcentaje | Parcialmente implementada | Directiva y capitán del día comprobados; consejero no justifica. Los antiguos subcapitanes pasan a capitán con 024. |
 | RF-04.1 | Competencia | Criterios individuales configurables | Implementada | Parámetros y snapshots, solo directiva según decisión posterior; SQL y UI Competencia. |
 | RF-04.2 | Competencia | Puntos de unidad: individuales más extras grupales | Implementada | Pruebas SQL de detalle, pertenencia histórica y extra con motivo. |
 | RF-04.3 | Competencia | Cortes de periodo y acumulado anual | Implementada | SQL resultados/integrada/cierre; periodos y reapertura UI. |
@@ -124,8 +127,8 @@ Las cuatro utilidades de database/admin quedan fuera del maestro: dos vinculan c
 | CU-01 | Preinscripción | Captación y preinscripción completa | No implementada | Depende de RF-01.3 y permisos anónimos específicos todavía inexistentes. |
 | CU-02 | Usuarios | Gestión de expediente completo | Parcialmente implementada | RF-01.1/2; falta historial de clases y pruebas reales de archivos/Auth. |
 | CU-03 | Estructura dual | Organización y arranque anual | Implementada | RF-02.1/2, RF-07.2; probado en SQL y UI. |
-| CU-04 | Estructura dual | Cultura e identidad de unidad | Implementada | Nombre/lema/porra y ruta de foto con permisos; pruebas organización. Transferencia real Storage requiere integración alojada. |
-| CU-05 | Asistencia | Pase, justificación y porcentaje | Parcialmente implementada | Flujo directiva/capitán probado; alcance de consejero/subcapitán distinto al documento. |
+| CU-04 | Estructura dual | Cultura e identidad de unidad | Implementada | Nombre/lema/porra y ruta de foto con permisos; pruebas organización. Enlace estático probado en SQL/UI; despliegue de imágenes pendiente de prueba alojada. |
+| CU-05 | Asistencia | Pase, justificación y porcentaje | Parcialmente implementada | Flujo directiva/capitán probado; alcance de consejero distinto al documento; cargo subcapitán eliminado. |
 | CU-06 | Tesorería | Cobro y privacidad financiera | Implementada | Pruebas SQL cuota/resumen/privacidad y captura unificada; no importes para lectores. |
 | CU-07 | Competencia | Evaluaciones preliminares por consejero/capitán | Parcialmente implementada | Evaluación existe; por decisión posterior es exclusiva de directiva, sin etapa preliminar/aprobación. |
 | CU-08 | Competencia | Competencia, cortes y retos | Parcialmente implementada | Motor de puntos/cortes/Top probado; falta RF-04.5. |
@@ -141,19 +144,19 @@ Las cuatro utilidades de database/admin quedan fuera del maestro: dos vinculan c
 | LEV-06 | Calendario | Recordatorios de turno de programa | No implementada | No hay turnos ni avisos automáticos de programa. |
 | LEV-07 | Mapa | Mapa de domicilios exclusivo de directiva | No implementada | Sin coordenadas, captura de domicilio geográfico ni pantalla/RPC de mapa. |
 | LEV-08 | Especialidades | Especialidades en curso e impartidas por ciclo | No implementada | Relación de insignias obtenidas no modela curso/progreso/historial de impartición. |
-| LEV-09 | Tesorería | Anticipos y correcciones de ingreso | Parcialmente implementada | Servidor conserva anticipos/corrección/anulación. Historial permite corregir/anular; entrada de anticipo quedó en pantalla de cobro oculta en refactor anterior. |
+| LEV-09 | Tesorería | Abonos y correcciones de ingreso | Implementada | RPC de pago/saldo/corrección/anulación comprobada en SQL; entrada Registrar abono en Historial financiero y envío de $50/5000 centavos probados en Chromium. |
 | LEV-10 | PWA | Resolución de conflictos sin pérdida/duplicación | Implementada | UUID, versión, época y cola por cuenta; pruebas SQL e interfaz de reintento y dos unidades offline. |
 
 ## Resumen ejecutivo y cálculo
 
 Total: **61 entradas evaluadas** (RF desglosados, RNF, CU y adicionales del levantamiento).
 
-- Implementada: **23**.
-- Parcialmente implementada: **17**.
+- Implementada: **24**.
+- Parcialmente implementada: **16**.
 - No implementada: **15**.
 - Pendiente de verificación: **6**.
 
-Cumplimiento estricto: **23/61 = 37.70%**. Parciales y pendientes de verificación valen cero en este indicador; no se usan medias ponderadas inventadas. Los CU se cuentan como entradas explícitas, aunque dependan de RF; el resultado no debe interpretarse como porcentaje de código completado.
+Cumplimiento estricto: **24/61 = 39.34%**. Parciales y pendientes de verificación valen cero en este indicador; no se usan medias ponderadas inventadas. Los CU se cuentan como entradas explícitas, aunque dependan de RF; el resultado no debe interpretarse como porcentaje de código completado.
 
 | Módulo | Evaluados | Implementados | Cumplimiento estricto |
 | --- | ---: | ---: | ---: |
@@ -173,7 +176,7 @@ Cumplimiento estricto: **23/61 = 37.70%**. Parciales y pendientes de verificaci�
 | Rendimiento | 2 | 0 | 0.00% |
 | Retos | 1 | 0 | 0.00% |
 | Seguridad | 8 | 3 | 37.50% |
-| Tesorería | 3 | 2 | 66.67% |
+| Tesorería | 3 | 3 | 100.00% |
 | Usuarios | 5 | 1 | 20.00% |
 
 Cobertura del levantamiento: estructura dual → RF-02/LEV-02; usuarios → RF-01/LEV-01/05; roles → RF-08; evaluación → RF-04/LEV-03/04; académico/especialidades → RF-05/LEV-08; asistencia/finanzas → RF-03/LEV-09; calendario/comunicación → RF-06/LEV-06; ciclos → RF-07; público → RF-01.3/LEV-05; offline → RNF-01/02/04 y LEV-10; mapa → LEV-07. Los doce casos de uso están listados individualmente. El apéndice de iteraciones no añade requisitos diferentes: 0/12 son validación/lanzamiento; 1/2 seguridad; 3/4 organización/miembros; 5/6 asistencia/tesorería; 7/8 académico/especialidades; 9 competencia/retos; 10 calendario/push; 11 prospectos/mapa.
@@ -183,8 +186,8 @@ Cobertura del levantamiento: estructura dual → RF-02/LEV-02; usuarios → RF-0
 | Prioridad | Tipo | Hallazgo real | Qué falta / siguiente desarrollo |
 | --- | --- | --- | --- |
 | Crítica | Verificación de seguridad | No se validó servicio Auth/Storage alojado ni todas las combinaciones de acceso a salud/contacto. | Proyecto de prueba, cuentas reales por rol/unidad/clase, peticiones manipuladas, expiración/revocación, URLs firmadas y recuperación de contraseña. No abrir RLS para facilitar pruebas. |
-| Alta | Parcial / diferencia de rol previa | 023 solo habilita capitán en matriz; subcapitán no recibe los controles aunque existen permisos legados de cuotas. Consejero no justifica. | Confirmar matriz vigente y ampliar de forma explícita cliente + SQL + pruebas negativas, separado de refactorización. |
-| Alta | Backend sin entrada funcional | Anticipos/abonos permanecen en RPC y en un formulario del cobro antiguo oculto. | Entrada explícita en Historial financiero, permisos directiva, importes, selección de actividades y prueba de saldo/cierre. |
+| Alta | Diferencia de rol pendiente | Consejero no justifica; ambos capitanes ahora comparten las acciones de 023. | Cualquier ampliación a consejeros requiere decisión de negocio y pruebas negativas de permisos. |
+| Resuelto localmente | Abonos | Entrada visible en Historial financiero, solo directiva, usando RPC y cola existentes. | Completar prueba alojada de abono, aplicación de saldo y cierre según PRUEBAS_MANUALES.md. |
 | Alta | No implementada | Cuadernillos, tareas y consejero académico de clase. | Modelo requisitos/entregas/evaluaciones por ciclo; asignación docente; RPC/RLS dual y pantallas. |
 | Alta | Backend parcial / frontend de lectura | Especialidades solo tiene consulta y banda; no alta/otorgamiento masivo ni estado en curso. | Catálogo administrable, operación transaccional de otorgamiento, autoría, ciclo y pruebas de permisos. |
 | Alta | Parcial | Archivo anual integral. | Selector histórico de resultados/asistencia/cuotas y especialidades, preservar snapshots de pertenencia. |
@@ -214,7 +217,7 @@ Límites: no se desplegó Vercel, no se ejecutó el maestro en un Supabase aloja
 
 ## Roadmap recomendado
 
-1. **Cerrar seguridad e integración alojada.** Supabase de pruebas con maestro, primer acceso, correo/recuperación, subida/firma de fotos y matriz de acceso negativa. Resolver acciones de subcapitán/consejero y acceso a anticipos según decisión de negocio. Antes de finalizar: RLS, idempotencia, no fuga de datos y rollback de cobros.
+1. **Cerrar seguridad e integración alojada.** Supabase de pruebas con maestro, primer acceso, correo/recuperación, vínculo de fotos estáticas/firma de fotos anteriores y matriz de acceso negativa. Verificar ambos capitanes y Abonos; definir cualquier ampliación a consejeros. Antes de finalizar: RLS, idempotencia, no fuga de datos y rollback de cobros.
 2. **Completar académico y especialidades.** Primero asignación de consejero de clase y modelo por ciclo; después requisitos/tareas y otorgamiento. Biblioteca depende de especialidades/autorización. Antes de finalizar: consejero no evalúa otra clase, otorgamiento masivo atómico, progreso y acceso a archivos.
 3. **Cerrar competencia e historial.** Retos depende de motor de puntos; archivo usa inscripciones/snapshots ya existentes. Pueden desarrollarse en paralelo con académico una vez estabilizado ciclo/permisos. Probar cortes/reaperturas, fronteras de fechas, cambio de unidad y acumulado sin doble conteo.
 4. **Agenda y comunicación.** Turnos primero, recorrido después, recordatorios/push al final. Probar cancelaciones simultáneas, ausencia de duplicados, caducidad de suscripciones y permisos.
@@ -223,7 +226,7 @@ Límites: no se desplegó Vercel, no se ejecutó el maestro en un Supabase aloja
 
 ## Uso de la nueva estructura
 
-Para nueva instalación: README → supabase/schema.sql → crear/vincular primera cuenta → configurar frontend → build/publicación estática. Para base existente con 023: no aplicar el maestro; esta rama no cambia esquema en producción. Las migraciones siguen disponibles para upgrades. Regenerar el maestro solo después de cambios SQL y comprobar equivalencia. El archivo es un snapshot instalable, no una segunda implementación de reglas editada manualmente.
+Para nueva instalación: README → supabase/schema.sql → crear/vincular primera cuenta → configurar frontend → build/publicación estática. Para base existente con 023: no aplicar el maestro; ejecutar únicamente 024_capitanes_fotos.sql en el entorno que corresponda. No se aplicó automáticamente a Supabase. Las migraciones siguen disponibles para upgrades. Regenerar el maestro solo después de cambios SQL y comprobar equivalencia. El archivo es un snapshot instalable, no una segunda implementación de reglas editada manualmente.
 
 <details><summary>Inventario completo inicial de archivos versionados</summary>
 
